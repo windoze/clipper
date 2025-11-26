@@ -4,12 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Clipper is a clipboard management system with five main components:
+Clipper is a clipboard management system with six main components:
 - **clipper-indexer**: Core library for indexing and searching clipboard entries using SurrealDB (RocksDB backend) and object_store
 - **clipper-server**: REST API server with WebSocket support for real-time clip updates
 - **clipper-client**: Rust client library for interacting with the server REST API and WebSocket
 - **clipper-cli**: Command-line interface application for managing clips
-- **clipper**: Future GUI application (currently placeholder)
+- **clipper** (Tauri): Desktop GUI application built with Tauri 2 + React + TypeScript
+- **clipper-slint**: Alternative GUI application built with Slint UI framework
 
 ## Build & Test Commands
 
@@ -24,9 +25,24 @@ cargo build -p clipper-indexer
 cargo build -p clipper-server
 cargo build -p clipper-client
 cargo build -p clipper-cli
+cargo build -p clipper          # Tauri backend (requires frontend build first)
+cargo build -p clipper-slint
 
 # Release build
 cargo build --workspace --release
+```
+
+### Tauri Application
+
+```bash
+# Install frontend dependencies
+cd clipper && npm install
+
+# Development mode (runs both frontend and backend)
+cd clipper && npm run tauri dev
+
+# Build production app
+cd clipper && npm run tauri build
 ```
 
 ### Testing
@@ -103,7 +119,36 @@ cargo run --bin clipper-cli -- watch
    - Output formats: JSON (default) or text
    - Watch command outputs NDJSON (newline-delimited JSON) for real-time updates
 
-5. **Database Schema (SurrealDB)**
+5. **clipper (Tauri Desktop App)**
+   - **Frontend**: React 19 + TypeScript + Vite
+   - **Backend**: Tauri 2 with Rust
+   - **Features**:
+     - System tray with show/hide and quit menu
+     - Clipboard monitoring (text and images) with polling
+     - WebSocket connection for real-time sync
+     - Drag-and-drop file upload
+     - Settings dialog with theme support (light/dark/auto)
+     - Auto-launch on login (macOS, Linux, Windows)
+     - Favorites tagging system
+     - Infinite scroll clip list
+     - Image preview popup
+   - **Key Modules** (in `clipper/src-tauri/src/`):
+     - `lib.rs`: Tauri app setup, plugin initialization, event handlers
+     - `state.rs`: AppState with ClipperClient
+     - `commands.rs`: Tauri commands (list_clips, search_clips, create_clip, etc.)
+     - `clipboard.rs`: Clipboard monitoring with text/image support
+     - `websocket.rs`: WebSocket listener for real-time notifications
+     - `settings.rs`: Settings persistence (JSON file in app config dir)
+     - `tray.rs`: System tray setup
+     - `autolaunch.rs`: Platform-specific auto-start configuration
+
+6. **clipper-slint (Slint GUI - Alternative)**
+   - Built with Slint 1.14 UI framework
+   - Uses Skia renderer with Winit backend
+   - Simpler architecture than Tauri version
+   - Connects to clipper-server via clipper-client
+
+7. **Database Schema (SurrealDB)**
    - Table: `clipboard` with fields: id, content, created_at, tags, additional_notes, file_attachment, search_content
    - Indexes: created_at, tags, full-text search on search_content
    - Schema auto-initialized in `ClipperIndexer::new()`
@@ -116,6 +161,8 @@ cargo run --bin clipper-cli -- watch
 - **Testing**: Server and client tests use temporary databases (TempDir) for isolation
 - **Pagination**: Implemented at indexer level with `PagingParams` and `PagedResult<T>`, exposed through API and CLI
 - **Configuration Management**: Multi-source configuration with priority: CLI args > env vars > config file > defaults
+- **Tauri State**: Uses Tauri's managed state for AppState and SettingsManager
+- **Clipboard Loop Prevention**: Last synced content tracked to prevent infinite clipboard-to-server loop
 
 ## Important Patterns
 
@@ -139,12 +186,18 @@ clipper-cli search "hello" --page 1 --page-size 20
 ### Adding New API Endpoints
 
 1. Add handler function in `clipper-server/src/api.rs`
-2. Register route in `pub fn routes()` 
+2. Register route in `pub fn routes()`
 3. If it modifies clips, call `state.notify_*()` for WebSocket updates
 4. Add test in `clipper-server/tests/api_tests.rs`
 5. Add client method in `clipper-client/src/lib.rs`
 6. Add test in `clipper-client/tests/integration_tests.rs`
 7. Add CLI command in `clipper-cli/src/main.rs` if user-facing
+
+### Adding New Tauri Commands
+
+1. Add function with `#[tauri::command]` attribute in `clipper/src-tauri/src/commands.rs`
+2. Register in `invoke_handler` in `clipper/src-tauri/src/lib.rs`
+3. Call from frontend using `invoke()` from `@tauri-apps/api/core`
 
 ### Working with ClipperIndexer
 
@@ -182,6 +235,24 @@ while let Some(notification) = rx.recv().await {
 }
 ```
 
+### Tauri Events
+
+The Tauri app emits events to the frontend:
+
+```typescript
+// Listen for new clips
+import { listen } from "@tauri-apps/api/event";
+
+await listen("new-clip", (event) => {
+  console.log("New clip:", event.payload);
+});
+
+await listen("clip-updated", (event) => { /* ... */ });
+await listen("clip-deleted", (event) => { /* ... */ });
+await listen("clip-created", (event) => { /* ... */ }); // From clipboard monitor
+await listen("open-settings", () => { /* ... */ }); // From tray menu
+```
+
 ### Error Handling
 
 - `clipper_indexer::IndexerError` - core library errors
@@ -189,6 +260,7 @@ while let Some(notification) = rx.recv().await {
 - `clipper_client::ClientError` - client-specific errors
 - Server errors automatically converted to JSON responses with appropriate HTTP status codes
 - CLI uses anyhow for error context
+- Tauri commands return `Result<T, String>` for frontend error handling
 
 ## Environment Configuration
 
@@ -212,6 +284,20 @@ Environment variables:
 
 Environment variables:
 - `CLIPPER_URL` - Server URL (default: `http://localhost:3000`)
+
+### Tauri App Configuration
+
+Settings stored in platform-specific config directory:
+- macOS: `~/Library/Application Support/com.chenxu.clipper/settings.json`
+- Linux: `~/.config/com.chenxu.clipper/settings.json`
+- Windows: `%APPDATA%\com.chenxu.clipper\settings.json`
+
+Settings include:
+- `serverAddress`: Server URL (default: `http://localhost:3000`)
+- `defaultSaveLocation`: Optional default save path
+- `openOnStartup`: Show window on app start
+- `startOnLogin`: Auto-launch on system login
+- `theme`: "light" | "dark" | "auto"
 
 ## Testing Notes
 
@@ -252,21 +338,56 @@ clipper-cli delete <id>
 clipper-cli watch  # Real-time notifications as NDJSON
 ```
 
+### Tauri Commands
+
+```typescript
+// Available via invoke() from @tauri-apps/api/core
+list_clips(filters: SearchFiltersInput, page: number, page_size: number): Promise<PagedResult>
+search_clips(query: string, filters: SearchFiltersInput, page: number, page_size: number): Promise<PagedResult>
+create_clip(content: string, tags: string[], additional_notes?: string): Promise<Clip>
+update_clip(id: string, tags?: string[], additional_notes?: string): Promise<Clip>
+delete_clip(id: string): Promise<void>
+get_clip(id: string): Promise<Clip>
+copy_to_clipboard(content: string): Promise<void>
+upload_file(path: string, tags: string[], additional_notes?: string): Promise<Clip>
+get_file_url(clip_id: string): string
+download_file(clip_id: string, filename: string): Promise<string>
+get_settings(): Settings
+save_settings(settings: Settings): Promise<void>
+browse_directory(): Promise<string | null>
+check_auto_launch_status(): Promise<boolean>
+```
+
 ## Project Status
 
 ### Completed
-- ✅ Core indexer with full-text search and pagination
-- ✅ REST API server with all CRUD operations
-- ✅ WebSocket real-time notifications
-- ✅ File attachment support
-- ✅ Rust client library with full API coverage
-- ✅ CLI application with all major operations
-- ✅ Multi-source configuration system
-- ✅ Comprehensive test coverage (54+ tests across packages)
+- Core indexer with full-text search and pagination
+- REST API server with all CRUD operations
+- WebSocket real-time notifications
+- File attachment support (including images)
+- Rust client library with full API coverage
+- CLI application with all major operations
+- Multi-source configuration system
+- Comprehensive test coverage (54+ tests across packages)
+- **Tauri Desktop Application**:
+  - React frontend with TypeScript
+  - System tray integration
+  - Clipboard monitoring (text and images)
+  - WebSocket real-time sync
+  - Settings persistence
+  - Theme support (light/dark/auto)
+  - Auto-launch on login
+  - Drag-and-drop file upload
+  - Infinite scroll clip list
+  - Image preview
+  - Favorites system
+- Slint GUI alternative (basic implementation)
 
 ### Future Work
-- 🔲 GUI application (clipper package)
-- 🔲 File content preview/rendering
-- 🔲 Advanced search operators
-- 🔲 Export/import functionality
-- 🔲 Clipboard monitoring daemon
+- Bundled server (embed clipper-server in Tauri app)
+- File content preview/rendering improvements
+- Advanced search operators
+- Export/import functionality
+- Clipboard monitoring daemon (standalone)
+- Keyboard shortcuts
+- Global hotkey support

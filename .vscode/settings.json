@@ -1,5 +1,16 @@
 {
     "cSpell.words": [
-        "surrealdb"
+        "autolaunch",
+        "hkcu",
+        "mpsc",
+        "println",
+        "Skia",
+        "subkey",
+        "surrealdb",
+        "Tauri",
+        "tungstenite",
+        "unlisten",
+        "Winit",
+        "winreg"
     ]
 }
