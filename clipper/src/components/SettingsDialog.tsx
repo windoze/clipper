@@ -29,6 +29,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [serverUrl, setServerUrl] = useState<string>("");
+  const [isBundledServer, setIsBundledServer] = useState(false);
 
   // Store the original theme when dialog opens to revert on cancel
   const originalThemeRef = useRef<ThemePreference>("auto");
@@ -37,6 +39,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   useEffect(() => {
     if (isOpen) {
       loadSettings();
+      loadServerInfo();
     }
   }, [isOpen]);
 
@@ -52,6 +55,19 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
       setError(`Failed to load settings: ${e}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadServerInfo = async () => {
+    try {
+      const [url, bundled] = await Promise.all([
+        invoke<string>("get_server_url"),
+        invoke<boolean>("is_bundled_server"),
+      ]);
+      setServerUrl(url);
+      setIsBundledServer(bundled);
+    } catch (e) {
+      console.error("Failed to load server info:", e);
     }
   };
 
@@ -162,19 +178,33 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
               <div className="settings-section">
                 <h3>Server</h3>
                 <div className="settings-field">
-                  <label htmlFor="serverAddress">Server Address</label>
-                  <input
-                    id="serverAddress"
-                    type="text"
-                    value={settings.serverAddress}
-                    onChange={(e) =>
-                      handleChange("serverAddress", e.target.value)
-                    }
-                    placeholder="http://localhost:3000"
-                  />
+                  <label htmlFor="serverUrl">Server URL</label>
+                  <div className="settings-url-input">
+                    <input
+                      id="serverUrl"
+                      type="text"
+                      value={serverUrl}
+                      readOnly
+                      className="settings-readonly with-copy"
+                    />
+                    <button
+                      type="button"
+                      className="copy-icon-button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(serverUrl);
+                      }}
+                      title="Copy to clipboard"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    </button>
+                  </div>
                   <p className="settings-hint">
-                    URL of the Clipper server for syncing clips. Changes require
-                    app restart.
+                    {isBundledServer
+                      ? "Using bundled server (automatically managed). Data is stored in the application data directory."
+                      : "Connected to external server."}
                   </p>
                 </div>
               </div>

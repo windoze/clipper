@@ -1,23 +1,26 @@
 mod autolaunch;
 mod clipboard;
 mod commands;
+mod server;
 mod settings;
 mod state;
 mod tray;
 mod websocket;
 
+use server::{get_server_data_dir, ServerManager};
 use settings::{get_app_config_dir, SettingsManager};
 use state::AppState;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
-use tauri::{DragDropEvent, Emitter, Manager};
+use tauri::{DragDropEvent, Emitter, Manager, RunEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
             // Initialize settings manager
             let config_dir = get_app_config_dir(app.handle())?;
@@ -32,17 +35,38 @@ pub fn run() {
                 }
             });
 
-            // Get the server URL from settings
-            let settings = settings_manager.get();
-            let base_url = settings.server_address.clone();
+            // Get the server data directory for the bundled server
+            let server_data_dir = get_server_data_dir(app.handle())?;
+            let server_manager = ServerManager::new(server_data_dir);
+
+            // Start the bundled server and get its URL
+            let app_handle_for_server = app.handle().clone();
+            let server_url = tauri::async_runtime::block_on(async {
+                match server_manager.start(&app_handle_for_server).await {
+                    Ok(url) => {
+                        eprintln!("Bundled server started at: {}", url);
+                        url
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to start bundled server: {}. Falling back to settings.", e);
+                        // Fall back to settings if bundled server fails
+                        settings_manager.get().server_address.clone()
+                    }
+                }
+            });
+
+            // Register server manager
+            app.manage(server_manager);
 
             // Register settings manager
             app.manage(settings_manager.clone());
 
-            let app_state = AppState::new(&base_url);
+            // Create app state with the server URL
+            let app_state = AppState::new(&server_url);
             app.manage(app_state);
 
             // Handle window visibility based on settings
+            let settings = settings_manager.get();
             if !settings.open_on_startup {
                 if let Some(window) = app_handle.get_webview_window("main") {
                     let _ = window.hide();
@@ -91,7 +115,7 @@ pub fn run() {
                 tauri::WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) => {
                     let app = window.app_handle();
                     let state = app.state::<AppState>();
-                    let client = state.client().clone();
+                    let client = state.client();
 
                     for path in paths {
                         let path = path.clone();
@@ -150,7 +174,22 @@ pub fn run() {
             commands::save_settings,
             commands::browse_directory,
             commands::check_auto_launch_status,
+            commands::get_server_url,
+            commands::is_bundled_server,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    // Run the app with exit handler to stop the bundled server
+    app.run(|app_handle, event| {
+        if let RunEvent::Exit = event {
+            // Stop the bundled server when the app exits
+            let server_manager = app_handle.state::<ServerManager>();
+            tauri::async_runtime::block_on(async {
+                if let Err(e) = server_manager.stop().await {
+                    eprintln!("Failed to stop bundled server: {}", e);
+                }
+            });
+        }
+    });
 }

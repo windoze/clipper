@@ -749,13 +749,54 @@ body {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.settings-field input[type="text"].settings-readonly {
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: default;
+}
+
+.settings-field input[type="text"].settings-readonly:focus {
+  border-color: #dee2e6;
+  box-shadow: none;
+}
+
 .settings-path-input {
   display: flex;
   gap: 8px;
 }
 
+.settings-url-input {
+  position: relative;
+}
+
 .settings-path-input input {
   flex: 1;
+}
+
+.settings-url-input input.with-copy {
+  padding-right: 36px;
+}
+
+.copy-icon-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.copy-icon-button:hover {
+  color: #495057;
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .browse-button {
@@ -1051,6 +1092,24 @@ body {
   border-color: #667eea;
 }
 
+:root[data-theme="dark"] .settings-field input[type="text"].settings-readonly {
+  background: #363636;
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-field input[type="text"].settings-readonly:focus {
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .copy-icon-button {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .copy-icon-button:hover {
+  color: #e9ecef;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 :root[data-theme="dark"] .browse-button,
 :root[data-theme="dark"] .theme-option {
   background: #404040;
@@ -1254,6 +1313,24 @@ body {
 
   :root:not([data-theme="light"]) .settings-field input[type="text"]:focus {
     border-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .settings-field input[type="text"].settings-readonly {
+    background: #363636;
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .settings-field input[type="text"].settings-readonly:focus {
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .copy-icon-button {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .copy-icon-button:hover {
+    color: #e9ecef;
+    background: rgba(255, 255, 255, 0.1);
   }
 
   :root:not([data-theme="light"]) .browse-button,

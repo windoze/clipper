@@ -1,4 +1,5 @@
 use crate::autolaunch;
+use crate::server::ServerManager;
 use crate::settings::{Settings, SettingsManager};
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
@@ -230,4 +231,24 @@ pub async fn browse_directory(app: tauri::AppHandle) -> Result<Option<String>, S
 #[tauri::command]
 pub fn check_auto_launch_status() -> Result<bool, String> {
     autolaunch::is_auto_launch_enabled()
+}
+
+/// Get the current server URL (from bundled server or settings)
+#[tauri::command]
+pub async fn get_server_url(
+    server_manager: State<'_, ServerManager>,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    // If bundled server is running, return its URL
+    if let Some(url) = server_manager.server_url().await {
+        return Ok(url);
+    }
+    // Otherwise return the configured URL from AppState
+    Ok(state.base_url())
+}
+
+/// Check if we're using the bundled server
+#[tauri::command]
+pub async fn is_bundled_server(server_manager: State<'_, ServerManager>) -> Result<bool, String> {
+    Ok(server_manager.is_running().await)
 }
