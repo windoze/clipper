@@ -20,7 +20,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .icon(tray_icon)
         .icon_as_template(true)
         .menu(&menu)
-        .show_menu_on_left_click(false)
+        .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show_hide" => {
                 if let Some(window) = app.get_webview_window("main") {

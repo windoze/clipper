@@ -21,4 +21,5 @@ serde_json = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "sync", "time"] }
 clipper-client = { path = "../../clipper-client" }
 chrono = { version = "0.4", features = ["serde"] }
-arboard = "3"
+arboard = { version = "3", features = ["image-data"] }
+image = "0.25"
