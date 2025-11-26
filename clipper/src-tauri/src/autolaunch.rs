@@ -81,7 +81,7 @@ fn get_app_executable_path() -> Result<PathBuf, String> {
     // In production (inside .app bundle), use the .app path
     if let Some(app_path) = exe_path
         .ancestors()
-        .find(|p| p.extension().map_or(false, |e| e == "app"))
+        .find(|p| p.extension().is_some_and(|e| e == "app"))
     {
         Ok(app_path.to_path_buf())
     } else {
