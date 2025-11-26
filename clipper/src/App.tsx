@@ -34,7 +34,10 @@ function App() {
     <DropZone>
       <div className="app">
         <header className="app-header">
-          <h1 className="app-title">Clipper</h1>
+          <div className="app-title-group">
+            <img src="/clipper-icon.svg" alt="Clipper" className="app-icon" />
+            <h1 className="app-title">Clipper</h1>
+          </div>
           <div className="header-buttons">
             <button className="settings-button" onClick={openSettings} title="Settings">
               &#9881;
