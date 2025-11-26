@@ -1,9 +1,11 @@
 import { useClips } from "./hooks/useClips";
+import { useTheme } from "./hooks/useTheme";
 import { SearchBox } from "./components/SearchBox";
 import { DateFilter } from "./components/DateFilter";
 import { FavoriteToggle } from "./components/FavoriteToggle";
 import { ClipList } from "./components/ClipList";
 import { DropZone } from "./components/DropZone";
+import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
 import "./App.css";
 
 function App() {
@@ -25,14 +27,22 @@ function App() {
     toggleFavorite,
   } = useClips();
 
+  const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
+  const { updateTheme } = useTheme();
+
   return (
     <DropZone>
       <div className="app">
         <header className="app-header">
           <h1 className="app-title">Clipper</h1>
-          <button className="refresh-button" onClick={refetch} title="Refresh">
-            ↻
-          </button>
+          <div className="header-buttons">
+            <button className="settings-button" onClick={openSettings} title="Settings">
+              &#9881;
+            </button>
+            <button className="refresh-button" onClick={refetch} title="Refresh">
+              ↻
+            </button>
+          </div>
         </header>
 
         <div className="filters-bar">
@@ -56,6 +66,8 @@ function App() {
             onLoadMore={loadMore}
           />
         </main>
+
+        <SettingsDialog isOpen={isSettingsOpen} onClose={closeSettings} onThemeChange={updateTheme} />
       </div>
     </DropZone>
   );

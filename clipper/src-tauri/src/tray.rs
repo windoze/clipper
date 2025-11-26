@@ -4,16 +4,17 @@ use tauri::{
     include_image,
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Manager,
+    AppHandle, Emitter, Manager,
 };
 
 pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let show_hide_item =
         MenuItem::with_id(app, "show_hide", "Show/Hide Main Window", true, None::<&str>)?;
+    let settings_item = MenuItem::with_id(app, "settings", "Settings...", true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, "quit", "Quit Application", true, None::<&str>)?;
 
-    let menu = Menu::with_items(app, &[&show_hide_item, &separator, &quit_item])?;
+    let menu = Menu::with_items(app, &[&show_hide_item, &settings_item, &separator, &quit_item])?;
 
     // Use the tray icon embedded at compile time via include_image! macro
     let tray_icon = include_image!("icons/tray-icon.png");
@@ -39,6 +40,19 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                         let _ = window.set_focus();
                     }
                 }
+            }
+            "settings" => {
+                // Show the window first if hidden
+                if let Some(window) = app.get_webview_window("main") {
+                    if !window.is_visible().unwrap_or(false) {
+                        #[cfg(target_os = "macos")]
+                        let _ = app.set_activation_policy(ActivationPolicy::Regular);
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                }
+                // Emit event to open settings dialog in the frontend
+                let _ = app.emit("open-settings", ());
             }
             "quit" => {
                 app.exit(0);

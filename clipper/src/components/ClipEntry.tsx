@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Clip, isFavorite, FAVORITE_TAG } from "../types";
+import { Clip, isFavorite } from "../types";
 import { invoke } from "@tauri-apps/api/core";
 import { ImagePopup } from "./ImagePopup";
 

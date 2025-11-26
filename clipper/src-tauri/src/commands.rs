@@ -1,3 +1,5 @@
+use crate::autolaunch;
+use crate::settings::{Settings, SettingsManager};
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
 use clipper_client::models::PagedResult;
@@ -189,4 +191,43 @@ pub async fn download_file(
         .map_err(|e| e.to_string())?;
 
     Ok(path_str)
+}
+
+// ============ Settings Commands ============
+
+/// Get the current settings
+#[tauri::command]
+pub fn get_settings(settings_manager: State<'_, SettingsManager>) -> Settings {
+    settings_manager.get()
+}
+
+/// Save settings
+#[tauri::command]
+pub async fn save_settings(
+    settings_manager: State<'_, SettingsManager>,
+    settings: Settings,
+) -> Result<(), String> {
+    // Handle auto-launch setting change
+    let current = settings_manager.get();
+    if current.start_on_login != settings.start_on_login {
+        autolaunch::set_auto_launch(settings.start_on_login).await?;
+    }
+
+    settings_manager.update(settings).await
+}
+
+/// Browse for a directory (for default save location)
+#[tauri::command]
+pub async fn browse_directory(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    let folder = app.dialog().file().blocking_pick_folder();
+
+    Ok(folder.map(|p| p.to_string()))
+}
+
+/// Check if auto-launch is currently enabled (from system, not settings)
+#[tauri::command]
+pub fn check_auto_launch_status() -> Result<bool, String> {
+    autolaunch::is_auto_launch_enabled()
 }

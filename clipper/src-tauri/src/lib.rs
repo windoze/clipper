@@ -1,26 +1,55 @@
+mod autolaunch;
 mod clipboard;
 mod commands;
+mod settings;
 mod state;
 mod tray;
 mod websocket;
 
+use settings::{get_app_config_dir, SettingsManager};
 use state::AppState;
-use std::env;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
 use tauri::{DragDropEvent, Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let base_url = env::var("CLIPPER_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
-
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
+            // Initialize settings manager
+            let config_dir = get_app_config_dir(app.handle())?;
+            let settings_manager = SettingsManager::new(config_dir);
+
+            // Load settings synchronously during setup
+            let app_handle = app.handle().clone();
+            let settings_manager_clone = settings_manager.clone();
+            tauri::async_runtime::block_on(async move {
+                if let Err(e) = settings_manager_clone.init().await {
+                    eprintln!("Failed to load settings: {}", e);
+                }
+            });
+
+            // Get the server URL from settings
+            let settings = settings_manager.get();
+            let base_url = settings.server_address.clone();
+
+            // Register settings manager
+            app.manage(settings_manager.clone());
+
             let app_state = AppState::new(&base_url);
             app.manage(app_state);
+
+            // Handle window visibility based on settings
+            if !settings.open_on_startup {
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    let _ = window.hide();
+                    #[cfg(target_os = "macos")]
+                    let _ = app_handle.set_activation_policy(ActivationPolicy::Accessory);
+                }
+            }
 
             // Setup system tray
             if let Err(e) = tray::setup_tray(app.handle()) {
@@ -117,6 +146,10 @@ pub fn run() {
             commands::upload_file,
             commands::get_file_url,
             commands::download_file,
+            commands::get_settings,
+            commands::save_settings,
+            commands::browse_directory,
+            commands::check_auto_launch_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
