@@ -264,10 +264,33 @@
   animation: spin 1s linear infinite;
 }
 
+.loading-spinner.small {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Load More / Infinite Scroll */
+.load-more-trigger {
+  min-height: 1px;
+}
+
+.clip-list-status.loading-more {
+  padding: 16px;
+  font-size: 13px;
+}
+
+.clip-list-status.end-of-list {
+  padding: 16px;
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.7;
 }
 
 /* Clip Entry */

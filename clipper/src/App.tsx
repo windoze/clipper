@@ -10,8 +10,10 @@ function App() {
   const {
     clips,
     loading,
+    loadingMore,
     error,
     total,
+    hasMore,
     searchQuery,
     setSearchQuery,
     filters,
@@ -19,6 +21,7 @@ function App() {
     favoritesOnly,
     setFavoritesOnly,
     refetch,
+    loadMore,
     toggleFavorite,
   } = useClips();
 
@@ -46,8 +49,11 @@ function App() {
           <ClipList
             clips={clips}
             loading={loading}
+            loadingMore={loadingMore}
             error={error}
+            hasMore={hasMore}
             onToggleFavorite={toggleFavorite}
+            onLoadMore={loadMore}
           />
         </main>
       </div>

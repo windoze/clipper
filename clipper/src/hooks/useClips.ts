@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Clip, PagedResult, SearchFilters, FAVORITE_TAG } from "../types";
@@ -6,10 +6,12 @@ import { Clip, PagedResult, SearchFilters, FAVORITE_TAG } from "../types";
 interface UseClipsState {
   clips: Clip[];
   loading: boolean;
+  loadingMore: boolean;
   error: string | null;
   total: number;
   page: number;
   totalPages: number;
+  hasMore: boolean;
 }
 
 interface UseClipsReturn extends UseClipsState {
@@ -20,70 +22,111 @@ interface UseClipsReturn extends UseClipsState {
   favoritesOnly: boolean;
   setFavoritesOnly: (value: boolean) => void;
   refetch: () => void;
+  loadMore: () => void;
   toggleFavorite: (clip: Clip) => Promise<void>;
 }
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 export function useClips(): UseClipsReturn {
   const [state, setState] = useState<UseClipsState>({
     clips: [],
     loading: true,
+    loadingMore: false,
     error: null,
     total: 0,
     page: 1,
     totalPages: 0,
+    hasMore: false,
   });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<SearchFilters>({});
   const [favoritesOnly, setFavoritesOnly] = useState(false);
 
-  const fetchClips = useCallback(async () => {
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+  // Track current filters to prevent race conditions
+  const currentFiltersRef = useRef({ searchQuery, filters, favoritesOnly });
 
-    try {
-      const effectiveFilters: SearchFilters = { ...filters };
-      if (favoritesOnly) {
-        effectiveFilters.tags = [
-          ...(effectiveFilters.tags || []),
-          FAVORITE_TAG,
-        ];
-      }
-
-      let result: PagedResult;
-
-      if (searchQuery.trim()) {
-        result = await invoke<PagedResult>("search_clips", {
-          query: searchQuery,
-          filters: effectiveFilters,
-          page: 1,
-          pageSize: PAGE_SIZE,
-        });
-      } else {
-        result = await invoke<PagedResult>("list_clips", {
-          filters: effectiveFilters,
-          page: 1,
-          pageSize: PAGE_SIZE,
-        });
-      }
-
-      setState({
-        clips: result.items,
-        loading: false,
-        error: null,
-        total: result.total,
-        page: result.page,
-        totalPages: result.total_pages,
-      });
-    } catch (err) {
-      setState((prev) => ({
-        ...prev,
-        loading: false,
-        error: err instanceof Error ? err.message : String(err),
-      }));
-    }
+  // Update ref when filters change
+  useEffect(() => {
+    currentFiltersRef.current = { searchQuery, filters, favoritesOnly };
   }, [searchQuery, filters, favoritesOnly]);
+
+  const fetchClips = useCallback(
+    async (page: number = 1, append: boolean = false) => {
+      if (append) {
+        setState((prev) => ({ ...prev, loadingMore: true }));
+      } else {
+        setState((prev) => ({ ...prev, loading: true, error: null }));
+      }
+
+      try {
+        const effectiveFilters: SearchFilters = { ...filters };
+        if (favoritesOnly) {
+          effectiveFilters.tags = [
+            ...(effectiveFilters.tags || []),
+            FAVORITE_TAG,
+          ];
+        }
+
+        let result: PagedResult;
+
+        if (searchQuery.trim()) {
+          result = await invoke<PagedResult>("search_clips", {
+            query: searchQuery,
+            filters: effectiveFilters,
+            page,
+            pageSize: PAGE_SIZE,
+          });
+        } else {
+          result = await invoke<PagedResult>("list_clips", {
+            filters: effectiveFilters,
+            page,
+            pageSize: PAGE_SIZE,
+          });
+        }
+
+        // Check if filters changed during the fetch
+        const current = currentFiltersRef.current;
+        if (
+          current.searchQuery !== searchQuery ||
+          current.favoritesOnly !== favoritesOnly ||
+          JSON.stringify(current.filters) !== JSON.stringify(filters)
+        ) {
+          // Filters changed, ignore this result
+          return;
+        }
+
+        setState((prev) => ({
+          clips: append ? [...prev.clips, ...result.items] : result.items,
+          loading: false,
+          loadingMore: false,
+          error: null,
+          total: result.total,
+          page: result.page,
+          totalPages: result.total_pages,
+          hasMore: result.page < result.total_pages,
+        }));
+      } catch (err) {
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          loadingMore: false,
+          error: err instanceof Error ? err.message : String(err),
+        }));
+      }
+    },
+    [searchQuery, filters, favoritesOnly]
+  );
+
+  const loadMore = useCallback(() => {
+    if (state.loadingMore || !state.hasMore) return;
+    fetchClips(state.page + 1, true);
+  }, [fetchClips, state.loadingMore, state.hasMore, state.page]);
+
+  const refetch = useCallback(() => {
+    fetchClips(1, false);
+  }, [fetchClips]);
 
   const toggleFavorite = useCallback(async (clip: Clip) => {
     const isFav = clip.tags.includes(FAVORITE_TAG);
@@ -110,27 +153,27 @@ export function useClips(): UseClipsReturn {
     }
   }, []);
 
-  // Fetch clips when filters change
+  // Fetch clips when filters change (reset to page 1)
   useEffect(() => {
-    fetchClips();
+    fetchClips(1, false);
   }, [fetchClips]);
 
   // Listen for backend events
   useEffect(() => {
     const unlistenNewClip = listen("new-clip", () => {
-      fetchClips();
+      refetch();
     });
 
     const unlistenClipCreated = listen("clip-created", () => {
-      fetchClips();
+      refetch();
     });
 
     const unlistenClipUpdated = listen("clip-updated", () => {
-      fetchClips();
+      refetch();
     });
 
     const unlistenClipDeleted = listen("clip-deleted", () => {
-      fetchClips();
+      refetch();
     });
 
     return () => {
@@ -139,7 +182,7 @@ export function useClips(): UseClipsReturn {
       unlistenClipUpdated.then((fn) => fn());
       unlistenClipDeleted.then((fn) => fn());
     };
-  }, [fetchClips]);
+  }, [refetch]);
 
   return {
     ...state,
@@ -149,7 +192,8 @@ export function useClips(): UseClipsReturn {
     setFilters,
     favoritesOnly,
     setFavoritesOnly,
-    refetch: fetchClips,
+    refetch,
+    loadMore,
     toggleFavorite,
   };
 }
