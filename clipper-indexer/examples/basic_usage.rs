@@ -1,5 +1,5 @@
-use clipper_indexer::{ClipperIndexer, SearchFilters};
 use chrono::{Duration, Utc};
+use clipper_indexer::{ClipperIndexer, PagingParams, SearchFilters};
 use std::fs;
 use tempfile::TempDir;
 
@@ -47,7 +47,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some("Test file upload".to_string()),
         )
         .await?;
-    println!("Created entry with ID: {} (with file attachment)", entry3.id);
+    println!(
+        "Created entry with ID: {} (with file attachment)",
+        entry3.id
+    );
 
     // Example 4: Retrieve an entry by ID
     println!("\n4. Retrieving entry by ID...");
@@ -77,20 +80,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 6: Full-text search
     println!("\n6. Performing full-text search for 'programming'...");
+    let paging_params = PagingParams::default();
     let search_results = indexer
-        .search_entries("programming", SearchFilters::new())
+        .search_entries("programming", SearchFilters::new(), paging_params)
         .await?;
-    println!("Found {} entries matching 'programming':", search_results.len());
-    for result in &search_results {
+    println!(
+        "Found {} entries matching 'programming':",
+        search_results.total,
+    );
+    for result in &search_results.items {
         println!("  - {} (tags: {:?})", result.content, result.tags);
     }
 
     // Example 7: List entries with tag filter
     println!("\n7. Listing entries with 'rust' tag...");
     let tag_filter = SearchFilters::new().with_tags(vec!["rust".to_string()]);
-    let tagged_entries = indexer.list_entries(tag_filter).await?;
-    println!("Found {} entries with 'rust' tag:", tagged_entries.len());
-    for entry in &tagged_entries {
+    let paging_params = PagingParams::default();
+    let tagged_entries = indexer.list_entries(tag_filter, paging_params).await?;
+    println!("Found {} entries with 'rust' tag:", tagged_entries.total);
+    for entry in &tagged_entries.items {
         println!("  - {}", entry.content);
     }
 
@@ -99,20 +107,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let now = Utc::now();
     let date_filter =
         SearchFilters::new().with_date_range(now - Duration::hours(1), now + Duration::hours(1));
-    let recent_entries = indexer.list_entries(date_filter).await?;
-    println!("Found {} entries from the last hour", recent_entries.len());
+    let paging_params = PagingParams::default();
+    let recent_entries = indexer.list_entries(date_filter, paging_params).await?;
+    println!("Found {} entries from the last hour", recent_entries.total);
 
     // Example 9: Search with combined filters
     println!("\n9. Searching 'programming' with tag filter...");
     let combined_filter = SearchFilters::new()
         .with_tags(vec!["python".to_string()])
         .with_date_range(now - Duration::hours(1), now + Duration::hours(1));
-    let filtered_search = indexer.search_entries("programming", combined_filter).await?;
+    let paging_params = PagingParams::default();
+    let filtered_search = indexer
+        .search_entries("programming", combined_filter, paging_params)
+        .await?;
     println!(
         "Found {} entries matching 'programming' with 'python' tag:",
-        filtered_search.len()
+        filtered_search.total
     );
-    for entry in &filtered_search {
+    for entry in &filtered_search.items {
         println!("  - {}", entry.content);
     }
 

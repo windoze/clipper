@@ -1,5 +1,5 @@
-use clipper_indexer::{ClipperIndexer, SearchFilters};
 use chrono::{Duration, Utc};
+use clipper_indexer::{ClipperIndexer, PagingParams, SearchFilters};
 use std::fs;
 use tempfile::TempDir;
 
@@ -41,11 +41,7 @@ async fn test_get_entry() {
     let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
 
     let entry = indexer
-        .add_entry_from_text(
-            "Test content".to_string(),
-            vec!["test".to_string()],
-            None,
-        )
+        .add_entry_from_text("Test content".to_string(), vec!["test".to_string()], None)
         .await
         .expect("Failed to add entry");
 
@@ -152,15 +148,16 @@ async fn test_search_entries() {
     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
 
     // Search for "programming"
+    let paging_params = PagingParams::default();
     let results = indexer
-        .search_entries("programming", SearchFilters::new())
+        .search_entries("programming", SearchFilters::new(), paging_params)
         .await
         .expect("Failed to search");
 
     assert!(
-        results.len() >= 2,
+        results.total >= 2,
         "Expected at least 2 results, got {}",
-        results.len()
+        results.total
     );
 }
 
@@ -172,11 +169,7 @@ async fn test_list_entries_with_date_range() {
 
     // Add entries
     indexer
-        .add_entry_from_text(
-            "Recent entry".to_string(),
-            vec!["recent".to_string()],
-            None,
-        )
+        .add_entry_from_text("Recent entry".to_string(), vec!["recent".to_string()], None)
         .await
         .unwrap();
 
@@ -192,22 +185,25 @@ async fn test_list_entries_with_date_range() {
         .unwrap();
 
     // List all entries
+    let paging_params = PagingParams::default();
     let all_entries = indexer
-        .list_entries(SearchFilters::new())
+        .list_entries(SearchFilters::new(), paging_params)
         .await
         .expect("Failed to list entries");
 
-    assert_eq!(all_entries.len(), 2);
+    assert_eq!(all_entries.total, 2);
 
     // List with date range
-    let filters = SearchFilters::new().with_date_range(now - Duration::hours(1), now + Duration::hours(1));
+    let filters =
+        SearchFilters::new().with_date_range(now - Duration::hours(1), now + Duration::hours(1));
+    let paging_params = PagingParams::default();
 
     let filtered_entries = indexer
-        .list_entries(filters)
+        .list_entries(filters, paging_params)
         .await
         .expect("Failed to list entries with filter");
 
-    assert_eq!(filtered_entries.len(), 2);
+    assert_eq!(filtered_entries.total, 2);
 }
 
 #[tokio::test]
@@ -234,34 +230,32 @@ async fn test_list_entries_with_tag_filter() {
         .unwrap();
 
     indexer
-        .add_entry_from_text(
-            "Entry 3".to_string(),
-            vec!["tag3".to_string()],
-            None,
-        )
+        .add_entry_from_text("Entry 3".to_string(), vec!["tag3".to_string()], None)
         .await
         .unwrap();
 
     // Filter by specific tag
     let filters = SearchFilters::new().with_tags(vec!["tag1".to_string()]);
+    let paging_params = PagingParams::default();
 
     let filtered = indexer
-        .list_entries(filters)
+        .list_entries(filters, paging_params)
         .await
         .expect("Failed to list entries");
 
-    assert_eq!(filtered.len(), 1);
-    assert_eq!(filtered[0].content, "Entry 1");
+    assert_eq!(filtered.items.len(), 1);
+    assert_eq!(filtered.items[0].content, "Entry 1");
 
     // Filter by common tag
     let filters = SearchFilters::new().with_tags(vec!["common".to_string()]);
+    let paging_params = PagingParams::default();
 
     let filtered = indexer
-        .list_entries(filters)
+        .list_entries(filters, paging_params)
         .await
         .expect("Failed to list entries");
 
-    assert_eq!(filtered.len(), 2);
+    assert_eq!(filtered.total, 2);
 }
 
 #[tokio::test]
@@ -337,12 +331,16 @@ async fn test_search_with_combined_filters() {
     let filters = SearchFilters::new()
         .with_tags(vec!["rust".to_string()])
         .with_date_range(now - Duration::hours(1), now + Duration::hours(1));
+    let paging_params = PagingParams::default();
 
     let results = indexer
-        .search_entries("programming", filters)
+        .search_entries("programming", filters, paging_params)
         .await
         .expect("Failed to search");
 
-    assert!(results.len() >= 1);
-    assert!(results.iter().any(|e| e.tags.contains(&"rust".to_string())));
+    assert!(results.items.len() >= 1);
+    assert!(results
+        .items
+        .iter()
+        .any(|e| e.tags.contains(&"rust".to_string())));
 }

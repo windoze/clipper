@@ -195,11 +195,11 @@ async fn test_list_clips() {
 
     // List all clips
     let clips = client
-        .list_clips(SearchFilters::new())
+        .list_clips(SearchFilters::new(), 1, 20)
         .await
         .expect("Failed to list clips");
 
-    assert!(clips.len() >= 2);
+    assert!(clips.items.len() >= 2);
 }
 
 #[tokio::test]
@@ -230,12 +230,12 @@ async fn test_list_clips_with_tag_filter() {
     // List clips filtered by tag
     let filters = SearchFilters::new().with_tags(vec!["important".to_string()]);
     let clips = client
-        .list_clips(filters)
+        .list_clips(filters, 1, 20)
         .await
         .expect("Failed to list clips");
 
-    assert!(clips.len() >= 1);
-    assert!(clips.iter().any(|c| c.content == "Important clip"));
+    assert!(clips.items.len() >= 1);
+    assert!(clips.items.iter().any(|c| c.content == "Important clip"));
 }
 
 #[tokio::test]
@@ -265,12 +265,15 @@ async fn test_search_clips() {
 
     // Search for clips
     let clips = client
-        .search_clips("fox", SearchFilters::new())
+        .search_clips("fox", SearchFilters::new(), 1, 20)
         .await
         .expect("Failed to search clips");
 
-    assert!(clips.len() >= 1);
-    assert!(clips.iter().any(|c| c.content == "The quick brown fox"));
+    assert!(clips.items.len() >= 1);
+    assert!(clips
+        .items
+        .iter()
+        .any(|c| c.content == "The quick brown fox"));
 }
 
 #[tokio::test]
@@ -301,12 +304,13 @@ async fn test_search_clips_with_tag_filter() {
     // Search with tag filter
     let filters = SearchFilters::new().with_tags(vec!["work".to_string()]);
     let clips = client
-        .search_clips("meetings", filters)
+        .search_clips("meetings", filters, 1, 20)
         .await
         .expect("Failed to search clips");
 
-    assert!(clips.len() >= 1);
+    assert!(clips.items.len() >= 1);
     assert!(clips
+        .items
         .iter()
         .any(|c| c.content == "Work document about meetings"));
 }
