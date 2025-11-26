@@ -1,4 +1,5 @@
 use tauri::{
+    include_image,
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
     AppHandle, Manager,
@@ -12,8 +13,12 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
     let menu = Menu::with_items(app, &[&show_hide_item, &separator, &quit_item])?;
 
+    // Use the tray icon embedded at compile time via include_image! macro
+    let tray_icon = include_image!("icons/tray-icon.png");
+
     let _tray = TrayIconBuilder::new()
-        .icon(app.default_window_icon().unwrap().clone())
+        .icon(tray_icon)
+        .icon_as_template(true)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
