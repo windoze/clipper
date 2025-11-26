@@ -29,6 +29,11 @@ impl ClipperClient {
         }
     }
 
+    /// Get the base URL of the server
+    pub fn base_url(&self) -> &str {
+        &self.base_url
+    }
+
     /// Create a new clip
     ///
     /// # Arguments
@@ -96,6 +101,57 @@ impl ClipperClient {
         let body = reqwest::Body::wrap_stream(stream);
 
         let file_part = reqwest::multipart::Part::stream(body).file_name(original_filename);
+
+        let mut form = reqwest::multipart::Form::new().part("file", file_part);
+
+        if !tags.is_empty() {
+            form = form.text("tags", tags.join(","));
+        }
+
+        if let Some(notes) = additional_notes {
+            form = form.text("additional_notes", notes);
+        }
+
+        let response = self.client.post(&url).multipart(form).send().await?;
+
+        self.handle_response(response).await
+    }
+
+    /// Upload file bytes to create a clip
+    ///
+    /// # Arguments
+    /// * `bytes` - The file content as bytes
+    /// * `filename` - The filename to use
+    /// * `tags` - List of tags for the clip
+    /// * `additional_notes` - Optional additional notes
+    ///
+    /// # Example
+    /// ```no_run
+    /// use clipper_client::ClipperClient;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = ClipperClient::new("http://localhost:3000");
+    /// let png_bytes = vec![0u8; 100]; // PNG file bytes
+    ///
+    /// let clip = client.upload_file_bytes(
+    ///     png_bytes,
+    ///     "image.png".to_string(),
+    ///     vec!["image".to_string()],
+    ///     None,
+    /// ).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn upload_file_bytes(
+        &self,
+        bytes: Vec<u8>,
+        filename: String,
+        tags: Vec<String>,
+        additional_notes: Option<String>,
+    ) -> Result<Clip> {
+        let url = format!("{}/clips/upload", self.base_url);
+
+        let file_part = reqwest::multipart::Part::bytes(bytes).file_name(filename);
 
         let mut form = reqwest::multipart::Form::new().part("file", file_part);
 
@@ -221,6 +277,32 @@ impl ClipperClient {
         let response = self.client.get(url).send().await?;
 
         self.handle_response(response).await
+    }
+
+    /// Download a clip's file attachment as bytes
+    ///
+    /// # Arguments
+    /// * `id` - The clip ID
+    pub async fn download_file(&self, id: &str) -> Result<Vec<u8>> {
+        let url = format!("{}/clips/{}/file", self.base_url, id);
+        let response = self.client.get(&url).send().await?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let bytes = response.bytes().await?;
+                Ok(bytes.to_vec())
+            }
+            StatusCode::NOT_FOUND => {
+                Err(ClientError::NotFound(format!("File not found for clip {}", id)))
+            }
+            status => {
+                let error_text = response.text().await.unwrap_or_default();
+                Err(ClientError::ServerError {
+                    status: status.as_u16(),
+                    message: error_text,
+                })
+            }
+        }
     }
 
     /// Delete a clip by ID

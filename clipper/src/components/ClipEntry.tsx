@@ -57,6 +57,23 @@ export function ClipEntry({ clip, onToggleFavorite }: ClipEntryProps) {
     setShowPopup(true);
   };
 
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!clip.file_attachment) return;
+
+    try {
+      await invoke("download_file", {
+        clipId: clip.id,
+        filename: clip.file_attachment,
+      });
+    } catch (err) {
+      // User cancelled or error occurred
+      if (err !== "Save cancelled") {
+        console.error("Failed to download file:", err);
+      }
+    }
+  };
+
   const truncateContent = (content: string, maxLength: number = 200): string => {
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + "...";
@@ -110,14 +127,26 @@ export function ClipEntry({ clip, onToggleFavorite }: ClipEntryProps) {
         {clip.file_attachment && !isImage && (
           <div className="clip-attachment">
             <span className="attachment-icon">📎</span>
-            <span className="attachment-name">{clip.file_attachment}</span>
+            <button
+              className="attachment-name-button"
+              onClick={handleDownload}
+              title="Click to download"
+            >
+              {clip.file_attachment}
+            </button>
           </div>
         )}
 
         {isImage && clip.file_attachment && (
           <div className="clip-attachment">
             <span className="attachment-icon">🖼️</span>
-            <span className="attachment-name">{clip.file_attachment}</span>
+            <button
+              className="attachment-name-button"
+              onClick={handleDownload}
+              title="Click to download"
+            >
+              {clip.file_attachment}
+            </button>
           </div>
         )}
       </div>

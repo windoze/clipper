@@ -17,6 +17,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
             let app_state = AppState::new(&base_url);
             app.manage(app_state);
@@ -115,6 +116,7 @@ pub fn run() {
             commands::copy_to_clipboard,
             commands::upload_file,
             commands::get_file_url,
+            commands::download_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

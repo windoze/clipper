@@ -23,3 +23,4 @@ clipper-client = { path = "../../clipper-client" }
 chrono = { version = "0.4", features = ["serde"] }
 arboard = { version = "3", features = ["image-data"] }
 image = "0.25"
+tauri-plugin-dialog = "2"

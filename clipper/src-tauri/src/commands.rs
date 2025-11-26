@@ -152,3 +152,41 @@ pub async fn upload_file(
 pub fn get_file_url(state: State<'_, AppState>, clip_id: String) -> String {
     format!("{}/clips/{}/file", state.base_url(), clip_id)
 }
+
+/// Download a clip's file attachment and save it to a user-selected location
+#[tauri::command]
+pub async fn download_file(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    clip_id: String,
+    filename: String,
+) -> Result<String, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    // Show save dialog (blocking is safe in async command context)
+    let file_path = app
+        .dialog()
+        .file()
+        .set_file_name(&filename)
+        .blocking_save_file();
+
+    let save_path = match file_path {
+        Some(path) => path,
+        None => return Err("Save cancelled".to_string()),
+    };
+
+    // Download the file
+    let client = state.client();
+    let bytes = client
+        .download_file(&clip_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Write to file
+    let path_str = save_path.to_string();
+    fs::write(&path_str, bytes)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(path_str)
+}
