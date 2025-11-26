@@ -1,3 +1,5 @@
+#[cfg(target_os = "macos")]
+use tauri::ActivationPolicy;
 use tauri::{
     include_image,
     menu::{Menu, MenuItem, PredefinedMenuItem},
@@ -26,7 +28,13 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(window) = app.get_webview_window("main") {
                     if window.is_visible().unwrap_or(false) {
                         let _ = window.hide();
+                        // Hide dock icon on macOS
+                        #[cfg(target_os = "macos")]
+                        let _ = app.set_activation_policy(ActivationPolicy::Accessory);
                     } else {
+                        // Show dock icon on macOS before showing window
+                        #[cfg(target_os = "macos")]
+                        let _ = app.set_activation_policy(ActivationPolicy::Regular);
                         let _ = window.show();
                         let _ = window.set_focus();
                     }
@@ -47,7 +55,13 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(window) = app.get_webview_window("main") {
                     if window.is_visible().unwrap_or(false) {
                         let _ = window.hide();
+                        // Hide dock icon on macOS
+                        #[cfg(target_os = "macos")]
+                        let _ = app.set_activation_policy(ActivationPolicy::Accessory);
                     } else {
+                        // Show dock icon on macOS before showing window
+                        #[cfg(target_os = "macos")]
+                        let _ = app.set_activation_policy(ActivationPolicy::Regular);
                         let _ = window.show();
                         let _ = window.set_focus();
                     }

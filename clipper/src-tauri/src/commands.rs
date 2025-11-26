@@ -3,7 +3,9 @@ use chrono::{DateTime, Utc};
 use clipper_client::models::PagedResult;
 use clipper_client::{Clip, SearchFilters};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use tauri::State;
+use tokio::fs;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchFiltersInput {
@@ -118,4 +120,29 @@ pub fn copy_to_clipboard(state: State<'_, AppState>, content: String) -> Result<
     state.set_last_synced_content(content);
 
     Ok(())
+}
+
+/// Upload a file to create a clip entry
+#[tauri::command]
+pub async fn upload_file(
+    state: State<'_, AppState>,
+    path: PathBuf,
+    tags: Vec<String>,
+    additional_notes: Option<String>,
+) -> Result<Clip, String> {
+    // Read file bytes
+    let bytes = fs::read(&path).await.map_err(|e| e.to_string())?;
+
+    // Get filename from path
+    let filename = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+
+    let client = state.client();
+    client
+        .upload_file_bytes(bytes, filename, tags, additional_notes)
+        .await
+        .map_err(|e| e.to_string())
 }

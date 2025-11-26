@@ -6,7 +6,9 @@ mod websocket;
 
 use state::AppState;
 use std::env;
-use tauri::Manager;
+#[cfg(target_os = "macos")]
+use tauri::ActivationPolicy;
+use tauri::{DragDropEvent, Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -46,9 +48,61 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.hide();
+            match event {
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    api.prevent_close();
+                    let _ = window.hide();
+                    // Hide dock icon on macOS when window is closed
+                    #[cfg(target_os = "macos")]
+                    let _ = window
+                        .app_handle()
+                        .set_activation_policy(ActivationPolicy::Accessory);
+                }
+                tauri::WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) => {
+                    let app = window.app_handle();
+                    let state = app.state::<AppState>();
+                    let client = state.client().clone();
+
+                    for path in paths {
+                        let path = path.clone();
+                        let client = client.clone();
+                        let app_handle = app.clone();
+
+                        // Read file and upload
+                        tauri::async_runtime::spawn(async move {
+                            match tokio::fs::read(&path).await {
+                                Ok(bytes) => {
+                                    let filename = path
+                                        .file_name()
+                                        .and_then(|n| n.to_str())
+                                        .unwrap_or("unknown")
+                                        .to_string();
+
+                                    match client
+                                        .upload_file_bytes(
+                                            bytes,
+                                            filename,
+                                            vec!["$file".to_string()],
+                                            None,
+                                        )
+                                        .await
+                                    {
+                                        Ok(clip) => {
+                                            let _ = app_handle.emit("clip-created", &clip);
+                                        }
+                                        Err(e) => {
+                                            eprintln!("Failed to upload dropped file: {}", e);
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to read dropped file: {}", e);
+                                }
+                            }
+                        });
+                    }
+                }
+                _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -59,6 +113,7 @@ pub fn run() {
             commands::delete_clip,
             commands::get_clip,
             commands::copy_to_clipboard,
+            commands::upload_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
