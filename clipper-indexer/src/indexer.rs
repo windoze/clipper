@@ -1,10 +1,10 @@
 use crate::error::{IndexerError, Result};
-use crate::models::{ClipboardEntry, SearchFilters};
+use crate::models::{ClipboardEntry, PagedResult, PagingParams, SearchFilters};
 use crate::storage::FileStorage;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use surrealdb::Surreal;
 use surrealdb::engine::local::{Db, RocksDb};
+use surrealdb::Surreal;
 
 const TABLE_NAME: &str = "clipboard";
 const NAMESPACE: &str = "clipper";
@@ -278,7 +278,8 @@ impl ClipperIndexer {
         &self,
         search_query: &str,
         filters: SearchFilters,
-    ) -> Result<Vec<ClipboardEntry>> {
+        paging: PagingParams,
+    ) -> Result<PagedResult<ClipboardEntry>> {
         let mut where_clauses = vec![format!("search_content @@ '{}'", search_query)];
 
         if let Some(start_date) = filters.start_date {
@@ -306,9 +307,29 @@ impl ClipperIndexer {
         }
 
         let where_clause = where_clauses.join(" AND ");
-        let query = format!(
-            "SELECT * FROM {} WHERE {} ORDER BY created_at DESC;",
+
+        // Get total count
+        let count_query = format!(
+            "SELECT count() FROM {} WHERE {} GROUP ALL;",
             TABLE_NAME, where_clause
+        );
+        let mut count_response = self.db.query(count_query).await?;
+
+        #[derive(Deserialize)]
+        struct CountResult {
+            count: i64,
+        }
+
+        let count_results: Vec<CountResult> = count_response.take(0).unwrap_or_default();
+        let total = count_results.first().map(|c| c.count as usize).unwrap_or(0);
+
+        // Get paginated results
+        let query = format!(
+            "SELECT * FROM {} WHERE {} ORDER BY created_at DESC LIMIT {} START {};",
+            TABLE_NAME,
+            where_clause,
+            paging.page_size,
+            paging.offset()
         );
 
         let mut response = self.db.query(query).await?;
@@ -317,7 +338,7 @@ impl ClipperIndexer {
             .take(0)
             .map_err(|e| IndexerError::Serialization(e.to_string()))?;
 
-        Ok(entries
+        let items: Vec<ClipboardEntry> = entries
             .into_iter()
             .map(|db_entry| ClipboardEntry {
                 id: db_entry.id.id.to_string(),
@@ -328,10 +349,21 @@ impl ClipperIndexer {
                 file_attachment: db_entry.file_attachment,
                 search_content: db_entry.search_content,
             })
-            .collect())
+            .collect();
+
+        Ok(PagedResult::new(
+            items,
+            total,
+            paging.page,
+            paging.page_size,
+        ))
     }
 
-    pub async fn list_entries(&self, filters: SearchFilters) -> Result<Vec<ClipboardEntry>> {
+    pub async fn list_entries(
+        &self,
+        filters: SearchFilters,
+        paging: PagingParams,
+    ) -> Result<PagedResult<ClipboardEntry>> {
         let mut where_clauses = Vec::new();
 
         if let Some(start_date) = filters.start_date {
@@ -358,13 +390,43 @@ impl ClipperIndexer {
             }
         }
 
-        let query = if where_clauses.is_empty() {
-            format!("SELECT * FROM {} ORDER BY created_at DESC;", TABLE_NAME)
+        // Get total count
+        let count_query = if where_clauses.is_empty() {
+            format!("SELECT count() FROM {} GROUP ALL;", TABLE_NAME)
         } else {
             let where_clause = where_clauses.join(" AND ");
             format!(
-                "SELECT * FROM {} WHERE {} ORDER BY created_at DESC;",
+                "SELECT count() FROM {} WHERE {} GROUP ALL;",
                 TABLE_NAME, where_clause
+            )
+        };
+
+        let mut count_response = self.db.query(count_query).await?;
+
+        #[derive(Deserialize)]
+        struct CountResult {
+            count: i64,
+        }
+
+        let count_results: Vec<CountResult> = count_response.take(0).unwrap_or_default();
+        let total = count_results.first().map(|c| c.count as usize).unwrap_or(0);
+
+        // Get paginated results
+        let query = if where_clauses.is_empty() {
+            format!(
+                "SELECT * FROM {} ORDER BY created_at DESC LIMIT {} START {};",
+                TABLE_NAME,
+                paging.page_size,
+                paging.offset()
+            )
+        } else {
+            let where_clause = where_clauses.join(" AND ");
+            format!(
+                "SELECT * FROM {} WHERE {} ORDER BY created_at DESC LIMIT {} START {};",
+                TABLE_NAME,
+                where_clause,
+                paging.page_size,
+                paging.offset()
             )
         };
 
@@ -374,7 +436,7 @@ impl ClipperIndexer {
             .take(0)
             .map_err(|e| IndexerError::Serialization(e.to_string()))?;
 
-        Ok(entries
+        let items: Vec<ClipboardEntry> = entries
             .into_iter()
             .map(|db_entry| ClipboardEntry {
                 id: db_entry.id.id.to_string(),
@@ -385,7 +447,14 @@ impl ClipperIndexer {
                 file_attachment: db_entry.file_attachment,
                 search_content: db_entry.search_content,
             })
-            .collect())
+            .collect();
+
+        Ok(PagedResult::new(
+            items,
+            total,
+            paging.page,
+            paging.page_size,
+        ))
     }
 
     pub async fn get_file_content(&self, file_key: &str) -> Result<bytes::Bytes> {

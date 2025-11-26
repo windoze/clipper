@@ -75,3 +75,12 @@ pub enum ClipNotification {
         id: String,
     },
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PagedResult {
+    pub items: Vec<Clip>,
+    pub total: usize,
+    pub page: usize,
+    pub page_size: usize,
+    pub total_pages: usize,
+}

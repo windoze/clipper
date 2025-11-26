@@ -74,8 +74,7 @@ impl ClipboardEntry {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SearchFilters {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub start_date: Option<DateTime<Utc>>,
@@ -99,5 +98,57 @@ impl SearchFilters {
     pub fn with_tags(mut self, tags: Vec<String>) -> Self {
         self.tags = Some(tags);
         self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PagingParams {
+    /// Page number (starting from 1)
+    pub page: usize,
+    /// Number of items per page
+    pub page_size: usize,
+}
+
+impl Default for PagingParams {
+    fn default() -> Self {
+        Self {
+            page: 1,
+            page_size: 20,
+        }
+    }
+}
+
+impl PagingParams {
+    pub fn new(page: usize, page_size: usize) -> Self {
+        Self {
+            page: page.max(1),
+            page_size: page_size.clamp(1, 100),
+        }
+    }
+
+    pub fn offset(&self) -> usize {
+        (self.page - 1) * self.page_size
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PagedResult<T> {
+    pub items: Vec<T>,
+    pub total: usize,
+    pub page: usize,
+    pub page_size: usize,
+    pub total_pages: usize,
+}
+
+impl<T> PagedResult<T> {
+    pub fn new(items: Vec<T>, total: usize, page: usize, page_size: usize) -> Self {
+        let total_pages = (total + page_size - 1) / page_size;
+        Self {
+            items,
+            total,
+            page,
+            page_size,
+            total_pages,
+        }
     }
 }

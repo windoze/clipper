@@ -1,5 +1,7 @@
 use crate::error::{ClientError, Result};
-use crate::models::{Clip, ClipNotification, CreateClipRequest, SearchFilters, UpdateClipRequest};
+use crate::models::{
+    Clip, ClipNotification, CreateClipRequest, PagedResult, SearchFilters, UpdateClipRequest,
+};
 use futures_util::StreamExt;
 use reqwest::StatusCode;
 use tokio::io::AsyncRead;
@@ -144,15 +146,26 @@ impl ClipperClient {
         self.handle_response(response).await
     }
 
-    /// Search clips with optional filters
+    /// Search clips with optional filters and paging
     ///
     /// # Arguments
     /// * `query` - Search query string
     /// * `filters` - Optional filters (date range, tags)
-    pub async fn search_clips(&self, query: &str, filters: SearchFilters) -> Result<Vec<Clip>> {
+    /// * `page` - Page number (starting from 1)
+    /// * `page_size` - Number of items per page
+    pub async fn search_clips(
+        &self,
+        query: &str,
+        filters: SearchFilters,
+        page: usize,
+        page_size: usize,
+    ) -> Result<PagedResult> {
         let mut url = Url::parse(&format!("{}/clips/search", self.base_url))?;
 
         url.query_pairs_mut().append_pair("q", query);
+        url.query_pairs_mut().append_pair("page", &page.to_string());
+        url.query_pairs_mut()
+            .append_pair("page_size", &page_size.to_string());
 
         if let Some(start_date) = filters.start_date {
             url.query_pairs_mut()
@@ -173,12 +186,23 @@ impl ClipperClient {
         self.handle_response(response).await
     }
 
-    /// List all clips with optional filters
+    /// List all clips with optional filters and paging
     ///
     /// # Arguments
     /// * `filters` - Optional filters (date range, tags)
-    pub async fn list_clips(&self, filters: SearchFilters) -> Result<Vec<Clip>> {
+    /// * `page` - Page number (starting from 1)
+    /// * `page_size` - Number of items per page
+    pub async fn list_clips(
+        &self,
+        filters: SearchFilters,
+        page: usize,
+        page_size: usize,
+    ) -> Result<PagedResult> {
         let mut url = Url::parse(&format!("{}/clips", self.base_url))?;
+
+        url.query_pairs_mut().append_pair("page", &page.to_string());
+        url.query_pairs_mut()
+            .append_pair("page_size", &page_size.to_string());
 
         if let Some(start_date) = filters.start_date {
             url.query_pairs_mut()

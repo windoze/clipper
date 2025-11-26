@@ -5,7 +5,7 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
-use clipper_indexer::{ClipboardEntry, SearchFilters};
+use clipper_indexer::{ClipboardEntry, PagedResult, PagingParams, SearchFilters};
 use serde::{Deserialize, Serialize};
 
 use crate::{error::Result, state::AppState};
@@ -55,6 +55,27 @@ impl From<ClipboardEntry> for ClipResponse {
     }
 }
 
+#[derive(Debug, Serialize)]
+struct PagedClipResponse {
+    items: Vec<ClipResponse>,
+    total: usize,
+    page: usize,
+    page_size: usize,
+    total_pages: usize,
+}
+
+impl From<PagedResult<ClipboardEntry>> for PagedClipResponse {
+    fn from(result: PagedResult<ClipboardEntry>) -> Self {
+        Self {
+            items: result.items.into_iter().map(ClipResponse::from).collect(),
+            total: result.total,
+            page: result.page,
+            page_size: result.page_size,
+            total_pages: result.total_pages,
+        }
+    }
+}
+
 async fn create_clip(
     State(state): State<AppState>,
     Json(payload): Json<CreateClipRequest>,
@@ -82,12 +103,24 @@ struct ListClipsQuery {
     end_date: Option<String>,
     #[serde(default)]
     tags: Option<String>,
+    #[serde(default = "default_page")]
+    page: usize,
+    #[serde(default = "default_page_size")]
+    page_size: usize,
+}
+
+fn default_page() -> usize {
+    1
+}
+
+fn default_page_size() -> usize {
+    20
 }
 
 async fn list_clips(
     State(state): State<AppState>,
     Query(query): Query<ListClipsQuery>,
-) -> Result<Json<Vec<ClipResponse>>> {
+) -> Result<Json<PagedClipResponse>> {
     let mut filters = SearchFilters::new();
 
     if let Some(start_date) = query.start_date {
@@ -115,8 +148,9 @@ async fn list_clips(
         filters = filters.with_tags(tags);
     }
 
-    let entries = state.indexer.list_entries(filters).await?;
-    Ok(Json(entries.into_iter().map(ClipResponse::from).collect()))
+    let paging = PagingParams::new(query.page, query.page_size);
+    let result = state.indexer.list_entries(filters, paging).await?;
+    Ok(Json(result.into()))
 }
 
 #[derive(Debug, Deserialize)]
@@ -128,12 +162,16 @@ struct SearchClipsQuery {
     end_date: Option<String>,
     #[serde(default)]
     tags: Option<String>,
+    #[serde(default = "default_page")]
+    page: usize,
+    #[serde(default = "default_page_size")]
+    page_size: usize,
 }
 
 async fn search_clips(
     State(state): State<AppState>,
     Query(query): Query<SearchClipsQuery>,
-) -> Result<Json<Vec<ClipResponse>>> {
+) -> Result<Json<PagedClipResponse>> {
     let mut filters = SearchFilters::new();
 
     if let Some(start_date) = query.start_date {
@@ -161,8 +199,12 @@ async fn search_clips(
         filters = filters.with_tags(tags);
     }
 
-    let entries = state.indexer.search_entries(&query.q, filters).await?;
-    Ok(Json(entries.into_iter().map(ClipResponse::from).collect()))
+    let paging = PagingParams::new(query.page, query.page_size);
+    let result = state
+        .indexer
+        .search_entries(&query.q, filters, paging)
+        .await?;
+    Ok(Json(result.into()))
 }
 
 async fn get_clip(

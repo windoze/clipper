@@ -939,6 +939,7 @@ dependencies = [
  "chrono",
  "object_store 0.11.2",
  "serde",
+ "serde_json",
  "surrealdb",
  "tempfile",
  "thiserror 2.0.17",

@@ -79,8 +79,16 @@ enum Commands {
         #[arg(long)]
         end_date: Option<String>,
 
+        /// Page number (starting from 1)
+        #[arg(short, long, default_value = "1")]
+        page: usize,
+
+        /// Number of items per page
+        #[arg(long, default_value = "20")]
+        page_size: usize,
+
         /// Output format: json or text (content only with IDs)
-        #[arg(short, long, default_value = "json")]
+        #[arg(short = 'f', long, default_value = "json")]
         format: String,
     },
 
@@ -149,6 +157,8 @@ async fn main() -> Result<()> {
             tags,
             start_date,
             end_date,
+            page,
+            page_size,
             format,
         } => {
             let tags_vec = tags.map(|t| t.split(',').map(|s| s.trim().to_string()).collect());
@@ -175,19 +185,23 @@ async fn main() -> Result<()> {
                 tags: tags_vec,
             };
 
-            let clips = client
-                .search_clips(&query, filters)
+            let result = client
+                .search_clips(&query, filters, page, page_size)
                 .await
                 .context("Failed to search clips")?;
 
             match format.as_str() {
                 "text" => {
-                    for clip in clips {
+                    for clip in result.items {
                         println!("{}\n{}\n", clip.id, clip.content);
                     }
+                    eprintln!(
+                        "Page {} of {} (Total: {} clips)",
+                        result.page, result.total_pages, result.total
+                    );
                 }
                 "json" => {
-                    println!("{}", serde_json::to_string_pretty(&clips)?);
+                    println!("{}", serde_json::to_string_pretty(&result)?);
                 }
                 _ => {
                     anyhow::bail!("Invalid format. Use 'json' or 'text'");
