@@ -1,0 +1,20 @@
+[package]
+name = "clipper-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.12", features = ["json", "multipart", "stream"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "io-util"] }
+tokio-util = { version = "0.7", features = ["io", "codec"] }
+tokio-tungstenite = "0.24"
+futures-util = "0.3"
+thiserror = "2.0"
+chrono = { version = "0.4", features = ["serde"] }
+url = "2"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3"

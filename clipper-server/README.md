@@ -12,20 +12,85 @@ A REST API server with WebSocket support for managing clipboard entries using th
 
 ## Getting Started
 
-### Environment Variables
+### Configuration
 
+The server can be configured through multiple sources (in order of priority):
+
+1. **Command line arguments** (highest priority)
+2. **Environment variables**
+3. **Configuration file** (TOML)
+4. **Default values** (lowest priority)
+
+#### Command Line Arguments
+
+```bash
+clipper-server [OPTIONS]
+
+Options:
+  -c, --config <FILE>              Path to configuration file
+      --db-path <PATH>             Database path
+      --storage-path <PATH>        Storage path for file attachments
+      --listen-addr <ADDR>         Server listen address (default: 0.0.0.0)
+  -p, --port <PORT>                Server listen port (default: 3000)
+  -h, --help                       Print help
+```
+
+#### Environment Variables
+
+- `CLIPPER_CONFIG` - Path to configuration file
 - `CLIPPER_DB_PATH` - Path to the database directory (default: `./data/db`)
 - `CLIPPER_STORAGE_PATH` - Path to the file storage directory (default: `./data/storage`)
+- `CLIPPER_LISTEN_ADDR` - Server listen address (default: `0.0.0.0`)
 - `PORT` - Server port (default: `3000`)
 - `RUST_LOG` - Logging level (default: `clipper_server=debug,tower_http=debug`)
 
+#### Configuration File
+
+Create a `config.toml` or `clipper-server.toml` file:
+
+```toml
+[database]
+path = "./data/db"
+
+[storage]
+path = "./data/storage"
+
+[server]
+listen_addr = "0.0.0.0"
+port = 3000
+```
+
+Or specify a custom config file location:
+
+```bash
+clipper-server --config /path/to/config.toml
+```
+
+See `config.toml.example` for a complete example.
+
 ### Running the Server
 
+Basic usage:
 ```bash
 cargo run --bin clipper-server
 ```
 
-The server will start on `http://0.0.0.0:3000` by default.
+With custom port:
+```bash
+cargo run --bin clipper-server -- --port 8080
+```
+
+With custom configuration:
+```bash
+cargo run --bin clipper-server -- --config config.toml
+```
+
+With environment variables:
+```bash
+CLIPPER_DB_PATH=/var/lib/clipper/db PORT=8080 cargo run --bin clipper-server
+```
+
+The server will start on `http://0.0.0.0:3000` by default (configurable).
 
 ## REST API Endpoints
 

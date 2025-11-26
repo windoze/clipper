@@ -1,0 +1,17 @@
+# Clipper Server Configuration File
+# Copy this file to config.toml or clipper-server.toml and customize as needed
+
+[database]
+# Path to the SurrealDB database directory
+path = "./data/db"
+
+[storage]
+# Path to the file storage directory for attachments
+path = "./data/storage"
+
+[server]
+# Address to listen on (use "0.0.0.0" for all interfaces, "127.0.0.1" for localhost only)
+listen_addr = "0.0.0.0"
+
+# Port to listen on
+port = 3000

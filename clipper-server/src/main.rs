@@ -1,7 +1,7 @@
 use axum::{routing::get, Router};
+use clap::Parser;
 use clipper_indexer::ClipperIndexer;
-use clipper_server::{api, websocket, AppState};
-use std::env;
+use clipper_server::{api, websocket, AppState, Cli, ServerConfig};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -16,13 +16,23 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // Get database and storage paths from environment or use defaults
-    let db_path = env::var("CLIPPER_DB_PATH").unwrap_or_else(|_| "./data/db".to_string());
-    let storage_path =
-        env::var("CLIPPER_STORAGE_PATH").unwrap_or_else(|_| "./data/storage".to_string());
+    // Parse command line arguments
+    let cli = Cli::parse();
+
+    // Load configuration from all sources
+    let config = ServerConfig::load(cli).unwrap_or_else(|err| {
+        eprintln!("Failed to load configuration: {}", err);
+        std::process::exit(1);
+    });
+
+    tracing::info!("Configuration loaded:");
+    tracing::info!("  Database path: {}", config.database.path);
+    tracing::info!("  Storage path: {}", config.storage.path);
+    tracing::info!("  Listen address: {}", config.server.listen_addr);
+    tracing::info!("  Port: {}", config.server.port);
 
     // Initialize the indexer
-    let indexer = ClipperIndexer::new(&db_path, &storage_path)
+    let indexer = ClipperIndexer::new(&config.database.path, &config.storage.path)
         .await
         .expect("Failed to initialize indexer");
 
@@ -38,16 +48,18 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    // Get the port from environment or use default
-    let port = env::var("PORT")
-        .unwrap_or_else(|_| "3000".to_string())
-        .parse::<u16>()
-        .expect("Invalid PORT");
+    // Get socket address
+    let addr = config.socket_addr().unwrap_or_else(|err| {
+        eprintln!("Invalid listen address: {}", err);
+        std::process::exit(1);
+    });
 
-    let addr = format!("0.0.0.0:{}", port);
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
-        .expect("Failed to bind to address");
+        .unwrap_or_else(|err| {
+            eprintln!("Failed to bind to {}: {}", addr, err);
+            std::process::exit(1);
+        });
 
     tracing::info!("Server listening on {}", addr);
 
