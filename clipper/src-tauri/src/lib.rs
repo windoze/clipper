@@ -35,6 +35,9 @@ pub fn run() {
                 }
             });
 
+            // Register settings manager BEFORE starting server (server needs it for port persistence)
+            app.manage(settings_manager.clone());
+
             // Get the server data directory for the bundled server
             let server_data_dir = get_server_data_dir(app.handle())?;
             let server_manager = ServerManager::new(server_data_dir);
@@ -57,9 +60,6 @@ pub fn run() {
 
             // Register server manager
             app.manage(server_manager);
-
-            // Register settings manager
-            app.manage(settings_manager.clone());
 
             // Create app state with the server URL
             let app_state = AppState::new(&server_url);

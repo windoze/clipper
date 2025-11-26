@@ -1,3 +1,4 @@
+use crate::settings::SettingsManager;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
@@ -33,6 +34,11 @@ impl ServerManager {
         }
     }
 
+    /// Check if a port is available
+    fn is_port_available(port: u16) -> bool {
+        std::net::TcpListener::bind(("127.0.0.1", port)).is_ok()
+    }
+
     /// Get the server URL if the server is running
     pub async fn server_url(&self) -> Option<String> {
         self.server_url.read().await.clone()
@@ -58,8 +64,26 @@ impl ServerManager {
             }
         }
 
-        // Find an available port
-        let port = portpicker::pick_unused_port().ok_or("Failed to find available port")?;
+        // Get settings manager for port persistence
+        let settings_manager = app
+            .try_state::<SettingsManager>()
+            .ok_or("Settings manager not initialized")?;
+
+        // Try to reuse saved port, or pick a new one
+        let port = if let Some(saved_port) = settings_manager.get_server_port() {
+            if Self::is_port_available(saved_port) {
+                eprintln!("[clipper-server] Reusing saved port: {}", saved_port);
+                saved_port
+            } else {
+                eprintln!(
+                    "[clipper-server] Saved port {} is in use, picking new port",
+                    saved_port
+                );
+                portpicker::pick_unused_port().ok_or("Failed to find available port")?
+            }
+        } else {
+            portpicker::pick_unused_port().ok_or("Failed to find available port")?
+        };
 
         // Ensure data directories exist
         tokio::fs::create_dir_all(&self.db_path)
@@ -107,6 +131,11 @@ impl ServerManager {
         let server_url = format!("http://127.0.0.1:{}", port);
         *self.port.write().await = Some(port);
         *self.server_url.write().await = Some(server_url.clone());
+
+        // Save the port to settings for next startup
+        if let Err(e) = settings_manager.set_server_port(port).await {
+            eprintln!("[clipper-server] Warning: Failed to save port: {}", e);
+        }
 
         // Spawn a task to monitor the server output
         tauri::async_runtime::spawn(async move {

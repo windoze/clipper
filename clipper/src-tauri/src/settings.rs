@@ -30,6 +30,9 @@ pub struct Settings {
     /// Theme preference: light, dark, or auto
     #[serde(default)]
     pub theme: ThemePreference,
+    /// Server port for the bundled server (persisted across restarts)
+    #[serde(default)]
+    pub server_port: Option<u16>,
 }
 
 impl Default for Settings {
@@ -40,6 +43,7 @@ impl Default for Settings {
             open_on_startup: true,
             start_on_login: false,
             theme: ThemePreference::Auto,
+            server_port: None,
         }
     }
 }
@@ -111,6 +115,18 @@ impl SettingsManager {
         Ok(())
     }
 
+    /// Get the saved server port
+    pub fn get_server_port(&self) -> Option<u16> {
+        self.settings.read().unwrap().server_port
+    }
+
+    /// Set and save the server port
+    pub async fn set_server_port(&self, port: u16) -> Result<(), String> {
+        {
+            self.settings.write().unwrap().server_port = Some(port);
+        }
+        self.save().await
+    }
 }
 
 /// Get the platform-specific config directory for the app
