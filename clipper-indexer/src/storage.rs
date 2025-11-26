@@ -1,6 +1,6 @@
 use crate::error::{IndexerError, Result};
 use bytes::Bytes;
-use object_store::{ObjectStore, local::LocalFileSystem, path::Path as ObjectPath};
+use object_store::{local::LocalFileSystem, path::Path as ObjectPath, ObjectStore};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 

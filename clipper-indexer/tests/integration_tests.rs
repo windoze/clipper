@@ -338,7 +338,7 @@ async fn test_search_with_combined_filters() {
         .await
         .expect("Failed to search");
 
-    assert!(results.items.len() >= 1);
+    assert!(!results.items.is_empty());
     assert!(results
         .items
         .iter()

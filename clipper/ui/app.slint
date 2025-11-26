@@ -1,0 +1,162 @@
+import {
+    Button,
+    HorizontalBox,
+    LineEdit,
+    ListView,
+    Switch,
+    VerticalBox,
+} from "std-widgets.slint";
+
+export struct ClipEntryData {
+    id: string,
+    content: string,
+    created_at: string,
+    tags: string,
+    favorite: bool,
+}
+
+export component App inherits Window {
+    title: "Clipper";
+    width: 960px;
+    height: 640px;
+    background: #f6f7fb;
+
+    in-out property <[ClipEntryData]> clips: [];
+    in-out property <string> status-text: "";
+    in-out property <bool> favorites-only: false;
+
+    callback search-text-changed(string);
+    callback start-date-changed(string);
+    callback end-date-changed(string);
+    callback favorites-only-changed(bool);
+    callback toggle-favorite(string);
+    callback refresh-request();
+
+    padding: 16px;
+
+    VerticalBox {
+        spacing: 12px;
+        HorizontalBox {
+            spacing: 8px;
+            LineEdit {
+                placeholder-text: "Search clips";
+                horizontal-stretch: 1;
+                accepted => {
+                    root.search-text-changed(self.text);
+                }
+            }
+
+            Button {
+                text: "Refresh";
+                clicked => {
+                    root.refresh-request();
+                }
+            }
+        }
+
+        HorizontalBox {
+            spacing: 8px;
+            LineEdit {
+                placeholder-text: "Start date (YYYY-MM-DD)";
+                width: 200px;
+                accepted => {
+                    root.start-date-changed(self.text);
+                }
+            }
+
+            LineEdit {
+                placeholder-text: "End date (YYYY-MM-DD)";
+                width: 200px;
+                accepted => {
+                    root.end-date-changed(self.text);
+                }
+            }
+
+            Switch {
+                checked: root.favorites-only;
+                text: "Favorites only";
+                toggled => {
+                    root.favorites-only = self.checked;
+                    root.favorites-only-changed(self.checked);
+                }
+            }
+        }
+
+        Text {
+            text: root.status-text;
+            color: #4a4a4a;
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            border-color: #d0d5dd;
+            border-width: 1px;
+            border-radius: 8px;
+            clip: true;
+            background: #ffffff;
+
+            if root.clips.length == 0: Text {
+                text: "No clips found";
+                color: #7a7a7a;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            ListView {
+                for clip in root.clips: Rectangle {
+                    min-height: 110px;
+                    border-width: 0px;
+                    background: #ffffff;
+                    VerticalBox {
+                        HorizontalBox {
+                            padding: 12px;
+                            spacing: 12px;
+                            VerticalBox {
+                                spacing: 6px;
+                                Text {
+                                    text: clip.content;
+                                    wrap: word-wrap;
+                                    font-size: 16px;
+                                    color: #1f2328;
+                                }
+
+                                Text {
+                                    text: "Tags: " + (clip.tags == "" ? "-" : clip.tags);
+                                    font-size: 12px;
+                                    color: #6b7280;
+                                }
+
+                                Text {
+                                    text: "Created: " + clip.created_at;
+                                    font-size: 12px;
+                                    color: #6b7280;
+                                }
+                            }
+
+                            Rectangle {
+                                horizontal-stretch: 1;
+                                background: #ffffff;
+                            }
+
+                            VerticalBox {
+                                spacing: 8px;
+                                Button {
+                                    text: clip.favorite ? "Favorite ON" : "Favorite OFF";
+                                    clicked => {
+                                        root.toggle-favorite(clip.id);
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            // width: parent.width;
+                            background: #e5e7eb;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -234,7 +234,7 @@ async fn test_list_clips_with_tag_filter() {
         .await
         .expect("Failed to list clips");
 
-    assert!(clips.items.len() >= 1);
+    assert!(!clips.items.is_empty());
     assert!(clips.items.iter().any(|c| c.content == "Important clip"));
 }
 
@@ -269,7 +269,7 @@ async fn test_search_clips() {
         .await
         .expect("Failed to search clips");
 
-    assert!(clips.items.len() >= 1);
+    assert!(!clips.items.is_empty());
     assert!(clips
         .items
         .iter()
@@ -308,7 +308,7 @@ async fn test_search_clips_with_tag_filter() {
         .await
         .expect("Failed to search clips");
 
-    assert!(clips.items.len() >= 1);
+    assert!(!clips.items.is_empty());
     assert!(clips
         .items
         .iter()

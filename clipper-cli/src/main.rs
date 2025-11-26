@@ -2,7 +2,6 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use clipper_client::{ClipperClient, SearchFilters};
-use serde_json;
 use tokio::sync::mpsc;
 
 #[derive(Parser)]
@@ -25,6 +24,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Create a new clip
+    #[clap(alias = "c")]
     Create {
         /// Clip content
         content: String,
@@ -39,6 +39,7 @@ enum Commands {
     },
 
     /// Get a clip by ID
+    #[clap(alias = "g")]
     Get {
         /// Clip ID
         id: String,
@@ -49,6 +50,7 @@ enum Commands {
     },
 
     /// Update a clip's tags and/or notes
+    #[clap(alias = "u")]
     Update {
         /// Clip ID
         id: String,
@@ -63,6 +65,7 @@ enum Commands {
     },
 
     /// Search clips
+    #[clap(alias = "s")]
     Search {
         /// Search query
         query: String,
@@ -93,12 +96,14 @@ enum Commands {
     },
 
     /// Delete a clip by ID
+    #[clap(alias = "d")]
     Delete {
         /// Clip ID
         id: String,
     },
 
     /// Watch for real-time notifications via WebSocket (outputs NDJSON)
+    #[clap(alias = "w")]
     Watch,
 }
 

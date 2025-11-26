@@ -142,7 +142,7 @@ pub struct PagedResult<T> {
 
 impl<T> PagedResult<T> {
     pub fn new(items: Vec<T>, total: usize, page: usize, page_size: usize) -> Self {
-        let total_pages = (total + page_size - 1) / page_size;
+        let total_pages = total.div_ceil(page_size);
         Self {
             items,
             total,
