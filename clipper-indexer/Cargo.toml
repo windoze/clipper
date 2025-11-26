@@ -1,0 +1,17 @@
+[package]
+name = "clipper_indexer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+surrealdb = { version = "2.3", features = ["kv-rocksdb"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs"] }
+serde = { version = "1", features = ["derive"] }
+object_store = { version = "0.11", features = ["http"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2.0"
+uuid = { version = "1", features = ["v4", "serde"] }
+bytes = "1"
+
+[dev-dependencies]
+tempfile = "3"

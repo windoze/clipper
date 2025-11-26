@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "clipper", "clipper-server", "clipper-indexer",
+]
+resolver = "2"
