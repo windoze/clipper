@@ -146,3 +146,9 @@ pub async fn upload_file(
         .await
         .map_err(|e| e.to_string())
 }
+
+/// Get the URL for a clip's file attachment
+#[tauri::command]
+pub fn get_file_url(state: State<'_, AppState>, clip_id: String) -> String {
+    format!("{}/clips/{}/file", state.base_url(), clip_id)
+}

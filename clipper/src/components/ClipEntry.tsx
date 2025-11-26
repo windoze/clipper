@@ -1,14 +1,35 @@
+import { useState, useEffect } from "react";
 import { Clip, isFavorite, FAVORITE_TAG } from "../types";
 import { invoke } from "@tauri-apps/api/core";
+import { ImagePopup } from "./ImagePopup";
 
 interface ClipEntryProps {
   clip: Clip;
   onToggleFavorite: (clip: Clip) => void;
 }
 
+// Image file extensions
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"];
+
+function isImageFile(filename: string): boolean {
+  const lower = filename.toLowerCase();
+  return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
 export function ClipEntry({ clip, onToggleFavorite }: ClipEntryProps) {
   const favorite = isFavorite(clip);
-  const displayTags = clip.tags.filter((t) => t !== FAVORITE_TAG);
+  const displayTags = clip.tags.filter((t) => !t.startsWith("$"));
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
+
+  const isImage = clip.file_attachment && isImageFile(clip.file_attachment);
+
+  // Get file URL for image clips
+  useEffect(() => {
+    if (isImage) {
+      invoke<string>("get_file_url", { clipId: clip.id }).then(setImageUrl);
+    }
+  }, [clip.id, isImage]);
 
   const formatDate = (dateStr: string): string => {
     try {
@@ -20,6 +41,9 @@ export function ClipEntry({ clip, onToggleFavorite }: ClipEntryProps) {
   };
 
   const handleCopy = async () => {
+    // Don't copy if this is an image clip
+    if (isImage) return;
+
     try {
       // Use custom command that copies without creating a new server clip
       await invoke("copy_to_clipboard", { content: clip.content });
@@ -28,42 +52,83 @@ export function ClipEntry({ clip, onToggleFavorite }: ClipEntryProps) {
     }
   };
 
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowPopup(true);
+  };
+
   const truncateContent = (content: string, maxLength: number = 200): string => {
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + "...";
   };
 
   return (
-    <div className="clip-entry" onClick={handleCopy}>
-      <div className="clip-header">
-        <span className="clip-date">{formatDate(clip.created_at)}</span>
-        <button
-          className={`favorite-button ${favorite ? "active" : ""}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite(clip);
-          }}
-          title={favorite ? "Remove from favorites" : "Add to favorites"}
-        >
-          {favorite ? "★" : "☆"}
-        </button>
+    <>
+      <div
+        className={`clip-entry ${isImage ? "clip-entry-image" : ""}`}
+        onClick={handleCopy}
+      >
+        <div className="clip-header">
+          <span className="clip-date">{formatDate(clip.created_at)}</span>
+          <button
+            className={`favorite-button ${favorite ? "active" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(clip);
+            }}
+            title={favorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            {favorite ? "★" : "☆"}
+          </button>
+        </div>
+
+        {isImage && imageUrl ? (
+          <div className="clip-image-container" onClick={handleImageClick}>
+            <img
+              src={imageUrl}
+              alt={clip.file_attachment || "Image"}
+              className="clip-image-thumbnail"
+            />
+            <div className="clip-image-overlay">
+              <span className="clip-image-zoom-icon">🔍</span>
+            </div>
+          </div>
+        ) : (
+          <div className="clip-content">{truncateContent(clip.content)}</div>
+        )}
+
+        {displayTags.length > 0 && (
+          <div className="clip-tags">
+            {displayTags.map((tag) => (
+              <span key={tag} className="tag">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {clip.file_attachment && !isImage && (
+          <div className="clip-attachment">
+            <span className="attachment-icon">📎</span>
+            <span className="attachment-name">{clip.file_attachment}</span>
+          </div>
+        )}
+
+        {isImage && clip.file_attachment && (
+          <div className="clip-attachment">
+            <span className="attachment-icon">🖼️</span>
+            <span className="attachment-name">{clip.file_attachment}</span>
+          </div>
+        )}
       </div>
-      <div className="clip-content">{truncateContent(clip.content)}</div>
-      {displayTags.length > 0 && (
-        <div className="clip-tags">
-          {displayTags.map((tag) => (
-            <span key={tag} className="tag">
-              {tag}
-            </span>
-          ))}
-        </div>
+
+      {showPopup && imageUrl && clip.file_attachment && (
+        <ImagePopup
+          imageUrl={imageUrl}
+          filename={clip.file_attachment}
+          onClose={() => setShowPopup(false)}
+        />
       )}
-      {clip.file_attachment && (
-        <div className="clip-attachment">
-          <span className="attachment-icon">📎</span>
-          <span className="attachment-name">{clip.file_attachment}</span>
-        </div>
-      )}
-    </div>
+    </>
   );
 }

@@ -114,6 +114,7 @@ pub fn run() {
             commands::get_clip,
             commands::copy_to_clipboard,
             commands::upload_file,
+            commands::get_file_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

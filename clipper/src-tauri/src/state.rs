@@ -18,6 +18,10 @@ impl AppState {
         &self.client
     }
 
+    pub fn base_url(&self) -> &str {
+        self.client.base_url()
+    }
+
     pub fn set_last_synced_content(&self, content: String) {
         *self.last_synced_content.lock().unwrap() = content;
     }
