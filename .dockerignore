@@ -1,0 +1,41 @@
+# Build artifacts
+target/
+**/target/
+
+# Exclude packages not needed for clipper-server
+clipper/
+clipper-slint/
+clipper-client/
+clipper-cli/
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+
+# Local data
+data/
+**/data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+**/tests/
+
+# Config files not needed in container
+.github/

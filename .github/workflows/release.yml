@@ -1,0 +1,244 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create-release.outputs.id }}
+      release_upload_url: ${{ steps.create-release.outputs.upload_url }}
+    steps:
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: true
+          prerelease: false
+
+  build-tauri:
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            rust_target: aarch64-apple-darwin
+            tauri_args: --target aarch64-apple-darwin
+            server_binary_suffix: -aarch64-apple-darwin
+          - platform: macos-latest
+            rust_target: x86_64-apple-darwin
+            tauri_args: --target x86_64-apple-darwin
+            server_binary_suffix: -x86_64-apple-darwin
+          - platform: ubuntu-22.04
+            rust_target: x86_64-unknown-linux-gnu
+            tauri_args: ''
+            server_binary_suffix: -x86_64-unknown-linux-gnu
+          - platform: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            tauri_args: ''
+            server_binary_suffix: -x86_64-pc-windows-msvc.exe
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: '. -> target'
+
+      - name: Install dependencies (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev libayatana-appindicator3-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: clipper/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: clipper
+        run: npm ci
+
+      # Build clipper-server for the target platform
+      - name: Build clipper-server (Unix)
+        if: matrix.platform != 'windows-latest'
+        run: |
+          cargo build --release --target ${{ matrix.rust_target }} -p clipper-server
+          mkdir -p clipper/src-tauri/binaries
+          cp target/${{ matrix.rust_target }}/release/clipper-server clipper/src-tauri/binaries/clipper-server${{ matrix.server_binary_suffix }}
+
+      - name: Build clipper-server (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          cargo build --release --target ${{ matrix.rust_target }} -p clipper-server
+          mkdir -p clipper/src-tauri/binaries
+          cp target/${{ matrix.rust_target }}/release/clipper-server.exe clipper/src-tauri/binaries/clipper-server${{ matrix.server_binary_suffix }}
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: clipper
+          tauriScript: npm run tauri
+          args: ${{ matrix.tauri_args }}
+
+      # Find and upload artifacts
+      - name: Find bundle files
+        id: find-bundles
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform }}" == "macos-latest" ]; then
+            DMG_PATH=$(find clipper/src-tauri/target -name "*.dmg" -type f | head -1)
+            echo "dmg_path=$DMG_PATH" >> $GITHUB_OUTPUT
+            echo "Found DMG: $DMG_PATH"
+          elif [ "${{ matrix.platform }}" == "ubuntu-22.04" ]; then
+            DEB_PATH=$(find clipper/src-tauri/target -name "*.deb" -type f | head -1)
+            APPIMAGE_PATH=$(find clipper/src-tauri/target -name "*.AppImage" -type f | head -1)
+            echo "deb_path=$DEB_PATH" >> $GITHUB_OUTPUT
+            echo "appimage_path=$APPIMAGE_PATH" >> $GITHUB_OUTPUT
+            echo "Found DEB: $DEB_PATH"
+            echo "Found AppImage: $APPIMAGE_PATH"
+          elif [ "${{ matrix.platform }}" == "windows-latest" ]; then
+            MSI_PATH=$(find clipper/src-tauri/target -name "*.msi" -type f | head -1)
+            NSIS_PATH=$(find clipper/src-tauri/target -name "*-setup.exe" -type f | head -1)
+            echo "msi_path=$MSI_PATH" >> $GITHUB_OUTPUT
+            echo "nsis_path=$NSIS_PATH" >> $GITHUB_OUTPUT
+            echo "Found MSI: $MSI_PATH"
+            echo "Found NSIS: $NSIS_PATH"
+          fi
+
+      - name: Upload macOS DMG (aarch64)
+        if: matrix.platform == 'macos-latest' && matrix.rust_target == 'aarch64-apple-darwin'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: ${{ steps.find-bundles.outputs.dmg_path }}
+          asset_name: Clipper_${{ github.ref_name }}_macos_aarch64.dmg
+          asset_content_type: application/x-apple-diskimage
+
+      - name: Upload macOS DMG (x86_64)
+        if: matrix.platform == 'macos-latest' && matrix.rust_target == 'x86_64-apple-darwin'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: ${{ steps.find-bundles.outputs.dmg_path }}
+          asset_name: Clipper_${{ github.ref_name }}_macos_x64.dmg
+          asset_content_type: application/x-apple-diskimage
+
+      - name: Upload Linux DEB
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: ${{ steps.find-bundles.outputs.deb_path }}
+          asset_name: Clipper_${{ github.ref_name }}_amd64.deb
+          asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload Linux AppImage
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: ${{ steps.find-bundles.outputs.appimage_path }}
+          asset_name: Clipper_${{ github.ref_name }}_amd64.AppImage
+          asset_content_type: application/x-appimage
+
+      - name: Upload Windows MSI
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: ${{ steps.find-bundles.outputs.msi_path }}
+          asset_name: Clipper_${{ github.ref_name }}_x64.msi
+          asset_content_type: application/x-msi
+
+      - name: Upload Windows NSIS Installer
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
+          asset_path: ${{ steps.find-bundles.outputs.nsis_path }}
+          asset_name: Clipper_${{ github.ref_name }}_x64-setup.exe
+          asset_content_type: application/x-executable
+
+  build-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            windoze/clipper-server:${{ steps.version.outputs.version }}
+            windoze/clipper-server:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  publish-release:
+    needs: [create-release, build-tauri, build-docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ needs.create-release.outputs.release_id }},
+              draft: false
+            })
