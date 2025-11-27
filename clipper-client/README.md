@@ -6,7 +6,9 @@ A Rust client library for interacting with the Clipper server REST API and WebSo
 
 - **Full REST API Support**: Create, read, update, delete clips
 - **Search & Filter**: Full-text search with date range and tag filters
+- **Pagination Support**: Built-in pagination for search and list operations
 - **Real-time Notifications**: WebSocket support for live clip updates
+- **File Operations**: Upload files and download attachments
 - **Async/Await**: Built on Tokio for efficient async I/O
 - **Type-Safe**: Strongly typed API with comprehensive error handling
 
@@ -41,12 +43,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Created clip with ID: {}", clip.id);
 
-    // Search for clips
-    let results = client
-        .search_clips("Hello", SearchFilters::new())
+    // Search for clips with pagination
+    let result = client
+        .search_clips("Hello", SearchFilters::new(), 1, 20)
         .await?;
 
-    println!("Found {} clips", results.len());
+    println!("Found {} clips (page {} of {})",
+             result.total, result.page, result.total_pages);
 
     Ok(())
 }
@@ -105,25 +108,30 @@ let updated = client
 use clipper_client::SearchFilters;
 use chrono::{Duration, Utc};
 
-// Search with filters
+// Search with filters and pagination
 let filters = SearchFilters::new()
     .with_tags(vec!["important".to_string()])
     .with_start_date(Utc::now() - Duration::days(7))
     .with_end_date(Utc::now());
 
-let clips = client.search_clips("query", filters).await?;
+let result = client.search_clips("query", filters, 1, 20).await?;
+println!("Page {} of {}, Total: {}", result.page, result.total_pages, result.total);
+
+for clip in result.items {
+    println!("- {}: {}", clip.id, clip.content);
+}
 ```
 
 ### List Clips
 
 ```rust
-// List all clips
-let clips = client.list_clips(SearchFilters::new()).await?;
+// List all clips with pagination
+let result = client.list_clips(SearchFilters::new(), 1, 20).await?;
 
 // List with filters
 let filters = SearchFilters::new()
     .with_tags(vec!["work".to_string()]);
-let clips = client.list_clips(filters).await?;
+let result = client.list_clips(filters, 1, 50).await?;
 ```
 
 ### Delete a Clip
@@ -289,7 +297,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Search with Multiple Filters
+### Search with Multiple Filters and Pagination
 
 ```rust
 use clipper_client::{ClipperClient, SearchFilters};
@@ -305,9 +313,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_end_date(Utc::now())
         .with_tags(vec!["important".to_string(), "work".to_string()]);
 
-    let clips = client.search_clips("meeting", filters).await?;
+    // Search with pagination (page 1, 20 items per page)
+    let result = client.search_clips("meeting", filters, 1, 20).await?;
 
-    for clip in clips {
+    println!("Found {} total clips", result.total);
+    for clip in result.items {
         println!("Found: {} - {:?}", clip.content, clip.tags);
     }
 

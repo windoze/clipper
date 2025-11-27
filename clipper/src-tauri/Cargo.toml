@@ -1,6 +1,6 @@
 [package]
 name = "clipper"
-version = "0.2.0"
+version = "0.2.1"
 description = "Clipper - Clipboard Manager"
 authors = ["chenxu"]
 edition = "2021"

@@ -123,6 +123,9 @@ cargo run --bin clipper-cli -- watch
    - **Frontend**: React 19 + TypeScript + Vite
    - **Backend**: Tauri 2 with Rust
    - **Features**:
+     - **Bundled server**: Includes clipper-server as a sidecar that starts automatically
+     - **Server mode selection**: Choose between bundled server or external server
+     - **Network access**: Option to listen on all interfaces for LAN access
      - System tray with show/hide and quit menu
      - Clipboard monitoring (text and images) with polling
      - WebSocket connection for real-time sync
@@ -132,6 +135,10 @@ cargo run --bin clipper-cli -- watch
      - Favorites tagging system
      - Infinite scroll clip list
      - Image preview popup
+     - **Internationalization**: English and Chinese language support
+     - **Toast notifications**: Configurable notification system
+     - **Clear all data**: Option to wipe all clips and restart server
+     - **Auto-reconnect**: Reconnects to server when URL changes in settings
    - **Key Modules** (in `clipper/src-tauri/src/`):
      - `lib.rs`: Tauri app setup, plugin initialization, event handlers
      - `state.rs`: AppState with ClipperClient
@@ -141,6 +148,7 @@ cargo run --bin clipper-cli -- watch
      - `settings.rs`: Settings persistence (JSON file in app config dir)
      - `tray.rs`: System tray setup
      - `autolaunch.rs`: Platform-specific auto-start configuration
+     - `server.rs`: ServerManager for bundled server lifecycle
 
 6. **clipper-slint (Slint GUI - Alternative)**
    - Built with Slint 1.14 UI framework
@@ -288,9 +296,9 @@ Environment variables:
 ### Tauri App Configuration
 
 Settings stored in platform-specific config directory:
-- macOS: `~/Library/Application Support/com.chenxu.clipper/settings.json`
-- Linux: `~/.config/com.chenxu.clipper/settings.json`
-- Windows: `%APPDATA%\com.chenxu.clipper\settings.json`
+- macOS: `~/Library/Application Support/com.0d0a.clipper/settings.json`
+- Linux: `~/.config/com.0d0a.clipper/settings.json`
+- Windows: `%APPDATA%\com.0d0a.clipper\settings.json`
 
 Settings include:
 - `serverAddress`: Server URL (default: `http://localhost:3000`)
@@ -298,6 +306,11 @@ Settings include:
 - `openOnStartup`: Show window on app start
 - `startOnLogin`: Auto-launch on system login
 - `theme`: "light" | "dark" | "auto"
+- `useBundledServer`: Use bundled server (true) or external server (false)
+- `listenOnAllInterfaces`: Allow LAN access to bundled server
+- `serverPort`: Port for bundled server (persisted across restarts)
+- `language`: UI language ("en", "zh", or null for auto)
+- `notificationsEnabled`: Show toast notifications
 
 ## Testing Notes
 
@@ -356,6 +369,14 @@ get_settings(): Settings
 save_settings(settings: Settings): Promise<void>
 browse_directory(): Promise<string | null>
 check_auto_launch_status(): Promise<boolean>
+get_server_url(): Promise<string>
+is_bundled_server(): Promise<boolean>
+switch_to_bundled_server(): Promise<string>
+switch_to_external_server(server_url: string): Promise<void>
+clear_all_data(): Promise<void>
+toggle_listen_on_all_interfaces(listen_on_all: boolean): Promise<string>
+get_local_ip_addresses(): Promise<string[]>
+update_tray_language(language: string): Promise<void>
 ```
 
 ## Project Status
@@ -381,10 +402,16 @@ check_auto_launch_status(): Promise<boolean>
   - Infinite scroll clip list
   - Image preview
   - Favorites system
+  - **Bundled server** (clipper-server as sidecar)
+  - **Server mode selection** (bundled vs external)
+  - **Network access toggle** (LAN access for bundled server)
+  - **Internationalization** (English, Chinese)
+  - **Toast notifications**
+  - **Clear all data** functionality
+  - **Auto-reconnect** on server URL change
 - Slint GUI alternative (basic implementation)
 
 ### Future Work
-- Bundled server (embed clipper-server in Tauri app)
 - File content preview/rendering improvements
 - Advanced search operators
 - Export/import functionality
