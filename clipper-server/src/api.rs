@@ -40,6 +40,8 @@ struct ClipResponse {
     additional_notes: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     file_attachment: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    original_filename: Option<String>,
 }
 
 impl From<ClipboardEntry> for ClipResponse {
@@ -51,6 +53,7 @@ impl From<ClipboardEntry> for ClipResponse {
             tags: entry.tags,
             additional_notes: entry.additional_notes,
             file_attachment: entry.file_attachment,
+            original_filename: entry.original_filename,
         }
     }
 }

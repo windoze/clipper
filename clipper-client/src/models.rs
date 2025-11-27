@@ -11,6 +11,8 @@ pub struct Clip {
     pub additional_notes: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_attachment: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_filename: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

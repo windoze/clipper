@@ -328,9 +328,11 @@ async fn test_list_clips() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let body = response_json(response).await;
-    assert!(body.is_array());
-    let clips = body.as_array().unwrap();
-    assert!(clips.len() >= 2);
+    assert!(body.is_object());
+    let items = body["items"].as_array().unwrap();
+    assert!(items.len() >= 2);
+    assert!(body["total"].as_u64().unwrap() >= 2);
+    assert_eq!(body["page"].as_u64().unwrap(), 1);
 }
 
 #[tokio::test]
@@ -389,9 +391,9 @@ async fn test_search_clips() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let body = response_json(response).await;
-    let clips = body.as_array().unwrap();
-    assert_eq!(clips.len(), 1);
-    assert_eq!(clips[0]["content"], "The quick brown fox");
+    let items = body["items"].as_array().unwrap();
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0]["content"], "The quick brown fox");
 }
 
 #[tokio::test]
@@ -442,4 +444,5 @@ async fn test_upload_file() {
     assert_eq!(body["tags"], json!(["document", "test"]));
     assert_eq!(body["additional_notes"], "Test upload");
     assert!(body["file_attachment"].is_string());
+    assert_eq!(body["original_filename"], "test.txt");
 }

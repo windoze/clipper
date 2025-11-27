@@ -105,10 +105,13 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
     e.stopPropagation();
     if (!clip.file_attachment) return;
 
+    // Use original_filename if available, otherwise fall back to file_attachment
+    const downloadFilename = clip.original_filename || clip.file_attachment;
+
     try {
       await invoke("download_file", {
         clipId: clip.id,
-        filename: clip.file_attachment,
+        filename: downloadFilename,
       });
     } catch (err) {
       // User cancelled or error occurred
@@ -188,7 +191,7 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
               onClick={handleDownload}
               title={t("clip.download")}
             >
-              {clip.file_attachment}
+              {clip.original_filename || clip.file_attachment}
             </button>
           </div>
         )}
@@ -201,7 +204,7 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
               onClick={handleDownload}
               title={t("clip.download")}
             >
-              {clip.file_attachment}
+              {clip.original_filename || clip.file_attachment}
             </button>
           </div>
         )}
@@ -223,7 +226,7 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
       {showPopup && imageUrl && clip.file_attachment && (
         <ImagePopup
           imageUrl={imageUrl}
-          filename={clip.file_attachment}
+          filename={clip.original_filename || clip.file_attachment}
           onClose={() => setShowPopup(false)}
         />
       )}

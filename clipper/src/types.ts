@@ -5,6 +5,7 @@ export interface Clip {
   tags: string[];
   additional_notes?: string;
   file_attachment?: string;
+  original_filename?: string;
 }
 
 export interface PagedResult {

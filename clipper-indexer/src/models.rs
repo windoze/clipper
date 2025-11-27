@@ -12,6 +12,8 @@ pub struct ClipboardEntry {
     pub additional_notes: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_attachment: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_filename: Option<String>,
     #[serde(skip_serializing)]
     pub search_content: String,
 }
@@ -51,8 +53,14 @@ impl ClipboardEntry {
             tags,
             additional_notes: None,
             file_attachment: None,
+            original_filename: None,
             search_content,
         }
+    }
+
+    pub fn with_original_filename(mut self, filename: String) -> Self {
+        self.original_filename = Some(filename);
+        self
     }
 
     pub fn with_notes(mut self, notes: String) -> Self {

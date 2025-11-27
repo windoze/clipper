@@ -120,7 +120,7 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                     });
                 }
                 ClipboardContent::Image(png_bytes) => {
-                    let filename = format!("{}.png", Utc::now().format("%Y%m%d_%H%M%S"));
+                    let filename = format!("screenshot-{}.png", Utc::now().format("%Y-%m-%d-%H-%M-%S"));
                     rt.spawn(async move {
                         match client_clone
                             .upload_file_bytes(png_bytes, filename, vec!["$image".to_string()], None)

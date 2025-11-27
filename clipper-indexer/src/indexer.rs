@@ -18,6 +18,7 @@ struct DbClipboardEntry {
     tags: Vec<String>,
     additional_notes: Option<String>,
     file_attachment: Option<String>,
+    original_filename: Option<String>,
     search_content: String,
 }
 
@@ -54,9 +55,10 @@ impl ClipperIndexer {
             DEFINE FIELD IF NOT EXISTS tags ON TABLE {} TYPE array<string>;
             DEFINE FIELD IF NOT EXISTS additional_notes ON TABLE {} TYPE option<string>;
             DEFINE FIELD IF NOT EXISTS file_attachment ON TABLE {} TYPE option<string>;
+            DEFINE FIELD IF NOT EXISTS original_filename ON TABLE {} TYPE option<string>;
             DEFINE FIELD IF NOT EXISTS search_content ON TABLE {} TYPE string;
             "#,
-            TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME
+            TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME
         );
 
         db.query(schema_query).await?;
@@ -102,6 +104,7 @@ impl ClipperIndexer {
                 tags: entry.tags.clone(),
                 additional_notes: entry.additional_notes.clone(),
                 file_attachment: entry.file_attachment.clone(),
+                original_filename: entry.original_filename.clone(),
                 search_content: entry.search_content.clone(),
             })
             .await?;
@@ -125,16 +128,26 @@ impl ClipperIndexer {
             )));
         }
 
+        // Extract original filename from path
+        let original_filename = file_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(|s| s.to_string());
+
         // Store the file using object_store
         let stored_file_key = self.storage.put_file(file_path).await?;
 
         // Read file content for search indexing
         let file_content = tokio::fs::read_to_string(file_path)
             .await
-            .unwrap_or_else(|_| format!("Binary file: {}", file_path.display()));
+            .unwrap_or_else(|_| file_path.display().to_string());
 
         let mut entry = ClipboardEntry::new(file_content, tags);
         entry = entry.with_file_attachment(stored_file_key);
+
+        if let Some(filename) = original_filename {
+            entry = entry.with_original_filename(filename);
+        }
 
         if let Some(notes) = additional_notes {
             entry = entry.with_notes(notes);
@@ -152,6 +165,7 @@ impl ClipperIndexer {
                 tags: entry.tags.clone(),
                 additional_notes: entry.additional_notes.clone(),
                 file_attachment: entry.file_attachment.clone(),
+                original_filename: entry.original_filename.clone(),
                 search_content: entry.search_content.clone(),
             })
             .await?;
@@ -174,10 +188,11 @@ impl ClipperIndexer {
 
         // Try to read file content as text for search indexing
         let text_content = String::from_utf8(file_content.to_vec())
-            .unwrap_or_else(|_| format!("Binary file: {}", original_filename));
+            .unwrap_or_else(|_|  original_filename.clone());
 
         let mut entry = ClipboardEntry::new(text_content, tags);
         entry = entry.with_file_attachment(stored_file_key);
+        entry = entry.with_original_filename(original_filename);
 
         if let Some(notes) = additional_notes {
             entry = entry.with_notes(notes);
@@ -195,6 +210,7 @@ impl ClipperIndexer {
                 tags: entry.tags.clone(),
                 additional_notes: entry.additional_notes.clone(),
                 file_attachment: entry.file_attachment.clone(),
+                original_filename: entry.original_filename.clone(),
                 search_content: entry.search_content.clone(),
             })
             .await?;
@@ -214,6 +230,7 @@ impl ClipperIndexer {
                 tags: db_entry.tags,
                 additional_notes: db_entry.additional_notes,
                 file_attachment: db_entry.file_attachment,
+                original_filename: db_entry.original_filename,
                 search_content: db_entry.search_content,
             })
             .ok_or_else(|| IndexerError::NotFound(format!("Entry with id {} not found", id)))
@@ -347,6 +364,7 @@ impl ClipperIndexer {
                 tags: db_entry.tags,
                 additional_notes: db_entry.additional_notes,
                 file_attachment: db_entry.file_attachment,
+                original_filename: db_entry.original_filename,
                 search_content: db_entry.search_content,
             })
             .collect();
@@ -445,6 +463,7 @@ impl ClipperIndexer {
                 tags: db_entry.tags,
                 additional_notes: db_entry.additional_notes,
                 file_attachment: db_entry.file_attachment,
+                original_filename: db_entry.original_filename,
                 search_content: db_entry.search_content,
             })
             .collect();
