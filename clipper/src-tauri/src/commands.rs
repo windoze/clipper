@@ -282,3 +282,67 @@ pub async fn clear_all_data(
     eprintln!("[clipper] All data cleared and server restarted at {}", new_url);
     Ok(())
 }
+
+/// Switch to using the bundled server
+#[tauri::command]
+pub async fn switch_to_bundled_server(
+    app: tauri::AppHandle,
+    server_manager: State<'_, ServerManager>,
+    settings_manager: State<'_, SettingsManager>,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    use tauri::Emitter;
+
+    eprintln!("[clipper] Switching to bundled server...");
+
+    // Start the bundled server if not running
+    let server_url = server_manager.start(&app).await?;
+
+    // Update the client to use the bundled server URL
+    state.set_server_url(&server_url);
+
+    // Update settings to remember this choice
+    let mut settings = settings_manager.get();
+    settings.use_bundled_server = true;
+    settings_manager.update(settings).await?;
+
+    // Emit event to refresh the clip list
+    let _ = app.emit("server-switched", ());
+
+    eprintln!("[clipper] Switched to bundled server at {}", server_url);
+    Ok(server_url)
+}
+
+/// Switch to using an external server
+#[tauri::command]
+pub async fn switch_to_external_server(
+    app: tauri::AppHandle,
+    server_manager: State<'_, ServerManager>,
+    settings_manager: State<'_, SettingsManager>,
+    state: State<'_, AppState>,
+    server_url: String,
+) -> Result<(), String> {
+    use tauri::Emitter;
+
+    eprintln!("[clipper] Switching to external server at {}...", server_url);
+
+    // Stop the bundled server if running
+    if server_manager.is_running().await {
+        server_manager.stop().await?;
+    }
+
+    // Update the client to use the external server URL
+    state.set_server_url(&server_url);
+
+    // Update settings to remember this choice and the external URL
+    let mut settings = settings_manager.get();
+    settings.use_bundled_server = false;
+    settings.server_address = server_url.clone();
+    settings_manager.update(settings).await?;
+
+    // Emit event to refresh the clip list
+    let _ = app.emit("server-switched", ());
+
+    eprintln!("[clipper] Switched to external server at {}", server_url);
+    Ok(())
+}

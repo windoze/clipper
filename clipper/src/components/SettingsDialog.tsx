@@ -10,6 +10,7 @@ export interface Settings {
   openOnStartup: boolean;
   startOnLogin: boolean;
   theme: ThemePreference;
+  useBundledServer: boolean;
 }
 
 interface SettingsDialogProps {
@@ -25,12 +26,12 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     openOnStartup: true,
     startOnLogin: false,
     theme: "auto",
+    useBundledServer: true,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string>("");
-  const [isBundledServer, setIsBundledServer] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
 
@@ -62,12 +63,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
 
   const loadServerInfo = async () => {
     try {
-      const [url, bundled] = await Promise.all([
-        invoke<string>("get_server_url"),
-        invoke<boolean>("is_bundled_server"),
-      ]);
+      const url = await invoke<string>("get_server_url");
       setServerUrl(url);
-      setIsBundledServer(bundled);
     } catch (e) {
       console.error("Failed to load server info:", e);
     }
@@ -118,6 +115,28 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     }
     setShowClearConfirm(false);
     onClose();
+  };
+
+  // Handle server mode change
+  const handleServerModeChange = async (useBundled: boolean) => {
+    if (useBundled === settings.useBundledServer) return;
+
+    setError(null);
+    try {
+      if (useBundled) {
+        // Switch to bundled server
+        const newUrl = await invoke<string>("switch_to_bundled_server");
+        setServerUrl(newUrl);
+        setSettings((prev) => ({ ...prev, useBundledServer: true }));
+      } else {
+        // Switch to external server
+        await invoke("switch_to_external_server", { serverUrl: settings.serverAddress });
+        setServerUrl(settings.serverAddress);
+        setSettings((prev) => ({ ...prev, useBundledServer: false }));
+      }
+    } catch (e) {
+      setError(`Failed to switch server mode: ${e}`);
+    }
   };
 
   // Handle clear all data
@@ -197,33 +216,70 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
               <div className="settings-section">
                 <h3>Server</h3>
                 <div className="settings-field">
-                  <label htmlFor="serverUrl">Server URL</label>
-                  <div className="settings-url-input">
-                    <input
-                      id="serverUrl"
-                      type="text"
-                      value={serverUrl}
-                      readOnly
-                      className="settings-readonly with-copy"
-                    />
+                  <label>Server Mode</label>
+                  <div className="server-mode-selector">
                     <button
                       type="button"
-                      className="copy-icon-button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(serverUrl);
-                      }}
-                      title="Copy to clipboard"
+                      className={`server-mode-option ${settings.useBundledServer ? "active" : ""}`}
+                      onClick={() => handleServerModeChange(true)}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                      </svg>
+                      <span className="server-mode-icon">&#9881;</span>
+                      <span>Bundled</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`server-mode-option ${!settings.useBundledServer ? "active" : ""}`}
+                      onClick={() => handleServerModeChange(false)}
+                    >
+                      <span className="server-mode-icon">&#8599;</span>
+                      <span>External</span>
                     </button>
                   </div>
                   <p className="settings-hint">
-                    {isBundledServer
-                      ? "Using bundled server (automatically managed). Data is stored in the application data directory."
-                      : "Connected to external server."}
+                    {settings.useBundledServer
+                      ? "Use the bundled server (automatically managed). Data is stored locally."
+                      : "Connect to an external clipper-server instance."}
+                  </p>
+                </div>
+
+                <div className="settings-field">
+                  <label htmlFor="serverUrl">Server URL</label>
+                  {settings.useBundledServer ? (
+                    <div className="settings-url-input">
+                      <input
+                        id="serverUrl"
+                        type="text"
+                        value={serverUrl}
+                        readOnly
+                        className="settings-readonly with-copy"
+                      />
+                      <button
+                        type="button"
+                        className="copy-icon-button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(serverUrl);
+                        }}
+                        title="Copy to clipboard"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <input
+                      id="serverUrl"
+                      type="text"
+                      value={settings.serverAddress}
+                      onChange={(e) => handleChange("serverAddress", e.target.value)}
+                      placeholder="http://localhost:3000"
+                    />
+                  )}
+                  <p className="settings-hint">
+                    {settings.useBundledServer
+                      ? "The bundled server URL (read-only)."
+                      : "Enter the URL of your external clipper-server."}
                   </p>
                 </div>
               </div>
@@ -301,51 +357,53 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                 </div>
               </div>
 
-              <div className="settings-section">
-                <h3>Data Management</h3>
-                <div className="settings-field">
-                  <label>Clear All Data</label>
-                  {!showClearConfirm ? (
-                    <>
-                      <button
-                        type="button"
-                        className="settings-btn danger"
-                        onClick={() => setShowClearConfirm(true)}
-                        disabled={clearing}
-                      >
-                        Clear All Clips
-                      </button>
-                      <p className="settings-hint">
-                        Permanently delete all stored clips and attachments. This action cannot be undone.
-                      </p>
-                    </>
-                  ) : (
-                    <div className="clear-confirm">
-                      <p className="clear-confirm-message">
-                        Are you sure you want to delete all clips? This will stop the server, delete all data, and restart.
-                      </p>
-                      <div className="clear-confirm-buttons">
-                        <button
-                          type="button"
-                          className="settings-btn secondary"
-                          onClick={() => setShowClearConfirm(false)}
-                          disabled={clearing}
-                        >
-                          Cancel
-                        </button>
+              {settings.useBundledServer && (
+                <div className="settings-section">
+                  <h3>Data Management</h3>
+                  <div className="settings-field">
+                    <label>Clear All Data</label>
+                    {!showClearConfirm ? (
+                      <>
                         <button
                           type="button"
                           className="settings-btn danger"
-                          onClick={handleClearData}
+                          onClick={() => setShowClearConfirm(true)}
                           disabled={clearing}
                         >
-                          {clearing ? "Clearing..." : "Yes, Delete All"}
+                          Clear All Clips
                         </button>
+                        <p className="settings-hint">
+                          Permanently delete all stored clips and attachments. This action cannot be undone.
+                        </p>
+                      </>
+                    ) : (
+                      <div className="clear-confirm">
+                        <p className="clear-confirm-message">
+                          Are you sure you want to delete all clips? This will stop the server, delete all data, and restart.
+                        </p>
+                        <div className="clear-confirm-buttons">
+                          <button
+                            type="button"
+                            className="settings-btn secondary"
+                            onClick={() => setShowClearConfirm(false)}
+                            disabled={clearing}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="settings-btn danger"
+                            onClick={handleClearData}
+                            disabled={clearing}
+                          >
+                            {clearing ? "Clearing..." : "Yes, Delete All"}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </div>

@@ -32,14 +32,19 @@ function App() {
   const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
   const { updateTheme } = useTheme();
 
-  // Listen for data-cleared event to refresh clips after clearing all data
+  // Listen for data-cleared and server-switched events to refresh clips
   useEffect(() => {
-    const unlisten = listen("data-cleared", () => {
+    const unlistenDataCleared = listen("data-cleared", () => {
+      refetch();
+    });
+
+    const unlistenServerSwitched = listen("server-switched", () => {
       refetch();
     });
 
     return () => {
-      unlisten.then((fn) => fn());
+      unlistenDataCleared.then((fn) => fn());
+      unlistenServerSwitched.then((fn) => fn());
     };
   }, [refetch]);
 

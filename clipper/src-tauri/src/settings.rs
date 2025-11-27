@@ -33,6 +33,13 @@ pub struct Settings {
     /// Server port for the bundled server (persisted across restarts)
     #[serde(default)]
     pub server_port: Option<u16>,
+    /// Whether to use the bundled server (true) or external server (false)
+    #[serde(default = "default_use_bundled_server")]
+    pub use_bundled_server: bool,
+}
+
+fn default_use_bundled_server() -> bool {
+    true
 }
 
 impl Default for Settings {
@@ -44,6 +51,7 @@ impl Default for Settings {
             start_on_login: false,
             theme: ThemePreference::Auto,
             server_port: None,
+            use_bundled_server: true,
         }
     }
 }

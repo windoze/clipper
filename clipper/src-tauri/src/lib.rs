@@ -42,21 +42,30 @@ pub fn run() {
             let server_data_dir = get_server_data_dir(app.handle())?;
             let server_manager = ServerManager::new(server_data_dir);
 
-            // Start the bundled server and get its URL
+            // Check if we should use bundled server based on settings
+            let use_bundled = settings_manager.get().use_bundled_server;
+
+            // Start the bundled server if enabled, or use external server URL
             let app_handle_for_server = app.handle().clone();
-            let server_url = tauri::async_runtime::block_on(async {
-                match server_manager.start(&app_handle_for_server).await {
-                    Ok(url) => {
-                        eprintln!("Bundled server started at: {}", url);
-                        url
+            let server_url = if use_bundled {
+                tauri::async_runtime::block_on(async {
+                    match server_manager.start(&app_handle_for_server).await {
+                        Ok(url) => {
+                            eprintln!("Bundled server started at: {}", url);
+                            url
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to start bundled server: {}. Falling back to settings.", e);
+                            // Fall back to settings if bundled server fails
+                            settings_manager.get().server_address.clone()
+                        }
                     }
-                    Err(e) => {
-                        eprintln!("Failed to start bundled server: {}. Falling back to settings.", e);
-                        // Fall back to settings if bundled server fails
-                        settings_manager.get().server_address.clone()
-                    }
-                }
-            });
+                })
+            } else {
+                let external_url = settings_manager.get().server_address.clone();
+                eprintln!("Using external server at: {}", external_url);
+                external_url
+            };
 
             // Register server manager
             app.manage(server_manager);
@@ -177,6 +186,8 @@ pub fn run() {
             commands::get_server_url,
             commands::is_bundled_server,
             commands::clear_all_data,
+            commands::switch_to_bundled_server,
+            commands::switch_to_external_server,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
