@@ -201,10 +201,39 @@ impl ServerManager {
                 .kill()
                 .map_err(|e| format!("Failed to kill server: {}", e))?;
             eprintln!("[clipper-server] Server stopped");
+
+            // Wait for the process to fully terminate and port to be released
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         }
 
         *self.port.write().await = None;
         *self.server_url.write().await = None;
+
+        Ok(())
+    }
+
+    /// Clear all data (database and storage) - server must be stopped first
+    pub async fn clear_data(&self) -> Result<(), String> {
+        // Ensure server is stopped
+        if self.is_running().await {
+            return Err("Server must be stopped before clearing data".to_string());
+        }
+
+        // Remove database directory
+        if self.db_path.exists() {
+            tokio::fs::remove_dir_all(&self.db_path)
+                .await
+                .map_err(|e| format!("Failed to remove database directory: {}", e))?;
+            eprintln!("[clipper-server] Database directory cleared");
+        }
+
+        // Remove storage directory
+        if self.storage_path.exists() {
+            tokio::fs::remove_dir_all(&self.storage_path)
+                .await
+                .map_err(|e| format!("Failed to remove storage directory: {}", e))?;
+            eprintln!("[clipper-server] Storage directory cleared");
+        }
 
         Ok(())
     }

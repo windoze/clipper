@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { useClips } from "./hooks/useClips";
 import { useTheme } from "./hooks/useTheme";
 import { SearchBox } from "./components/SearchBox";
@@ -29,6 +31,17 @@ function App() {
 
   const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
   const { updateTheme } = useTheme();
+
+  // Listen for data-cleared event to refresh clips after clearing all data
+  useEffect(() => {
+    const unlisten = listen("data-cleared", () => {
+      refetch();
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [refetch]);
 
   return (
     <DropZone>

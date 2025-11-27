@@ -176,6 +176,7 @@ pub fn run() {
             commands::check_auto_launch_status,
             commands::get_server_url,
             commands::is_bundled_server,
+            commands::clear_all_data,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

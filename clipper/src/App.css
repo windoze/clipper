@@ -887,6 +887,37 @@ body {
   background: #dee2e6;
 }
 
+.settings-btn.danger {
+  background: #dc3545;
+  border: none;
+  color: white;
+}
+
+.settings-btn.danger:hover:not(:disabled) {
+  background: #c82333;
+}
+
+/* Clear Data Confirmation */
+.clear-confirm {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.clear-confirm-message {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #856404;
+}
+
+.clear-confirm-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 /* Theme Selector */
 .theme-selector {
   display: flex;
@@ -1147,6 +1178,23 @@ body {
   background: #4a4a4a;
 }
 
+:root[data-theme="dark"] .settings-btn.danger {
+  background: #dc3545;
+}
+
+:root[data-theme="dark"] .settings-btn.danger:hover:not(:disabled) {
+  background: #c82333;
+}
+
+:root[data-theme="dark"] .clear-confirm {
+  background: #3d3520;
+  border-color: #6d5a10;
+}
+
+:root[data-theme="dark"] .clear-confirm-message {
+  color: #f0d77c;
+}
+
 /* ============================================
    Media Query Fallback for Auto Theme
    Used when no explicit data-theme is set
@@ -1368,5 +1416,22 @@ body {
 
   :root:not([data-theme="light"]) .settings-btn.secondary:hover:not(:disabled) {
     background: #4a4a4a;
+  }
+
+  :root:not([data-theme="light"]) .settings-btn.danger {
+    background: #dc3545;
+  }
+
+  :root:not([data-theme="light"]) .settings-btn.danger:hover:not(:disabled) {
+    background: #c82333;
+  }
+
+  :root:not([data-theme="light"]) .clear-confirm {
+    background: #3d3520;
+    border-color: #6d5a10;
+  }
+
+  :root:not([data-theme="light"]) .clear-confirm-message {
+    color: #f0d77c;
   }
 }

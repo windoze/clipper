@@ -31,6 +31,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   const [error, setError] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string>("");
   const [isBundledServer, setIsBundledServer] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   // Store the original theme when dialog opens to revert on cancel
   const originalThemeRef = useRef<ThemePreference>("auto");
@@ -114,7 +116,24 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     if (settings.theme !== originalThemeRef.current) {
       onThemeChange?.(originalThemeRef.current);
     }
+    setShowClearConfirm(false);
     onClose();
+  };
+
+  // Handle clear all data
+  const handleClearData = async () => {
+    setClearing(true);
+    setError(null);
+    try {
+      await invoke("clear_all_data");
+      setShowClearConfirm(false);
+      // Reload server info after restart
+      await loadServerInfo();
+    } catch (e) {
+      setError(`Failed to clear data: ${e}`);
+    } finally {
+      setClearing(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -279,6 +298,52 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                     Automatically start Clipper when you log in to your
                     computer.
                   </p>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <h3>Data Management</h3>
+                <div className="settings-field">
+                  <label>Clear All Data</label>
+                  {!showClearConfirm ? (
+                    <>
+                      <button
+                        type="button"
+                        className="settings-btn danger"
+                        onClick={() => setShowClearConfirm(true)}
+                        disabled={clearing}
+                      >
+                        Clear All Clips
+                      </button>
+                      <p className="settings-hint">
+                        Permanently delete all stored clips and attachments. This action cannot be undone.
+                      </p>
+                    </>
+                  ) : (
+                    <div className="clear-confirm">
+                      <p className="clear-confirm-message">
+                        Are you sure you want to delete all clips? This will stop the server, delete all data, and restart.
+                      </p>
+                      <div className="clear-confirm-buttons">
+                        <button
+                          type="button"
+                          className="settings-btn secondary"
+                          onClick={() => setShowClearConfirm(false)}
+                          disabled={clearing}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="settings-btn danger"
+                          onClick={handleClearData}
+                          disabled={clearing}
+                        >
+                          {clearing ? "Clearing..." : "Yes, Delete All"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </>

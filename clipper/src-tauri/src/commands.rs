@@ -252,3 +252,33 @@ pub async fn get_server_url(
 pub async fn is_bundled_server(server_manager: State<'_, ServerManager>) -> Result<bool, String> {
     Ok(server_manager.is_running().await)
 }
+
+/// Clear all stored clips by stopping server, deleting data, and restarting
+#[tauri::command]
+pub async fn clear_all_data(
+    app: tauri::AppHandle,
+    server_manager: State<'_, ServerManager>,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    use tauri::Emitter;
+
+    eprintln!("[clipper] Clearing all data...");
+
+    // 1. Stop the server
+    server_manager.stop().await?;
+
+    // 2. Clear the data directories
+    server_manager.clear_data().await?;
+
+    // 3. Restart the server
+    let new_url = server_manager.start(&app).await?;
+
+    // 4. Update the client with the new URL
+    state.set_server_url(&new_url);
+
+    // 5. Emit event to refresh the clip list in the main window
+    let _ = app.emit("data-cleared", ());
+
+    eprintln!("[clipper] All data cleared and server restarted at {}", new_url);
+    Ok(())
+}
