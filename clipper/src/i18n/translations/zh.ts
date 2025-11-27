@@ -106,4 +106,9 @@ export const zh = {
   "tooltip.settings": "设置",
   "tooltip.refresh": "刷新",
   "tooltip.copy": "复制到剪贴板",
+
+  // Tray Menu
+  "tray.showHide": "显示/隐藏主窗口",
+  "tray.settings": "设置...",
+  "tray.quit": "退出应用",
 };

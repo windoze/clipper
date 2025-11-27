@@ -415,3 +415,10 @@ pub async fn toggle_listen_on_all_interfaces(
 
     Ok(state.base_url())
 }
+
+/// Update the tray menu language
+#[tauri::command]
+pub fn update_tray_language(app: tauri::AppHandle, language: String) -> Result<(), String> {
+    crate::tray::update_tray_language(&app, &language)
+        .map_err(|e| e.to_string())
+}

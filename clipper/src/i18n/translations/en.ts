@@ -106,6 +106,11 @@ export const en = {
   "tooltip.settings": "Settings",
   "tooltip.refresh": "Refresh",
   "tooltip.copy": "Copy to clipboard",
+
+  // Tray Menu
+  "tray.showHide": "Show/Hide Main Window",
+  "tray.settings": "Settings...",
+  "tray.quit": "Quit Application",
 };
 
 export type TranslationKey = keyof typeof en;

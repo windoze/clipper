@@ -761,6 +761,28 @@ body {
   box-shadow: none;
 }
 
+.settings-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23495057' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.settings-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 .settings-path-input {
   display: flex;
   gap: 8px;
@@ -963,34 +985,6 @@ body {
 
 .theme-icon {
   font-size: 20px;
-}
-
-/* Language Selector */
-.language-selector {
-  display: flex;
-  gap: 8px;
-}
-
-.language-option {
-  flex: 1;
-  padding: 10px 16px;
-  border: 2px solid #dee2e6;
-  border-radius: 8px;
-  background: #f8f9fa;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-  font-size: 13px;
-  color: #495057;
-}
-
-.language-option:hover {
-  border-color: #adb5bd;
-}
-
-.language-option.active {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
 }
 
 /* Server Mode Selector */
@@ -1538,6 +1532,17 @@ body {
   border-color: #404040;
 }
 
+:root[data-theme="dark"] .settings-select {
+  background-color: #363636;
+  border-color: #404040;
+  color: #e9ecef;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23e9ecef' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"] .settings-select:focus {
+  border-color: #667eea;
+}
+
 :root[data-theme="dark"] .copy-icon-button {
   color: #adb5bd;
 }
@@ -1561,23 +1566,6 @@ body {
 }
 
 :root[data-theme="dark"] .theme-option.active {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.2);
-  color: #99aaf7;
-}
-
-:root[data-theme="dark"] .language-option {
-  background: #404040;
-  border-color: #4a4a4a;
-  color: #e9ecef;
-}
-
-:root[data-theme="dark"] .language-option:hover {
-  background: #4a4a4a;
-  border-color: #5a5a5a;
-}
-
-:root[data-theme="dark"] .language-option.active {
   border-color: #667eea;
   background: rgba(102, 126, 234, 0.2);
   color: #99aaf7;
@@ -1935,6 +1923,17 @@ body {
 
   :root:not([data-theme="light"]) .settings-field input[type="text"].settings-readonly:focus {
     border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .settings-select {
+    background-color: #363636;
+    border-color: #404040;
+    color: #e9ecef;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23e9ecef' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  }
+
+  :root:not([data-theme="light"]) .settings-select:focus {
+    border-color: #667eea;
   }
 
   :root:not([data-theme="light"]) .copy-icon-button {

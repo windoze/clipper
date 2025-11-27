@@ -39,6 +39,12 @@ export function I18nProvider({ children }: I18nProviderProps) {
 
   const setLanguage = async (lang: Language) => {
     setLanguageState(lang);
+    // Update the tray menu language immediately
+    try {
+      await invoke("update_tray_language", { language: lang });
+    } catch (e) {
+      console.error("Failed to update tray language:", e);
+    }
     // Language will be saved when settings are saved
   };
 

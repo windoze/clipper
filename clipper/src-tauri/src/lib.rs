@@ -5,6 +5,7 @@ mod server;
 mod settings;
 mod state;
 mod tray;
+mod tray_i18n;
 mod websocket;
 
 use server::{get_server_data_dir, ServerManager};
@@ -88,8 +89,13 @@ pub fn run() {
                 }
             }
 
-            // Setup system tray
-            if let Err(e) = tray::setup_tray(app.handle()) {
+            // Setup system tray with language from settings
+            let settings_for_tray = settings_manager.get();
+            let tray_language = settings_for_tray
+                .language
+                .as_deref()
+                .unwrap_or("en");
+            if let Err(e) = tray::setup_tray(app.handle(), tray_language) {
                 eprintln!("Failed to setup tray: {}", e);
             }
 
@@ -194,6 +200,7 @@ pub fn run() {
             commands::switch_to_external_server,
             commands::get_local_ip_addresses,
             commands::toggle_listen_on_all_interfaces,
+            commands::update_tray_language,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

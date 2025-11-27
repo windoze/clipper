@@ -273,19 +273,19 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                 </div>
 
                 <div className="settings-field">
-                  <label>{t("settings.language")}</label>
-                  <div className="language-selector">
+                  <label htmlFor="language">{t("settings.language")}</label>
+                  <select
+                    id="language"
+                    value={currentLanguage}
+                    onChange={(e) => handleLanguageChange(e.target.value as Language)}
+                    className="settings-select"
+                  >
                     {supportedLanguages.map((lang) => (
-                      <button
-                        key={lang}
-                        type="button"
-                        className={`language-option ${currentLanguage === lang ? "active" : ""}`}
-                        onClick={() => handleLanguageChange(lang)}
-                      >
+                      <option key={lang} value={lang}>
                         {languageNames[lang]}
-                      </button>
+                      </option>
                     ))}
-                  </div>
+                  </select>
                   <p className="settings-hint">
                     {t("settings.language.hint")}
                   </p>
