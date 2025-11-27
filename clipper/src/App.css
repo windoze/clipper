@@ -221,6 +221,16 @@ body {
   user-select: none;         /* Standard syntax */
 }
 
+/* Linux: Transparent background for rounded corners */
+:root[data-platform="linux"],
+:root[data-platform="linux"] body,
+:root[data-platform="linux"][data-theme="dark"],
+:root[data-platform="linux"][data-theme="dark"] body,
+:root[data-platform="linux"][data-theme="light"],
+:root[data-platform="linux"][data-theme="light"] body {
+  background: transparent !important;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -232,6 +242,24 @@ body {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+}
+
+/* Linux: Rounded corners to match native GNOME/KDE style */
+.app.linux {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+}
+
+:root[data-theme="dark"] .app.linux {
+  background: #1a1a1a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .app.linux {
+    background: #1a1a1a;
+  }
 }
 
 /* Header */
@@ -341,7 +369,40 @@ body {
   -webkit-app-region: no-drag;
 }
 
-/* Window controls for Windows */
+/* Linux: Compact header with integrated window controls */
+.app.linux .app-header {
+  padding: 0 0 0 8px;
+  height: 28px;
+  min-height: 28px;
+  -webkit-app-region: drag;
+  gap: 6px;
+}
+
+/* Smaller icon and title for Linux (matching native GTK/Qt style) */
+.app.linux .app-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.app.linux .app-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.app.linux .app-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Make interactive elements clickable within Linux drag area */
+.app.linux .app-header button,
+.app.linux .app-header a,
+.app.linux .app-header input {
+  -webkit-app-region: no-drag;
+}
+
+/* Window controls for Windows and Linux */
 .window-controls {
   display: flex;
   margin-left: auto;
@@ -385,6 +446,23 @@ body {
 .window-close:active {
   background: #bf0f1d !important;
   color: white;
+}
+
+/* Linux: Smaller window control buttons to match native GTK/Qt style */
+.app.linux .window-controls {
+  gap: 0;
+}
+
+.app.linux .window-control-button {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.app.linux .window-control-button svg {
+  width: 8px;
+  height: 8px;
 }
 
 .app-title-group {

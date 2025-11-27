@@ -50,9 +50,9 @@ function App() {
   const { updateTheme } = useTheme();
   const { showToast } = useToast();
 
-  // Track window maximized state for Windows
+  // Track window maximized state for Windows and Linux
   useEffect(() => {
-    if (os !== "windows") return;
+    if (os !== "windows" && os !== "linux") return;
 
     const checkMaximized = async () => {
       const maximized = await getCurrentWindow().isMaximized();
@@ -108,11 +108,11 @@ function App() {
   return (
     <DropZone>
       <div className={`app ${os}`}>
-        {/* Only render TitleBar on macOS, for Windows we integrate controls into header */}
+        {/* Only render TitleBar on macOS, for Windows and Linux we integrate controls into header */}
         {os === "macos" && <TitleBar />}
-        <header className="app-header" data-tauri-drag-region={os === "macos" || os === "windows" ? true : undefined}>
-          <div className="app-title-group" data-tauri-drag-region={os === "macos" || os === "windows" ? true : undefined}>
-            <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" data-tauri-drag-region={os === "macos" || os === "windows" ? true : undefined}>
+        <header className="app-header" data-tauri-drag-region>
+          <div className="app-title-group" data-tauri-drag-region>
+            <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" data-tauri-drag-region>
               <defs>
                 <linearGradient id="boardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#6366F1"/>
@@ -162,10 +162,10 @@ function App() {
                 <path d="M346 400 L360 414 L390 384" stroke="#FFFFFF" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               </g>
             </svg>
-            <h1 className="app-title" data-tauri-drag-region={os === "macos" || os === "windows" ? true : undefined}>{t("app.title")}</h1>
+            <h1 className="app-title" data-tauri-drag-region>{t("app.title")}</h1>
           </div>
-          {/* Non-Windows: regular button style on left */}
-          {os !== "windows" && (
+          {/* macOS: regular button style on right */}
+          {os === "macos" && (
             <div className="header-buttons">
               <button className="settings-button" onClick={openSettings} title={t("tooltip.settings")}>
                 &#9881;
@@ -175,8 +175,8 @@ function App() {
               </button>
             </div>
           )}
-          {/* Window controls for Windows */}
-          {os === "windows" && (
+          {/* Window controls for Windows and Linux */}
+          {(os === "windows" || os === "linux") && (
             <div className="window-controls">
               <button className="window-control-button" onClick={openSettings} title={t("tooltip.settings")}>
                 &#9881;
