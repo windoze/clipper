@@ -362,37 +362,39 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                 )}
               </div>
 
-              <div className="settings-section">
-                <h3>Storage</h3>
-                <div className="settings-field">
-                  <label htmlFor="defaultSaveLocation">
-                    Default Save Location
-                  </label>
-                  <div className="settings-path-input">
-                    <input
-                      id="defaultSaveLocation"
-                      type="text"
-                      value={settings.defaultSaveLocation || ""}
-                      onChange={(e) =>
-                        handleChange(
-                          "defaultSaveLocation",
-                          e.target.value || null
-                        )
-                      }
-                      placeholder="System default"
-                    />
-                    <button
-                      className="browse-button"
-                      onClick={handleBrowseDirectory}
-                    >
-                      Browse...
-                    </button>
+              {settings.useBundledServer && (
+                <div className="settings-section">
+                  <h3>Storage</h3>
+                  <div className="settings-field">
+                    <label htmlFor="defaultSaveLocation">
+                      Default Save Location
+                    </label>
+                    <div className="settings-path-input">
+                      <input
+                        id="defaultSaveLocation"
+                        type="text"
+                        value={settings.defaultSaveLocation || ""}
+                        onChange={(e) =>
+                          handleChange(
+                            "defaultSaveLocation",
+                            e.target.value || null
+                          )
+                        }
+                        placeholder="System default"
+                      />
+                      <button
+                        className="browse-button"
+                        onClick={handleBrowseDirectory}
+                      >
+                        Browse...
+                      </button>
+                    </div>
+                    <p className="settings-hint">
+                      Default folder for saving downloaded attachments.
+                    </p>
                   </div>
-                  <p className="settings-hint">
-                    Default folder for saving downloaded attachments.
-                  </p>
                 </div>
-              </div>
+              )}
 
               <div className="settings-section">
                 <h3>Startup</h3>
