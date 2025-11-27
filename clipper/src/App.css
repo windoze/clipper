@@ -134,6 +134,29 @@
   color: white;
 }
 
+/* Dark theme window controls for Windows */
+:root[data-theme="dark"] .window-control-button {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .window-control-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .window-control-button:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+:root[data-theme="dark"] .window-close:hover {
+  background: #e81123 !important;
+  color: white;
+}
+
+:root[data-theme="dark"] .window-close:active {
+  background: #bf0f1d !important;
+  color: white;
+}
+
 /* Media query fallback for auto theme */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .titlebar-windows {
@@ -164,6 +187,29 @@
 
   :root:not([data-theme="light"]) .titlebar-close:active {
     background: #bf0f1d;
+    color: white;
+  }
+
+  /* Window controls for Windows dark mode fallback */
+  :root:not([data-theme="light"]) .window-control-button {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .window-control-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  :root:not([data-theme="light"]) .window-control-button:active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  :root:not([data-theme="light"]) .window-close:hover {
+    background: #e81123 !important;
+    color: white;
+  }
+
+  :root:not([data-theme="light"]) .window-close:active {
+    background: #bf0f1d !important;
     color: white;
   }
 }
@@ -253,6 +299,85 @@ body {
 .app.macos .app-header a,
 .app.macos .app-header input {
   -webkit-app-region: no-drag;
+}
+
+/* Windows: Compact header with integrated window controls */
+.app.windows .app-header {
+  padding: 0 0 0 8px;
+  height: 32px;
+  min-height: 32px;
+  -webkit-app-region: drag;
+  gap: 8px;
+}
+
+/* Smaller icon and title for Windows */
+.app.windows .app-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.app.windows .app-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.app.windows .app-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Make interactive elements clickable within Windows drag area */
+.app.windows .app-header button,
+.app.windows .app-header a,
+.app.windows .app-header input {
+  -webkit-app-region: no-drag;
+}
+
+/* Window controls for Windows */
+.window-controls {
+  display: flex;
+  margin-left: auto;
+  -webkit-app-region: no-drag;
+}
+
+.window-control-button {
+  width: 46px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #495057;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 16px;
+  line-height: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.window-control-button svg {
+  display: block;
+}
+
+.window-control-button:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.window-control-button:active {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.window-close:hover {
+  background: #e81123 !important;
+  color: white;
+}
+
+.window-close:active {
+  background: #bf0f1d !important;
+  color: white;
 }
 
 .app-title-group {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useClips } from "./hooks/useClips";
 import { useTheme } from "./hooks/useTheme";
 import { useI18n } from "./i18n";
@@ -24,6 +25,7 @@ function detectPlatform(): "macos" | "windows" | "linux" {
 function App() {
   const { t } = useI18n();
   const [os] = useState(() => detectPlatform());
+  const [isMaximized, setIsMaximized] = useState(false);
   const {
     clips,
     loading,
@@ -48,6 +50,26 @@ function App() {
   const { updateTheme } = useTheme();
   const { showToast } = useToast();
 
+  // Track window maximized state for Windows
+  useEffect(() => {
+    if (os !== "windows") return;
+
+    const checkMaximized = async () => {
+      const maximized = await getCurrentWindow().isMaximized();
+      setIsMaximized(maximized);
+    };
+    checkMaximized();
+
+    const unlisten = getCurrentWindow().onResized(async () => {
+      const maximized = await getCurrentWindow().isMaximized();
+      setIsMaximized(maximized);
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [os]);
+
   // Listen for data-cleared and server-switched events to refresh clips
   useEffect(() => {
     const unlistenDataCleared = listen("data-cleared", () => {
@@ -70,13 +92,27 @@ function App() {
     };
   }, [refetch, showToast, t]);
 
+  // Window control handlers for Windows
+  const handleMinimize = () => {
+    getCurrentWindow().minimize();
+  };
+
+  const handleMaximize = () => {
+    getCurrentWindow().toggleMaximize();
+  };
+
+  const handleClose = () => {
+    getCurrentWindow().close();
+  };
+
   return (
     <DropZone>
       <div className={`app ${os}`}>
-        <TitleBar />
-        <header className="app-header" data-tauri-drag-region={os === "macos" ? true : undefined}>
-          <div className="app-title-group" data-tauri-drag-region={os === "macos" ? true : undefined}>
-            <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" data-tauri-drag-region={os === "macos" ? true : undefined}>
+        {/* Only render TitleBar on macOS, for Windows we integrate controls into header */}
+        {os === "macos" && <TitleBar />}
+        <header className="app-header" data-tauri-drag-region={os === "macos" || os === "windows" ? true : undefined}>
+          <div className="app-title-group" data-tauri-drag-region={os === "macos" || os === "windows" ? true : undefined}>
+            <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" data-tauri-drag-region={os === "macos" || os === "windows" ? true : undefined}>
               <defs>
                 <linearGradient id="boardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#6366F1"/>
@@ -126,16 +162,79 @@ function App() {
                 <path d="M346 400 L360 414 L390 384" stroke="#FFFFFF" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               </g>
             </svg>
-            <h1 className="app-title" data-tauri-drag-region={os === "macos" ? true : undefined}>{t("app.title")}</h1>
+            <h1 className="app-title" data-tauri-drag-region={os === "macos" || os === "windows" ? true : undefined}>{t("app.title")}</h1>
           </div>
-          <div className="header-buttons">
-            <button className="settings-button" onClick={openSettings} title={t("tooltip.settings")}>
-              &#9881;
-            </button>
-            <button className="refresh-button" onClick={refetch} title={t("tooltip.refresh")}>
-              ↻
-            </button>
-          </div>
+          {/* Non-Windows: regular button style on left */}
+          {os !== "windows" && (
+            <div className="header-buttons">
+              <button className="settings-button" onClick={openSettings} title={t("tooltip.settings")}>
+                &#9881;
+              </button>
+              <button className="refresh-button" onClick={refetch} title={t("tooltip.refresh")}>
+                ↻
+              </button>
+            </div>
+          )}
+          {/* Window controls for Windows */}
+          {os === "windows" && (
+            <div className="window-controls">
+              <button className="window-control-button" onClick={openSettings} title={t("tooltip.settings")}>
+                &#9881;
+              </button>
+              <button className="window-control-button" onClick={refetch} title={t("tooltip.refresh")}>
+                ↻
+              </button>
+              <button
+                className="window-control-button window-minimize"
+                onClick={handleMinimize}
+                aria-label="Minimize"
+              >
+                <svg width="10" height="1" viewBox="0 0 10 1">
+                  <rect width="10" height="1" fill="currentColor" />
+                </svg>
+              </button>
+              <button
+                className="window-control-button window-maximize"
+                onClick={handleMaximize}
+                aria-label={isMaximized ? "Restore" : "Maximize"}
+              >
+                {isMaximized ? (
+                  <svg width="10" height="10" viewBox="0 0 10 10">
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1"
+                      d="M2.5,0.5 h7 v7 M0.5,2.5 v7 h7 v-7 h-7"
+                    />
+                  </svg>
+                ) : (
+                  <svg width="10" height="10" viewBox="0 0 10 10">
+                    <rect
+                      width="9"
+                      height="9"
+                      x="0.5"
+                      y="0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1"
+                    />
+                  </svg>
+                )}
+              </button>
+              <button
+                className="window-control-button window-close"
+                onClick={handleClose}
+                aria-label="Close"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10">
+                  <path
+                    fill="currentColor"
+                    d="M1.41 0L0 1.41 3.59 5 0 8.59 1.41 10 5 6.41 8.59 10 10 8.59 6.41 5 10 1.41 8.59 0 5 3.59z"
+                  />
+                </svg>
+              </button>
+            </div>
+          )}
         </header>
 
         <div className="filters-bar">
