@@ -314,6 +314,7 @@ body {
 
 /* Clip Entry */
 .clip-entry {
+  position: relative;
   background: #ffffff;
   border: 1px solid #e9ecef;
   border-radius: 8px;
@@ -1029,21 +1030,23 @@ body {
 }
 
 .delete-button {
-  background: none;
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background: #dc3545;
   border: none;
   cursor: pointer;
-  color: #adb5bd;
+  color: white;
   padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: color 0.2s, background 0.2s;
+  transition: background 0.2s;
 }
 
 .delete-button:hover {
-  color: #dc3545;
-  background: rgba(220, 53, 69, 0.1);
+  background: #c82333;
 }
 
 /* Delete Confirmation Dialog */
@@ -1598,12 +1601,12 @@ body {
 }
 
 :root[data-theme="dark"] .delete-button {
-  color: #6c757d;
+  background: #dc3545;
+  color: white;
 }
 
 :root[data-theme="dark"] .delete-button:hover {
-  color: #f8a0a0;
-  background: rgba(220, 53, 69, 0.2);
+  background: #c82333;
 }
 
 :root[data-theme="dark"] .delete-confirm-dialog {
