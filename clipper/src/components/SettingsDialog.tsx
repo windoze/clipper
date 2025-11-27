@@ -45,6 +45,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   const [clearing, setClearing] = useState(false);
   const [localIpAddresses, setLocalIpAddresses] = useState<string[]>([]);
   const [togglingNetworkAccess, setTogglingNetworkAccess] = useState(false);
+  // Track the original server address to detect changes on close
+  const [originalServerAddress, setOriginalServerAddress] = useState<string>("");
 
   // Load settings when dialog opens
   useEffect(() => {
@@ -61,6 +63,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     try {
       const loadedSettings = await invoke<Settings>("get_settings");
       setSettings(loadedSettings);
+      // Store the original server address to detect changes on close
+      setOriginalServerAddress(loadedSettings.serverAddress);
     } catch (e) {
       setError(`Failed to load settings: ${e}`);
     } finally {
@@ -124,9 +128,21 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     await saveSettings(newSettings);
   };
 
-  // Handle close
-  const handleClose = () => {
+  // Handle close - reconnect if server URL changed while using external server
+  const handleClose = async () => {
     setShowClearConfirm(false);
+
+    // If using external server and the server address changed, reconnect
+    if (!settings.useBundledServer && settings.serverAddress !== originalServerAddress) {
+      try {
+        await invoke("switch_to_external_server", { serverUrl: settings.serverAddress });
+        setServerUrl(settings.serverAddress);
+        showToast(t("toast.serverConnected"));
+      } catch (e) {
+        console.error("Failed to reconnect to server:", e);
+      }
+    }
+
     onClose();
   };
 
