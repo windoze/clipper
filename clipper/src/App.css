@@ -202,13 +202,15 @@ body {
 
 /* macOS: Add padding for traffic lights and make header draggable */
 .app.macos .app-header {
-  padding-left: 80px;
-  padding-right: 80px;
-  padding-top: 16px;
-  padding-bottom: 16px;
-  min-height: 52px;
+  padding-left: 78px;
+  padding-right: 78px;
+  padding-top: 0;
+  padding-bottom: 0;
+  height: 38px;
+  min-height: 38px;
   -webkit-app-region: drag;
   justify-content: center;
+  border-bottom: none;
 }
 
 /* Center the title group on macOS */
@@ -216,12 +218,34 @@ body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  gap: 6px;
+}
+
+/* Smaller icon and title for macOS title bar */
+.app.macos .app-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.app.macos .app-title {
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* Position header buttons on the right for macOS */
 .app.macos .header-buttons {
   position: absolute;
-  right: 16px;
+  right: 12px;
+}
+
+/* Smaller round buttons for macOS title bar */
+.app.macos .header-buttons button {
+  width: 24px;
+  height: 24px;
+  font-size: 15px;
+  border-radius: 50%;
+  padding: 0;
+  line-height: 1;
 }
 
 /* Make interactive elements clickable within macOS drag area */

@@ -75,8 +75,8 @@ function App() {
       <div className={`app ${os}`}>
         <TitleBar />
         <header className="app-header" data-tauri-drag-region={os === "macos" ? true : undefined}>
-          <div className="app-title-group">
-            <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <div className="app-title-group" data-tauri-drag-region={os === "macos" ? true : undefined}>
+            <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" data-tauri-drag-region={os === "macos" ? true : undefined}>
               <defs>
                 <linearGradient id="boardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#6366F1"/>
@@ -126,7 +126,7 @@ function App() {
                 <path d="M346 400 L360 414 L390 384" stroke="#FFFFFF" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               </g>
             </svg>
-            <h1 className="app-title">{t("app.title")}</h1>
+            <h1 className="app-title" data-tauri-drag-region={os === "macos" ? true : undefined}>{t("app.title")}</h1>
           </div>
           <div className="header-buttons">
             <button className="settings-button" onClick={openSettings} title={t("tooltip.settings")}>
