@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useClips } from "./hooks/useClips";
 import { useTheme } from "./hooks/useTheme";
 import { useI18n } from "./i18n";
 import { useToast } from "./components/Toast";
+import { TitleBar } from "./components/TitleBar";
 import { SearchBox } from "./components/SearchBox";
 import { DateFilter } from "./components/DateFilter";
 import { FavoriteToggle } from "./components/FavoriteToggle";
@@ -12,8 +13,17 @@ import { DropZone } from "./components/DropZone";
 import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
 import "./App.css";
 
+// Detect platform from user agent
+function detectPlatform(): "macos" | "windows" | "linux" {
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes("mac")) return "macos";
+  if (ua.includes("win")) return "windows";
+  return "linux";
+}
+
 function App() {
   const { t } = useI18n();
+  const [os] = useState(() => detectPlatform());
   const {
     clips,
     loading,
@@ -62,8 +72,9 @@ function App() {
 
   return (
     <DropZone>
-      <div className="app">
-        <header className="app-header">
+      <div className={`app ${os}`}>
+        <TitleBar />
+        <header className="app-header" data-tauri-drag-region={os === "macos" ? true : undefined}>
           <div className="app-title-group">
             <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <defs>

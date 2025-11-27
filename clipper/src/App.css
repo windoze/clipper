@@ -14,6 +14,160 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ============================================
+   Custom Title Bar
+   ============================================ */
+
+.titlebar {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+/* macOS: No separate title bar needed - dragging handled by app-header */
+.titlebar-macos {
+  display: none;
+}
+
+/* Windows/Linux: Full custom title bar */
+.titlebar-windows {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  padding-left: 8px;
+  flex-shrink: 0;
+}
+
+.titlebar-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: drag;
+}
+
+.titlebar-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.titlebar-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.titlebar-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.titlebar-controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-button {
+  width: 46px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #495057;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.titlebar-button:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.titlebar-button:active {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.titlebar-close:hover {
+  background: #e81123;
+  color: white;
+}
+
+.titlebar-close:active {
+  background: #bf0f1d;
+  color: white;
+}
+
+/* Dark theme title bar */
+:root[data-theme="dark"] .titlebar-windows {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .titlebar-title {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .titlebar-button {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .titlebar-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .titlebar-button:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+:root[data-theme="dark"] .titlebar-close:hover {
+  background: #e81123;
+  color: white;
+}
+
+:root[data-theme="dark"] .titlebar-close:active {
+  background: #bf0f1d;
+  color: white;
+}
+
+/* Media query fallback for auto theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .titlebar-windows {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .titlebar-title {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .titlebar-button {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .titlebar-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  :root:not([data-theme="light"]) .titlebar-button:active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  :root:not([data-theme="light"]) .titlebar-close:hover {
+    background: #e81123;
+    color: white;
+  }
+
+  :root:not([data-theme="light"]) .titlebar-close:active {
+    background: #bf0f1d;
+    color: white;
+  }
+}
+
 body {
   -webkit-user-select: none; /* Safari, Chrome */
   -moz-user-select: none;    /* Firefox */
@@ -36,6 +190,7 @@ body {
 
 /* Header */
 .app-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -43,8 +198,37 @@ body {
   background: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
   color: #212529;
-  /* Make the title bar draggable on macOS/Windows */
+}
+
+/* macOS: Add padding for traffic lights and make header draggable */
+.app.macos .app-header {
+  padding-left: 80px;
+  padding-right: 80px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  min-height: 52px;
   -webkit-app-region: drag;
+  justify-content: center;
+}
+
+/* Center the title group on macOS */
+.app.macos .app-title-group {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Position header buttons on the right for macOS */
+.app.macos .header-buttons {
+  position: absolute;
+  right: 16px;
+}
+
+/* Make interactive elements clickable within macOS drag area */
+.app.macos .app-header button,
+.app.macos .app-header a,
+.app.macos .app-header input {
+  -webkit-app-region: no-drag;
 }
 
 .app-title-group {
@@ -78,8 +262,6 @@ body {
   align-items: center;
   justify-content: center;
   transition: background 0.2s, color 0.2s;
-  /* Make buttons clickable within draggable area */
-  -webkit-app-region: no-drag;
 }
 
 .refresh-button:hover {
@@ -630,8 +812,6 @@ body {
   align-items: center;
   justify-content: center;
   transition: background 0.2s, color 0.2s;
-  /* Make buttons clickable within draggable area */
-  -webkit-app-region: no-drag;
 }
 
 .settings-button:hover {
