@@ -6,6 +6,8 @@ A modern, cross-platform clipboard manager with full-text search, real-time sync
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
+English | [简体中文](README.zh-CN.md)
+
 ## Features
 
 - **Clipboard Monitoring** - Automatically captures text and images from your clipboard
