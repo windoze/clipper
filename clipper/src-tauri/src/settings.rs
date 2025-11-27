@@ -39,6 +39,9 @@ pub struct Settings {
     /// Whether to listen on all network interfaces (bundled server only)
     #[serde(default)]
     pub listen_on_all_interfaces: bool,
+    /// Language preference (e.g., "en", "zh")
+    #[serde(default)]
+    pub language: Option<String>,
 }
 
 fn default_use_bundled_server() -> bool {
@@ -56,6 +59,7 @@ impl Default for Settings {
             server_port: None,
             use_bundled_server: true,
             listen_on_all_interfaces: false,
+            language: None,
         }
     }
 }

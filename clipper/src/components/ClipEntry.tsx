@@ -3,6 +3,7 @@ import { Clip, isFavorite } from "../types";
 import { invoke } from "@tauri-apps/api/core";
 import { ImagePopup } from "./ImagePopup";
 import { EditClipDialog } from "./EditClipDialog";
+import { useI18n } from "../i18n";
 
 interface ClipEntryProps {
   clip: Clip;
@@ -20,6 +21,7 @@ function isImageFile(filename: string): boolean {
 }
 
 export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted }: ClipEntryProps) {
+  const { t } = useI18n();
   const favorite = isFavorite(clip);
   const displayTags = clip.tags.filter((t) => !t.startsWith("$"));
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
             <button
               className="edit-button"
               onClick={handleEditClick}
-              title="Edit clip"
+              title={t("clip.edit")}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -142,7 +144,7 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
                 e.stopPropagation();
                 onToggleFavorite(clip);
               }}
-              title={favorite ? "Remove from favorites" : "Add to favorites"}
+              title={favorite ? t("clip.favorite.remove") : t("clip.favorite.add")}
             >
               {favorite ? "★" : "☆"}
             </button>
@@ -180,7 +182,7 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
             <button
               className="attachment-name-button"
               onClick={handleDownload}
-              title="Click to download"
+              title={t("clip.download")}
             >
               {clip.file_attachment}
             </button>
@@ -193,7 +195,7 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
             <button
               className="attachment-name-button"
               onClick={handleDownload}
-              title="Click to download"
+              title={t("clip.download")}
             >
               {clip.file_attachment}
             </button>
@@ -203,7 +205,7 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
         <button
           className="delete-button"
           onClick={handleDeleteClick}
-          title="Delete clip"
+          title={t("clip.delete")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
@@ -232,21 +234,21 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
       {showDeleteConfirm && (
         <div className="delete-confirm-backdrop" onClick={handleDeleteCancel}>
           <div className="delete-confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p>Are you sure you want to delete this clip?</p>
+            <p>{t("clip.delete_confirm")}</p>
             <div className="delete-confirm-actions">
               <button
                 className="delete-confirm-btn cancel"
                 onClick={handleDeleteCancel}
                 disabled={deleting}
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 className="delete-confirm-btn confirm"
                 onClick={handleDeleteConfirm}
                 disabled={deleting}
               >
-                {deleting ? "Deleting..." : "Delete"}
+                {deleting ? t("common.deleting") : t("common.delete")}
               </button>
             </div>
           </div>

@@ -965,6 +965,34 @@ body {
   font-size: 20px;
 }
 
+/* Language Selector */
+.language-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.language-option {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  font-size: 13px;
+  color: #495057;
+}
+
+.language-option:hover {
+  border-color: #adb5bd;
+}
+
+.language-option.active {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
 /* Server Mode Selector */
 .server-mode-selector {
   display: flex;
@@ -1533,6 +1561,23 @@ body {
 }
 
 :root[data-theme="dark"] .theme-option.active {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.2);
+  color: #99aaf7;
+}
+
+:root[data-theme="dark"] .language-option {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .language-option:hover {
+  background: #4a4a4a;
+  border-color: #5a5a5a;
+}
+
+:root[data-theme="dark"] .language-option.active {
   border-color: #667eea;
   background: rgba(102, 126, 234, 0.2);
   color: #99aaf7;

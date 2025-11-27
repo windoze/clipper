@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useI18n } from "../i18n";
 
 interface SearchBoxProps {
   value: string;
@@ -6,6 +7,7 @@ interface SearchBoxProps {
 }
 
 export function SearchBox({ value, onChange }: SearchBoxProps) {
+  const { t } = useI18n();
   const [localValue, setLocalValue] = useState(value);
 
   // Debounce the search
@@ -26,7 +28,7 @@ export function SearchBox({ value, onChange }: SearchBoxProps) {
     <div className="search-box">
       <input
         type="text"
-        placeholder="Search clips..."
+        placeholder={t("search.placeholder")}
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         className="search-input"

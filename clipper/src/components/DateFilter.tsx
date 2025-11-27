@@ -1,4 +1,5 @@
 import { SearchFilters } from "../types";
+import { useI18n } from "../i18n";
 
 interface DateFilterProps {
   filters: SearchFilters;
@@ -6,6 +7,7 @@ interface DateFilterProps {
 }
 
 export function DateFilter({ filters, onChange }: DateFilterProps) {
+  const { t } = useI18n();
   const handleStartDateChange = (value: string) => {
     const newFilters = { ...filters };
     if (value) {
@@ -42,7 +44,7 @@ export function DateFilter({ filters, onChange }: DateFilterProps) {
   return (
     <div className="date-filter">
       <div className="date-input-group">
-        <label htmlFor="start-date">From:</label>
+        <label htmlFor="start-date">{t("filter.from")}</label>
         <input
           type="date"
           id="start-date"
@@ -60,7 +62,7 @@ export function DateFilter({ filters, onChange }: DateFilterProps) {
         )}
       </div>
       <div className="date-input-group">
-        <label htmlFor="end-date">To:</label>
+        <label htmlFor="end-date">{t("filter.to")}</label>
         <input
           type="date"
           id="end-date"

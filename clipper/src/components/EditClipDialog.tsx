@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Clip } from "../types";
+import { useI18n } from "../i18n";
 
 interface EditClipDialogProps {
   clip: Clip;
@@ -10,9 +11,10 @@ interface EditClipDialogProps {
 }
 
 export function EditClipDialog({ clip, isOpen, onClose, onSave }: EditClipDialogProps) {
+  const { t } = useI18n();
   // Filter out system tags (starting with $) for editing
-  const userTags = clip.tags.filter((t) => !t.startsWith("$"));
-  const systemTags = clip.tags.filter((t) => t.startsWith("$"));
+  const userTags = clip.tags.filter((tag) => !tag.startsWith("$"));
+  const systemTags = clip.tags.filter((tag) => tag.startsWith("$"));
 
   const [tags, setTags] = useState<string[]>(userTags);
   const [tagInput, setTagInput] = useState("");
@@ -70,7 +72,7 @@ export function EditClipDialog({ clip, isOpen, onClose, onSave }: EditClipDialog
       onSave(updatedClip);
       onClose();
     } catch (e) {
-      setError(`Failed to save: ${e}`);
+      setError(t("editClip.saveError", { error: String(e) }));
     } finally {
       setSaving(false);
     }
@@ -86,7 +88,7 @@ export function EditClipDialog({ clip, isOpen, onClose, onSave }: EditClipDialog
     <div className="edit-clip-backdrop" onClick={handleCancel}>
       <div className="edit-clip-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="edit-clip-header">
-          <h2>Edit Clip</h2>
+          <h2>{t("editClip.title")}</h2>
           <button className="edit-clip-close" onClick={handleCancel}>
             &times;
           </button>
@@ -96,7 +98,7 @@ export function EditClipDialog({ clip, isOpen, onClose, onSave }: EditClipDialog
           {error && <div className="edit-clip-error">{error}</div>}
 
           <div className="edit-clip-field">
-            <label>Tags</label>
+            <label>{t("editClip.tags")}</label>
             <div className="tag-editor">
               <div className="tag-list">
                 {tags.map((tag) => (
@@ -118,23 +120,23 @@ export function EditClipDialog({ clip, isOpen, onClose, onSave }: EditClipDialog
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleTagInputKeyDown}
-                  placeholder={tags.length === 0 ? "Add tags..." : ""}
+                  placeholder={tags.length === 0 ? t("editClip.tags.placeholder") : ""}
                 />
               </div>
             </div>
             <p className="edit-clip-hint">
-              Press Enter to add a tag, Backspace to remove the last one.
+              {t("editClip.tags.hint")}
             </p>
           </div>
 
           <div className="edit-clip-field">
-            <label htmlFor="notes">Notes</label>
+            <label htmlFor="notes">{t("editClip.notes")}</label>
             <textarea
               id="notes"
               className="notes-input"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add notes about this clip..."
+              placeholder={t("editClip.notes.placeholder")}
               rows={4}
             />
           </div>
@@ -142,14 +144,14 @@ export function EditClipDialog({ clip, isOpen, onClose, onSave }: EditClipDialog
 
         <div className="edit-clip-footer">
           <button className="edit-clip-btn secondary" onClick={handleCancel}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             className="edit-clip-btn primary"
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? t("common.saving") : t("common.save")}
           </button>
         </div>
       </div>

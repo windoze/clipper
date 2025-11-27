@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Clip } from "../types";
 import { ClipEntry } from "./ClipEntry";
+import { useI18n } from "../i18n";
 
 interface ClipListProps {
   clips: Clip[];
@@ -25,6 +26,7 @@ export function ClipList({
   onClipUpdated,
   onClipDeleted,
 }: ClipListProps) {
+  const { t } = useI18n();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
 
@@ -66,7 +68,7 @@ export function ClipList({
     return (
       <div className="clip-list-status">
         <div className="loading-spinner"></div>
-        <span>Loading clips...</span>
+        <span>{t("clipList.loading")}</span>
       </div>
     );
   }
@@ -74,7 +76,7 @@ export function ClipList({
   if (error) {
     return (
       <div className="clip-list-status error">
-        <span>Error: {error}</span>
+        <span>{t("clipList.error", { error })}</span>
       </div>
     );
   }
@@ -82,7 +84,7 @@ export function ClipList({
   if (clips.length === 0) {
     return (
       <div className="clip-list-status empty">
-        <span>No clips found</span>
+        <span>{t("clipList.empty")}</span>
       </div>
     );
   }
@@ -104,12 +106,12 @@ export function ClipList({
         {loadingMore && (
           <div className="clip-list-status loading-more">
             <div className="loading-spinner small"></div>
-            <span>Loading more...</span>
+            <span>{t("clipList.loadingMore")}</span>
           </div>
         )}
         {!hasMore && clips.length > 0 && (
           <div className="clip-list-status end-of-list">
-            <span>No more clips</span>
+            <span>{t("clipList.noMore")}</span>
           </div>
         )}
       </div>

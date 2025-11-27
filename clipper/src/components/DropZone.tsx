@@ -1,5 +1,6 @@
 import { useState, useEffect, ReactNode } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { useI18n } from "../i18n";
 
 interface DropZoneProps {
   children: ReactNode;
@@ -11,6 +12,7 @@ interface DragDropPayload {
 }
 
 export function DropZone({ children }: DropZoneProps) {
+  const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export function DropZone({ children }: DropZoneProps) {
         <div className="drop-overlay">
           <div className="drop-indicator">
             <span className="drop-icon">📁</span>
-            <span className="drop-text">Drop files to upload</span>
+            <span className="drop-text">{t("dropZone.hint")}</span>
           </div>
         </div>
       )}

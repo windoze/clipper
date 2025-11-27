@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useClips } from "./hooks/useClips";
 import { useTheme } from "./hooks/useTheme";
+import { useI18n } from "./i18n";
 import { SearchBox } from "./components/SearchBox";
 import { DateFilter } from "./components/DateFilter";
 import { FavoriteToggle } from "./components/FavoriteToggle";
@@ -11,6 +12,7 @@ import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
 import "./App.css";
 
 function App() {
+  const { t } = useI18n();
   const {
     clips,
     loading,
@@ -55,14 +57,14 @@ function App() {
       <div className="app">
         <header className="app-header">
           <div className="app-title-group">
-            <img src="/clipper-icon.svg" alt="Clipper" className="app-icon" />
-            <h1 className="app-title">Clipper</h1>
+            <img src="/clipper-icon.svg" alt={t("app.title")} className="app-icon" />
+            <h1 className="app-title">{t("app.title")}</h1>
           </div>
           <div className="header-buttons">
-            <button className="settings-button" onClick={openSettings} title="Settings">
+            <button className="settings-button" onClick={openSettings} title={t("tooltip.settings")}>
               &#9881;
             </button>
-            <button className="refresh-button" onClick={refetch} title="Refresh">
+            <button className="refresh-button" onClick={refetch} title={t("tooltip.refresh")}>
               ↻
             </button>
           </div>
@@ -75,7 +77,7 @@ function App() {
         </div>
 
         <div className="status-bar">
-          <span className="clip-count">{total} clip(s)</span>
+          <span className="clip-count">{t("app.clips_count", { count: total })}</span>
         </div>
 
         <main className="app-main">

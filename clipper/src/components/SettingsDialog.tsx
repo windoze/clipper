@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { useI18n, Language, supportedLanguages, languageNames } from "../i18n";
 
 export type ThemePreference = "light" | "dark" | "auto";
 
@@ -12,6 +13,7 @@ export interface Settings {
   theme: ThemePreference;
   useBundledServer: boolean;
   listenOnAllInterfaces: boolean;
+  language: string | null;
 }
 
 interface SettingsDialogProps {
@@ -21,6 +23,7 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialogProps) {
+  const { t, language: currentLanguage, setLanguage } = useI18n();
   const [settings, setSettings] = useState<Settings>({
     serverAddress: "http://localhost:3000",
     defaultSaveLocation: null,
@@ -29,6 +32,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     theme: "auto",
     useBundledServer: true,
     listenOnAllInterfaces: false,
+    language: null,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -39,8 +43,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   const [localIpAddresses, setLocalIpAddresses] = useState<string[]>([]);
   const [togglingNetworkAccess, setTogglingNetworkAccess] = useState(false);
 
-  // Store the original theme when dialog opens to revert on cancel
+  // Store the original theme and language when dialog opens to revert on cancel
   const originalThemeRef = useRef<ThemePreference>("auto");
+  const originalLanguageRef = useRef<Language>(currentLanguage);
 
   // Load settings when dialog opens
   useEffect(() => {
@@ -57,8 +62,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     try {
       const loadedSettings = await invoke<Settings>("get_settings");
       setSettings(loadedSettings);
-      // Store the original theme to revert on cancel
+      // Store the original theme and language to revert on cancel
       originalThemeRef.current = loadedSettings.theme;
+      originalLanguageRef.current = currentLanguage;
     } catch (e) {
       setError(`Failed to load settings: ${e}`);
     } finally {
@@ -88,8 +94,10 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     setSaving(true);
     setError(null);
     try {
-      await invoke("save_settings", { settings });
-      // Theme is already applied via preview, just close the dialog
+      // Save settings with current language
+      const settingsToSave = { ...settings, language: currentLanguage };
+      await invoke("save_settings", { settings: settingsToSave });
+      // Theme and language are already applied via preview, just close the dialog
       onClose();
     } catch (e) {
       setError(`Failed to save settings: ${e}`);
@@ -121,14 +129,23 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     }
   };
 
-  // Handle cancel - revert theme to original
+  // Handle cancel - revert theme and language to original
   const handleCancel = () => {
     // Revert theme to original if it was changed
     if (settings.theme !== originalThemeRef.current) {
       onThemeChange?.(originalThemeRef.current);
     }
+    // Revert language to original if it was changed
+    if (currentLanguage !== originalLanguageRef.current) {
+      setLanguage(originalLanguageRef.current);
+    }
     setShowClearConfirm(false);
     onClose();
+  };
+
+  // Handle language change with preview
+  const handleLanguageChange = (lang: Language) => {
+    setLanguage(lang);
   };
 
   // Handle server mode change
@@ -204,7 +221,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     <div className="settings-backdrop" onClick={handleCancel}>
       <div className="settings-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="settings-header">
-          <h2>Settings</h2>
+          <h2>{t("settings.title")}</h2>
           <button className="settings-close" onClick={handleCancel}>
             &times;
           </button>
@@ -214,16 +231,16 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
           {loading ? (
             <div className="settings-loading">
               <div className="loading-spinner"></div>
-              <span>Loading settings...</span>
+              <span>{t("common.loading")}</span>
             </div>
           ) : (
             <>
               {error && <div className="settings-error">{error}</div>}
 
               <div className="settings-section">
-                <h3>Appearance</h3>
+                <h3>{t("settings.appearance")}</h3>
                 <div className="settings-field">
-                  <label htmlFor="theme">Theme</label>
+                  <label htmlFor="theme">{t("settings.theme")}</label>
                   <div className="theme-selector">
                     <button
                       type="button"
@@ -231,7 +248,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                       onClick={() => handleChange("theme", "light")}
                     >
                       <span className="theme-icon">&#9788;</span>
-                      <span>Light</span>
+                      <span>{t("settings.theme.light")}</span>
                     </button>
                     <button
                       type="button"
@@ -239,7 +256,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                       onClick={() => handleChange("theme", "dark")}
                     >
                       <span className="theme-icon">&#9790;</span>
-                      <span>Dark</span>
+                      <span>{t("settings.theme.dark")}</span>
                     </button>
                     <button
                       type="button"
@@ -247,17 +264,36 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                       onClick={() => handleChange("theme", "auto")}
                     >
                       <span className="theme-icon">&#9881;</span>
-                      <span>Auto</span>
+                      <span>{t("settings.theme.auto")}</span>
                     </button>
                   </div>
                   <p className="settings-hint">
-                    Choose your preferred color theme. Auto follows your system settings.
+                    {t("settings.theme.hint")}
+                  </p>
+                </div>
+
+                <div className="settings-field">
+                  <label>{t("settings.language")}</label>
+                  <div className="language-selector">
+                    {supportedLanguages.map((lang) => (
+                      <button
+                        key={lang}
+                        type="button"
+                        className={`language-option ${currentLanguage === lang ? "active" : ""}`}
+                        onClick={() => handleLanguageChange(lang)}
+                      >
+                        {languageNames[lang]}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="settings-hint">
+                    {t("settings.language.hint")}
                   </p>
                 </div>
               </div>
 
               <div className="settings-section">
-                <h3>Startup</h3>
+                <h3>{t("settings.startup")}</h3>
                 <div className="settings-field settings-checkbox">
                   <label className="checkbox-label">
                     <input
@@ -268,12 +304,11 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                       }
                     />
                     <span className="checkbox-text">
-                      Open main window on startup
+                      {t("settings.openOnStartup")}
                     </span>
                   </label>
                   <p className="settings-hint">
-                    Show the main window when the app starts. If disabled, the
-                    app will start minimized to the system tray.
+                    {t("settings.openOnStartup.hint")}
                   </p>
                 </div>
 
@@ -287,20 +322,19 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                       }
                     />
                     <span className="checkbox-text">
-                      Start application on login
+                      {t("settings.startOnLogin")}
                     </span>
                   </label>
                   <p className="settings-hint">
-                    Automatically start Clipper when you log in to your
-                    computer.
+                    {t("settings.startOnLogin.hint")}
                   </p>
                 </div>
               </div>
 
               <div className="settings-section">
-                <h3>Server</h3>
+                <h3>{t("settings.server")}</h3>
                 <div className="settings-field">
-                  <label>Server Mode</label>
+                  <label>{t("settings.serverMode")}</label>
                   <div className="server-mode-selector">
                     <button
                       type="button"
@@ -308,7 +342,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                       onClick={() => handleServerModeChange(true)}
                     >
                       <span className="server-mode-icon">&#9881;</span>
-                      <span>Bundled</span>
+                      <span>{t("settings.serverMode.bundled")}</span>
                     </button>
                     <button
                       type="button"
@@ -316,13 +350,13 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                       onClick={() => handleServerModeChange(false)}
                     >
                       <span className="server-mode-icon">&#8599;</span>
-                      <span>External</span>
+                      <span>{t("settings.serverMode.external")}</span>
                     </button>
                   </div>
                   <p className="settings-hint">
                     {settings.useBundledServer
-                      ? "Use the bundled server (automatically managed). Data is stored locally."
-                      : "Connect to an external clipper-server instance."}
+                      ? t("settings.serverMode.hint.bundled")
+                      : t("settings.serverMode.hint.external")}
                   </p>
                 </div>
 
@@ -336,18 +370,18 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                         disabled={togglingNetworkAccess}
                       />
                       <span className="checkbox-text">
-                        {togglingNetworkAccess ? "Restarting server..." : "Allow network access"}
+                        {togglingNetworkAccess ? t("settings.networkAccess.restarting") : t("settings.networkAccess")}
                       </span>
                     </label>
                     <p className="settings-hint">
-                      When enabled, the server will listen on all network interfaces, allowing other devices on your network to access clips.
+                      {t("settings.networkAccess.hint")}
                     </p>
                   </div>
                 )}
 
                 {settings.useBundledServer && settings.listenOnAllInterfaces && (
                   <div className="settings-field">
-                    <label>Server URLs</label>
+                    <label>{t("settings.serverUrls")}</label>
                     <div className="server-url-list">
                       {localIpAddresses.length > 0 ? (
                         localIpAddresses.map((ip) => {
@@ -366,7 +400,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                                 onClick={() => {
                                   navigator.clipboard.writeText(url);
                                 }}
-                                title="Copy to clipboard"
+                                title={t("tooltip.copy")}
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -377,27 +411,27 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                           );
                         })
                       ) : (
-                        <p className="settings-hint">No network interfaces found.</p>
+                        <p className="settings-hint">{t("settings.serverUrls.empty")}</p>
                       )}
                     </div>
                     <p className="settings-hint">
-                      Use any of these URLs to access the server from other devices on your network.
+                      {t("settings.serverUrls.hint")}
                     </p>
                   </div>
                 )}
 
                 {!settings.useBundledServer && (
                   <div className="settings-field">
-                    <label htmlFor="serverUrl">Server URL</label>
+                    <label htmlFor="serverUrl">{t("settings.serverUrl")}</label>
                     <input
                       id="serverUrl"
                       type="text"
                       value={settings.serverAddress}
                       onChange={(e) => handleChange("serverAddress", e.target.value)}
-                      placeholder="http://localhost:3000"
+                      placeholder={t("settings.serverUrl.placeholder")}
                     />
                     <p className="settings-hint">
-                      Enter the URL of your external clipper-server.
+                      {t("settings.serverUrl.hint")}
                     </p>
                   </div>
                 )}
@@ -405,10 +439,10 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
 
               {settings.useBundledServer && (
                 <div className="settings-section">
-                  <h3>Storage</h3>
+                  <h3>{t("settings.storage")}</h3>
                   <div className="settings-field">
                     <label htmlFor="defaultSaveLocation">
-                      Default Save Location
+                      {t("settings.defaultSaveLocation")}
                     </label>
                     <div className="settings-path-input">
                       <input
@@ -421,17 +455,17 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                             e.target.value || null
                           )
                         }
-                        placeholder="System default"
+                        placeholder={t("settings.defaultSaveLocation.placeholder")}
                       />
                       <button
                         className="browse-button"
                         onClick={handleBrowseDirectory}
                       >
-                        Browse...
+                        {t("settings.browse")}
                       </button>
                     </div>
                     <p className="settings-hint">
-                      Default folder for saving downloaded attachments.
+                      {t("settings.defaultSaveLocation.hint")}
                     </p>
                   </div>
                 </div>
@@ -439,9 +473,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
 
               {settings.useBundledServer && (
                 <div className="settings-section">
-                  <h3>Data Management</h3>
+                  <h3>{t("settings.dataManagement")}</h3>
                   <div className="settings-field">
-                    <label>Clear All Data</label>
+                    <label>{t("settings.clearAllData")}</label>
                     {!showClearConfirm ? (
                       <>
                         <button
@@ -450,16 +484,16 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                           onClick={() => setShowClearConfirm(true)}
                           disabled={clearing}
                         >
-                          Clear All Clips
+                          {t("settings.clearAllData.button")}
                         </button>
                         <p className="settings-hint">
-                          Permanently delete all stored clips and attachments. This action cannot be undone.
+                          {t("settings.clearAllData.hint")}
                         </p>
                       </>
                     ) : (
                       <div className="clear-confirm">
                         <p className="clear-confirm-message">
-                          Are you sure you want to delete all clips? This will stop the server, delete all data, and restart.
+                          {t("settings.clearAllData.confirm", { count: "all" })}
                         </p>
                         <div className="clear-confirm-buttons">
                           <button
@@ -468,7 +502,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                             onClick={() => setShowClearConfirm(false)}
                             disabled={clearing}
                           >
-                            Cancel
+                            {t("common.cancel")}
                           </button>
                           <button
                             type="button"
@@ -476,7 +510,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                             onClick={handleClearData}
                             disabled={clearing}
                           >
-                            {clearing ? "Clearing..." : "Yes, Delete All"}
+                            {clearing ? t("settings.clearAllData.clearing") : t("settings.clearAllData.confirmButton")}
                           </button>
                         </div>
                       </div>
@@ -490,14 +524,14 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
 
         <div className="settings-footer">
           <button className="settings-btn secondary" onClick={handleCancel}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             className="settings-btn primary"
             onClick={handleSave}
             disabled={loading || saving}
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? t("common.saving") : t("common.save")}
           </button>
         </div>
       </div>
