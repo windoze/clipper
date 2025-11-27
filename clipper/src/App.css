@@ -40,8 +40,11 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  color: #212529;
+  /* Make the title bar draggable on macOS/Windows */
+  -webkit-app-region: drag;
 }
 
 .app-title-group {
@@ -53,19 +56,19 @@ body {
 .app-icon {
   width: 28px;
   height: 28px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
 .app-title {
   font-size: 20px;
   font-weight: 600;
   margin: 0;
+  color: #212529;
 }
 
 .refresh-button {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
+  background: #e9ecef;
+  border: 1px solid #dee2e6;
+  color: #495057;
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -74,11 +77,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
+  /* Make buttons clickable within draggable area */
+  -webkit-app-region: no-drag;
 }
 
 .refresh-button:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #dee2e6;
+  color: #212529;
 }
 
 /* Filters Bar */
@@ -591,9 +597,9 @@ body {
 }
 
 .settings-button {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
+  background: #e9ecef;
+  border: 1px solid #dee2e6;
+  color: #495057;
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -602,11 +608,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
+  /* Make buttons clickable within draggable area */
+  -webkit-app-region: no-drag;
 }
 
 .settings-button:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #dee2e6;
+  color: #212529;
 }
 
 /* Settings Dialog */
@@ -1366,7 +1375,25 @@ body {
 }
 
 :root[data-theme="dark"] .app-header {
-  background: linear-gradient(135deg, #4c5fd5 0%, #5a3d8a 100%);
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .app-title {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .refresh-button,
+:root[data-theme="dark"] .settings-button {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .refresh-button:hover,
+:root[data-theme="dark"] .settings-button:hover {
+  background: #4a4a4a;
+  color: #ffffff;
 }
 
 :root[data-theme="dark"] .filters-bar,
@@ -1759,7 +1786,25 @@ body {
   }
 
   :root:not([data-theme="light"]) .app-header {
-    background: linear-gradient(135deg, #4c5fd5 0%, #5a3d8a 100%);
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .app-title {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .refresh-button,
+  :root:not([data-theme="light"]) .settings-button {
+    background: #404040;
+    border-color: #4a4a4a;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .refresh-button:hover,
+  :root:not([data-theme="light"]) .settings-button:hover {
+    background: #4a4a4a;
+    color: #ffffff;
   }
 
   :root:not([data-theme="light"]) .filters-bar,
