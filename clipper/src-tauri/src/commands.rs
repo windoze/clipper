@@ -346,3 +346,72 @@ pub async fn switch_to_external_server(
     eprintln!("[clipper] Switched to external server at {}", server_url);
     Ok(())
 }
+
+/// Get all local IP addresses for the machine
+#[tauri::command]
+pub fn get_local_ip_addresses() -> Result<Vec<String>, String> {
+    use local_ip_address::list_afinet_netifas;
+
+    let network_interfaces =
+        list_afinet_netifas().map_err(|e| format!("Failed to get network interfaces: {}", e))?;
+
+    let ips: Vec<String> = network_interfaces
+        .into_iter()
+        .filter_map(|(_name, ip)| {
+            // Filter out loopback addresses
+            if ip.is_loopback() {
+                return None;
+            }
+            // Only include IPv4 addresses for simplicity
+            if let std::net::IpAddr::V4(ipv4) = ip {
+                // Filter out link-local addresses (169.254.x.x)
+                if !ipv4.is_link_local() {
+                    return Some(ipv4.to_string());
+                }
+            }
+            None
+        })
+        .collect();
+
+    Ok(ips)
+}
+
+/// Toggle the listen on all interfaces setting and restart the server
+#[tauri::command]
+pub async fn toggle_listen_on_all_interfaces(
+    app: tauri::AppHandle,
+    server_manager: State<'_, ServerManager>,
+    settings_manager: State<'_, SettingsManager>,
+    state: State<'_, AppState>,
+    listen_on_all: bool,
+) -> Result<String, String> {
+    use tauri::Emitter;
+
+    eprintln!(
+        "[clipper] Toggling listen_on_all_interfaces to {}...",
+        listen_on_all
+    );
+
+    // Update the setting
+    let mut settings = settings_manager.get();
+    settings.listen_on_all_interfaces = listen_on_all;
+    settings_manager.update(settings).await?;
+
+    // Restart the server if it's running
+    if server_manager.is_running().await {
+        server_manager.stop().await?;
+        let new_url = server_manager.start(&app).await?;
+        state.set_server_url(&new_url);
+
+        // Emit event to refresh the clip list
+        let _ = app.emit("server-switched", ());
+
+        eprintln!(
+            "[clipper] Server restarted with listen_on_all_interfaces={}",
+            listen_on_all
+        );
+        return Ok(new_url);
+    }
+
+    Ok(state.base_url())
+}

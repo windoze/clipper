@@ -36,6 +36,9 @@ pub struct Settings {
     /// Whether to use the bundled server (true) or external server (false)
     #[serde(default = "default_use_bundled_server")]
     pub use_bundled_server: bool,
+    /// Whether to listen on all network interfaces (bundled server only)
+    #[serde(default)]
+    pub listen_on_all_interfaces: bool,
 }
 
 fn default_use_bundled_server() -> bool {
@@ -52,6 +55,7 @@ impl Default for Settings {
             theme: ThemePreference::Auto,
             server_port: None,
             use_bundled_server: true,
+            listen_on_all_interfaces: false,
         }
     }
 }
@@ -134,6 +138,11 @@ impl SettingsManager {
             self.settings.write().unwrap().server_port = Some(port);
         }
         self.save().await
+    }
+
+    /// Get whether the server should listen on all interfaces
+    pub fn get_listen_on_all_interfaces(&self) -> bool {
+        self.settings.read().unwrap().listen_on_all_interfaces
     }
 }
 

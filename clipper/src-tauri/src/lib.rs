@@ -188,6 +188,8 @@ pub fn run() {
             commands::clear_all_data,
             commands::switch_to_bundled_server,
             commands::switch_to_external_server,
+            commands::get_local_ip_addresses,
+            commands::toggle_listen_on_all_interfaces,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

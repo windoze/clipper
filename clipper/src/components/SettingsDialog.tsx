@@ -11,6 +11,7 @@ export interface Settings {
   startOnLogin: boolean;
   theme: ThemePreference;
   useBundledServer: boolean;
+  listenOnAllInterfaces: boolean;
 }
 
 interface SettingsDialogProps {
@@ -27,6 +28,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     startOnLogin: false,
     theme: "auto",
     useBundledServer: true,
+    listenOnAllInterfaces: false,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,6 +36,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   const [serverUrl, setServerUrl] = useState<string>("");
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [localIpAddresses, setLocalIpAddresses] = useState<string[]>([]);
+  const [togglingNetworkAccess, setTogglingNetworkAccess] = useState(false);
 
   // Store the original theme when dialog opens to revert on cancel
   const originalThemeRef = useRef<ThemePreference>("auto");
@@ -43,6 +47,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     if (isOpen) {
       loadSettings();
       loadServerInfo();
+      loadLocalIpAddresses();
     }
   }, [isOpen]);
 
@@ -67,6 +72,15 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
       setServerUrl(url);
     } catch (e) {
       console.error("Failed to load server info:", e);
+    }
+  };
+
+  const loadLocalIpAddresses = async () => {
+    try {
+      const ips = await invoke<string[]>("get_local_ip_addresses");
+      setLocalIpAddresses(ips);
+    } catch (e) {
+      console.error("Failed to load local IP addresses:", e);
     }
   };
 
@@ -152,6 +166,35 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
       setError(`Failed to clear data: ${e}`);
     } finally {
       setClearing(false);
+    }
+  };
+
+  // Handle toggling network access
+  const handleToggleNetworkAccess = async (listenOnAll: boolean) => {
+    if (listenOnAll === settings.listenOnAllInterfaces) return;
+
+    setTogglingNetworkAccess(true);
+    setError(null);
+    try {
+      const newUrl = await invoke<string>("toggle_listen_on_all_interfaces", {
+        listenOnAll,
+      });
+      setServerUrl(newUrl);
+      setSettings((prev) => ({ ...prev, listenOnAllInterfaces: listenOnAll }));
+    } catch (e) {
+      setError(`Failed to toggle network access: ${e}`);
+    } finally {
+      setTogglingNetworkAccess(false);
+    }
+  };
+
+  // Get the port from the server URL
+  const getServerPort = () => {
+    try {
+      const url = new URL(serverUrl);
+      return url.port || "3000";
+    } catch {
+      return "3000";
     }
   };
 
@@ -242,32 +285,69 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                   </p>
                 </div>
 
-                <div className="settings-field">
-                  <label htmlFor="serverUrl">Server URL</label>
-                  {settings.useBundledServer ? (
-                    <div className="settings-url-input">
+                {settings.useBundledServer && (
+                  <div className="settings-field settings-checkbox">
+                    <label className="checkbox-label">
                       <input
-                        id="serverUrl"
-                        type="text"
-                        value={serverUrl}
-                        readOnly
-                        className="settings-readonly with-copy"
+                        type="checkbox"
+                        checked={settings.listenOnAllInterfaces}
+                        onChange={(e) => handleToggleNetworkAccess(e.target.checked)}
+                        disabled={togglingNetworkAccess}
                       />
-                      <button
-                        type="button"
-                        className="copy-icon-button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(serverUrl);
-                        }}
-                        title="Copy to clipboard"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                      </button>
+                      <span className="checkbox-text">
+                        {togglingNetworkAccess ? "Restarting server..." : "Allow network access"}
+                      </span>
+                    </label>
+                    <p className="settings-hint">
+                      When enabled, the server will listen on all network interfaces, allowing other devices on your network to access clips.
+                    </p>
+                  </div>
+                )}
+
+                {settings.useBundledServer && settings.listenOnAllInterfaces && (
+                  <div className="settings-field">
+                    <label>Server URLs</label>
+                    <div className="server-url-list">
+                      {localIpAddresses.length > 0 ? (
+                        localIpAddresses.map((ip) => {
+                          const url = `http://${ip}:${getServerPort()}`;
+                          return (
+                            <div key={ip} className="settings-url-input">
+                              <input
+                                type="text"
+                                value={url}
+                                readOnly
+                                className="settings-readonly with-copy"
+                              />
+                              <button
+                                type="button"
+                                className="copy-icon-button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(url);
+                                }}
+                                title="Copy to clipboard"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                              </button>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="settings-hint">No network interfaces found.</p>
+                      )}
                     </div>
-                  ) : (
+                    <p className="settings-hint">
+                      Use any of these URLs to access the server from other devices on your network.
+                    </p>
+                  </div>
+                )}
+
+                {!settings.useBundledServer && (
+                  <div className="settings-field">
+                    <label htmlFor="serverUrl">Server URL</label>
                     <input
                       id="serverUrl"
                       type="text"
@@ -275,13 +355,11 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                       onChange={(e) => handleChange("serverAddress", e.target.value)}
                       placeholder="http://localhost:3000"
                     />
-                  )}
-                  <p className="settings-hint">
-                    {settings.useBundledServer
-                      ? "The bundled server URL (read-only)."
-                      : "Enter the URL of your external clipper-server."}
-                  </p>
-                </div>
+                    <p className="settings-hint">
+                      Enter the URL of your external clipper-server.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="settings-section">

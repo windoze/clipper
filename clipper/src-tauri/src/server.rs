@@ -104,6 +104,14 @@ impl ServerManager {
             .ok_or("Invalid storage path")?
             .to_string();
 
+        // Determine listen address based on settings
+        let listen_on_all = settings_manager.get_listen_on_all_interfaces();
+        let listen_addr = if listen_on_all { "0.0.0.0" } else { "127.0.0.1" };
+        eprintln!(
+            "[clipper-server] Binding to {} (listen_on_all_interfaces: {})",
+            listen_addr, listen_on_all
+        );
+
         // Spawn the sidecar process
         let sidecar_command = app
             .shell()
@@ -115,7 +123,7 @@ impl ServerManager {
                 "--storage-path",
                 &storage_path_str,
                 "--listen-addr",
-                "127.0.0.1",
+                listen_addr,
                 "--port",
                 &port.to_string(),
             ]);

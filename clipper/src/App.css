@@ -769,6 +769,16 @@ body {
   position: relative;
 }
 
+.server-url-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.server-url-list .settings-url-input {
+  margin-bottom: 0;
+}
+
 .settings-path-input input {
   flex: 1;
 }
