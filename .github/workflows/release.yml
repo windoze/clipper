@@ -99,19 +99,19 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.platform }}" == "macos-latest" ]; then
-            DMG_PATH=$(find clipper/src-tauri/target -name "*.dmg" -type f | head -1)
+            DMG_PATH=$(find target -name "*.dmg" -type f | head -1)
             echo "dmg_path=$DMG_PATH" >> $GITHUB_OUTPUT
             echo "Found DMG: $DMG_PATH"
           elif [ "${{ matrix.platform }}" == "ubuntu-22.04" ]; then
-            DEB_PATH=$(find clipper/src-tauri/target -name "*.deb" -type f | head -1)
-            APPIMAGE_PATH=$(find clipper/src-tauri/target -name "*.AppImage" -type f | head -1)
+            DEB_PATH=$(find target -name "*.deb" -type f | head -1)
+            APPIMAGE_PATH=$(find target -name "*.AppImage" -type f | head -1)
             echo "deb_path=$DEB_PATH" >> $GITHUB_OUTPUT
             echo "appimage_path=$APPIMAGE_PATH" >> $GITHUB_OUTPUT
             echo "Found DEB: $DEB_PATH"
             echo "Found AppImage: $APPIMAGE_PATH"
           elif [ "${{ matrix.platform }}" == "windows-latest" ]; then
-            MSI_PATH=$(find clipper/src-tauri/target -name "*.msi" -type f | head -1)
-            NSIS_PATH=$(find clipper/src-tauri/target -name "*-setup.exe" -type f | head -1)
+            MSI_PATH=$(find target -name "*.msi" -type f | head -1)
+            NSIS_PATH=$(find target -name "*-setup.exe" -type f | head -1)
             echo "msi_path=$MSI_PATH" >> $GITHUB_OUTPUT
             echo "nsis_path=$NSIS_PATH" >> $GITHUB_OUTPUT
             echo "Found MSI: $MSI_PATH"
