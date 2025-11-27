@@ -9,25 +9,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    outputs:
-      release_id: ${{ steps.create-release.outputs.id }}
-      release_upload_url: ${{ steps.create-release.outputs.upload_url }}
-    steps:
-      - name: Create Release
-        id: create-release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: true
-          prerelease: false
-
   build-tauri:
-    needs: create-release
     permissions:
       contents: write
     strategy:
@@ -94,95 +76,47 @@ jobs:
           args: ${{ matrix.tauri_args }}
 
       # Find and upload artifacts
-      - name: Find bundle files
+      - name: Find and rename bundle files
         id: find-bundles
         shell: bash
         run: |
+          mkdir -p release-artifacts
           if [ "${{ matrix.platform }}" == "macos-latest" ]; then
             DMG_PATH=$(find target -name "*.dmg" -type f | head -1)
-            echo "dmg_path=$DMG_PATH" >> $GITHUB_OUTPUT
-            echo "Found DMG: $DMG_PATH"
+            if [ -n "$DMG_PATH" ]; then
+              if [ "${{ matrix.rust_target }}" == "aarch64-apple-darwin" ]; then
+                cp "$DMG_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_macos_aarch64.dmg"
+              else
+                cp "$DMG_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_macos_x64.dmg"
+              fi
+            fi
           elif [ "${{ matrix.platform }}" == "ubuntu-22.04" ]; then
             DEB_PATH=$(find target -name "*.deb" -type f | head -1)
             APPIMAGE_PATH=$(find target -name "*.AppImage" -type f | head -1)
-            echo "deb_path=$DEB_PATH" >> $GITHUB_OUTPUT
-            echo "appimage_path=$APPIMAGE_PATH" >> $GITHUB_OUTPUT
-            echo "Found DEB: $DEB_PATH"
-            echo "Found AppImage: $APPIMAGE_PATH"
+            if [ -n "$DEB_PATH" ]; then
+              cp "$DEB_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_amd64.deb"
+            fi
+            if [ -n "$APPIMAGE_PATH" ]; then
+              cp "$APPIMAGE_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_amd64.AppImage"
+            fi
           elif [ "${{ matrix.platform }}" == "windows-latest" ]; then
             MSI_PATH=$(find target -name "*.msi" -type f | head -1)
             NSIS_PATH=$(find target -name "*-setup.exe" -type f | head -1)
-            echo "msi_path=$MSI_PATH" >> $GITHUB_OUTPUT
-            echo "nsis_path=$NSIS_PATH" >> $GITHUB_OUTPUT
-            echo "Found MSI: $MSI_PATH"
-            echo "Found NSIS: $NSIS_PATH"
+            if [ -n "$MSI_PATH" ]; then
+              cp "$MSI_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_x64.msi"
+            fi
+            if [ -n "$NSIS_PATH" ]; then
+              cp "$NSIS_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.exe"
+            fi
           fi
+          ls -la release-artifacts/
 
-      - name: Upload macOS DMG (aarch64)
-        if: matrix.platform == 'macos-latest' && matrix.rust_target == 'aarch64-apple-darwin'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
-          asset_path: ${{ steps.find-bundles.outputs.dmg_path }}
-          asset_name: Clipper_${{ github.ref_name }}_macos_aarch64.dmg
-          asset_content_type: application/x-apple-diskimage
-
-      - name: Upload macOS DMG (x86_64)
-        if: matrix.platform == 'macos-latest' && matrix.rust_target == 'x86_64-apple-darwin'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
-          asset_path: ${{ steps.find-bundles.outputs.dmg_path }}
-          asset_name: Clipper_${{ github.ref_name }}_macos_x64.dmg
-          asset_content_type: application/x-apple-diskimage
-
-      - name: Upload Linux DEB
-        if: matrix.platform == 'ubuntu-22.04'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
-          asset_path: ${{ steps.find-bundles.outputs.deb_path }}
-          asset_name: Clipper_${{ github.ref_name }}_amd64.deb
-          asset_content_type: application/vnd.debian.binary-package
-
-      - name: Upload Linux AppImage
-        if: matrix.platform == 'ubuntu-22.04'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
-          asset_path: ${{ steps.find-bundles.outputs.appimage_path }}
-          asset_name: Clipper_${{ github.ref_name }}_amd64.AppImage
-          asset_content_type: application/x-appimage
-
-      - name: Upload Windows MSI
-        if: matrix.platform == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
-          asset_path: ${{ steps.find-bundles.outputs.msi_path }}
-          asset_name: Clipper_${{ github.ref_name }}_x64.msi
-          asset_content_type: application/x-msi
-
-      - name: Upload Windows NSIS Installer
-        if: matrix.platform == 'windows-latest'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.release_upload_url }}
-          asset_path: ${{ steps.find-bundles.outputs.nsis_path }}
-          asset_name: Clipper_${{ github.ref_name }}_x64-setup.exe
-          asset_content_type: application/x-executable
+          name: release-${{ matrix.platform }}-${{ matrix.rust_target }}
+          path: release-artifacts/*
+          if-no-files-found: error
 
   build-docker:
     runs-on: ubuntu-latest
@@ -215,16 +149,25 @@ jobs:
           cache-to: type=gha,mode=max
 
   publish-release:
-    needs: [create-release, build-tauri, build-docker]
+    needs: [build-tauri, build-docker]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Publish Release
-        uses: actions/github-script@v7
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          script: |
-            github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: ${{ needs.create-release.outputs.release_id }},
-              draft: false
-            })
+          path: artifacts
+          pattern: release-*
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          files: artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
