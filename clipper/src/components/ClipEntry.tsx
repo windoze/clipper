@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Clip, isFavorite } from "../types";
 import { invoke } from "@tauri-apps/api/core";
 import { ImagePopup } from "./ImagePopup";
+import { EditClipDialog } from "./EditClipDialog";
 
 interface ClipEntryProps {
   clip: Clip;
   onToggleFavorite: (clip: Clip) => void;
+  onClipUpdated?: (updatedClip: Clip) => void;
 }
 
 // Image file extensions
@@ -16,11 +18,12 @@ function isImageFile(filename: string): boolean {
   return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
-export function ClipEntry({ clip, onToggleFavorite }: ClipEntryProps) {
+export function ClipEntry({ clip, onToggleFavorite, onClipUpdated }: ClipEntryProps) {
   const favorite = isFavorite(clip);
   const displayTags = clip.tags.filter((t) => !t.startsWith("$"));
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const isImage = clip.file_attachment && isImageFile(clip.file_attachment);
 
@@ -57,6 +60,15 @@ export function ClipEntry({ clip, onToggleFavorite }: ClipEntryProps) {
     setShowPopup(true);
   };
 
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowEditDialog(true);
+  };
+
+  const handleClipSaved = (updatedClip: Clip) => {
+    onClipUpdated?.(updatedClip);
+  };
+
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!clip.file_attachment) return;
@@ -87,16 +99,28 @@ export function ClipEntry({ clip, onToggleFavorite }: ClipEntryProps) {
       >
         <div className="clip-header">
           <span className="clip-date">{formatDate(clip.created_at)}</span>
-          <button
-            className={`favorite-button ${favorite ? "active" : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite(clip);
-            }}
-            title={favorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            {favorite ? "★" : "☆"}
-          </button>
+          <div className="clip-actions">
+            <button
+              className="edit-button"
+              onClick={handleEditClick}
+              title="Edit clip"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button
+              className={`favorite-button ${favorite ? "active" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(clip);
+              }}
+              title={favorite ? "Remove from favorites" : "Add to favorites"}
+            >
+              {favorite ? "★" : "☆"}
+            </button>
+          </div>
         </div>
 
         {isImage && imageUrl ? (
@@ -158,6 +182,13 @@ export function ClipEntry({ clip, onToggleFavorite }: ClipEntryProps) {
           onClose={() => setShowPopup(false)}
         />
       )}
+
+      <EditClipDialog
+        clip={clip}
+        isOpen={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        onSave={handleClipSaved}
+      />
     </>
   );
 }

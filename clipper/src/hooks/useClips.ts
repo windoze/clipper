@@ -24,6 +24,7 @@ interface UseClipsReturn extends UseClipsState {
   refetch: () => void;
   loadMore: () => void;
   toggleFavorite: (clip: Clip) => Promise<void>;
+  updateClipInList: (updatedClip: Clip) => void;
 }
 
 const PAGE_SIZE = 20;
@@ -153,6 +154,15 @@ export function useClips(): UseClipsReturn {
     }
   }, []);
 
+  const updateClipInList = useCallback((updatedClip: Clip) => {
+    setState((prev) => ({
+      ...prev,
+      clips: prev.clips.map((c) =>
+        c.id === updatedClip.id ? updatedClip : c
+      ),
+    }));
+  }, []);
+
   // Fetch clips when filters change (reset to page 1)
   useEffect(() => {
     fetchClips(1, false);
@@ -195,5 +205,6 @@ export function useClips(): UseClipsReturn {
     refetch,
     loadMore,
     toggleFavorite,
+    updateClipInList,
   };
 }

@@ -27,6 +27,7 @@ function App() {
     refetch,
     loadMore,
     toggleFavorite,
+    updateClipInList,
   } = useClips();
 
   const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
@@ -85,6 +86,7 @@ function App() {
             hasMore={hasMore}
             onToggleFavorite={toggleFavorite}
             onLoadMore={loadMore}
+            onClipUpdated={updateClipInList}
           />
         </main>
 
