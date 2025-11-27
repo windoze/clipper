@@ -294,6 +294,13 @@ body {
   line-height: 1;
 }
 
+/* Adjust gear glyph in settings button to match refresh button */
+.app.macos .header-buttons .settings-button {
+  font-size: 17px;
+  position: relative;
+  top: -1px;
+}
+
 /* Make interactive elements clickable within macOS drag area */
 .app.macos .app-header button,
 .app.macos .app-header a,
