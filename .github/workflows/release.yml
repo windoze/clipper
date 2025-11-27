@@ -37,19 +37,15 @@ jobs:
           - platform: macos-latest
             rust_target: aarch64-apple-darwin
             tauri_args: --target aarch64-apple-darwin
-            server_binary_suffix: -aarch64-apple-darwin
           - platform: macos-latest
             rust_target: x86_64-apple-darwin
             tauri_args: --target x86_64-apple-darwin
-            server_binary_suffix: -x86_64-apple-darwin
           - platform: ubuntu-22.04
             rust_target: x86_64-unknown-linux-gnu
             tauri_args: ''
-            server_binary_suffix: -x86_64-unknown-linux-gnu
           - platform: windows-latest
             rust_target: x86_64-pc-windows-msvc
             tauri_args: ''
-            server_binary_suffix: -x86_64-pc-windows-msvc.exe
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -83,20 +79,17 @@ jobs:
         working-directory: clipper
         run: npm ci
 
-      # Build clipper-server for the target platform
+      # Build clipper-server using the build script
       - name: Build clipper-server (Unix)
         if: matrix.platform != 'windows-latest'
-        run: |
-          cargo build --release --target ${{ matrix.rust_target }} -p clipper-server
-          mkdir -p clipper/src-tauri/binaries
-          cp target/${{ matrix.rust_target }}/release/clipper-server clipper/src-tauri/binaries/clipper-server${{ matrix.server_binary_suffix }}
+        working-directory: clipper
+        run: bash scripts/build-server.sh ${{ matrix.rust_target }}
 
       - name: Build clipper-server (Windows)
         if: matrix.platform == 'windows-latest'
-        run: |
-          cargo build --release --target ${{ matrix.rust_target }} -p clipper-server
-          mkdir -p clipper/src-tauri/binaries
-          cp target/${{ matrix.rust_target }}/release/clipper-server.exe clipper/src-tauri/binaries/clipper-server${{ matrix.server_binary_suffix }}
+        working-directory: clipper
+        shell: bash
+        run: bash scripts/build-server.sh ${{ matrix.rust_target }}
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -104,7 +97,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: clipper
-          tauriScript: npm run tauri
+          tauriScript: npx tauri
           args: ${{ matrix.tauri_args }}
 
       # Find and upload artifacts
