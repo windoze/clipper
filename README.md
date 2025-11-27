@@ -2,7 +2,7 @@
 
 A modern, cross-platform clipboard manager with full-text search, real-time sync, and a beautiful desktop interface.
 
-![Version](https://img.shields.io/badge/version-0.2.1-blue)
+![Version](https://img.shields.io/badge/version-0.4.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -24,6 +24,8 @@ A modern, cross-platform clipboard manager with full-text search, real-time sync
 ### Download
 
 Download the latest release for your platform from the [Releases](https://github.com/user/clipper/releases) page.
+
+> **Note:** The binaries are not code-signed. See [Unsigned Binaries](#unsigned-binaries) for platform-specific instructions to run the app.
 
 ### Build from Source
 
@@ -264,6 +266,66 @@ clipper/
 │   └── README.md
 └── clipper-slint/         # Alternative Slint GUI
     └── src/
+```
+
+## Unsigned Binaries
+
+The release binaries are **not code-signed**, which means your operating system may show security warnings when you first run the application. This is normal for open-source software distributed outside official app stores.
+
+### macOS
+
+macOS will show a warning that the app "cannot be opened because the developer cannot be verified."
+
+**Workaround:**
+
+1. **Right-click method** (recommended):
+   - Right-click (or Control-click) on Clipper.app
+   - Select "Open" from the context menu
+   - Click "Open" in the dialog that appears
+   - The app will be remembered and open normally from now on
+
+2. **System Preferences method**:
+   - Try to open the app normally (it will be blocked)
+   - Open **System Settings** > **Privacy & Security**
+   - Scroll down to find the message about Clipper being blocked
+   - Click "Open Anyway"
+
+3. **Terminal method** (removes quarantine flag):
+   ```bash
+   xattr -cr /Applications/Clipper.app
+   ```
+
+### Windows
+
+Windows SmartScreen may show a warning that the app is from an "unknown publisher."
+
+**Workaround:**
+
+1. When the SmartScreen popup appears, click **"More info"**
+2. Click **"Run anyway"**
+
+Alternatively, you can right-click the executable, select **Properties**, and check **"Unblock"** at the bottom of the General tab.
+
+### Linux
+
+Linux generally doesn't have the same signing restrictions, but you may need to make the AppImage executable:
+
+```bash
+chmod +x Clipper.AppImage
+./Clipper.AppImage
+```
+
+If you encounter permission issues, you can also run:
+
+```bash
+# For AppImage
+chmod +x Clipper*.AppImage
+
+# For .deb package
+sudo dpkg -i clipper_*.deb
+
+# For .rpm package
+sudo rpm -i clipper-*.rpm
 ```
 
 ## Contributing
