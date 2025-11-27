@@ -80,16 +80,9 @@ jobs:
         run: npm ci
 
       # Build clipper-server using the build script
-      - name: Build clipper-server (Unix)
-        if: matrix.platform != 'windows-latest'
+      - name: Build clipper-server
         working-directory: clipper
-        run: bash scripts/build-server.sh ${{ matrix.rust_target }}
-
-      - name: Build clipper-server (Windows)
-        if: matrix.platform == 'windows-latest'
-        working-directory: clipper
-        shell: bash
-        run: bash scripts/build-server.sh ${{ matrix.rust_target }}
+        run: node scripts/build-server.js ${{ matrix.rust_target }}
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0

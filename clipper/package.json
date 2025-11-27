@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:server": "bash scripts/build-server.sh",
+    "build:server": "node scripts/build-server.js",
     "preview": "vite preview",
     "tauri": "npm run build:server && tauri",
     "tauri:dev": "npm run build:server && tauri dev",
