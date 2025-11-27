@@ -65,7 +65,56 @@ function App() {
       <div className="app">
         <header className="app-header">
           <div className="app-title-group">
-            <img src="/clipper-icon.svg" alt={t("app.title")} className="app-icon" />
+            <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="boardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#6366F1"/>
+                  <stop offset="100%" stopColor="#8B5CF6"/>
+                </linearGradient>
+                <linearGradient id="clipGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#F1F5F9"/>
+                  <stop offset="30%" stopColor="#CBD5E1"/>
+                  <stop offset="70%" stopColor="#94A3B8"/>
+                  <stop offset="100%" stopColor="#64748B"/>
+                </linearGradient>
+                <linearGradient id="paperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#FFFFFF"/>
+                  <stop offset="100%" stopColor="#F8FAFC"/>
+                </linearGradient>
+                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="8" stdDeviation="16" floodColor="#1E1B4B" floodOpacity="0.35"/>
+                </filter>
+                <filter id="innerDepth">
+                  <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#4338CA" floodOpacity="0.3"/>
+                </filter>
+              </defs>
+              <g filter="url(#shadow)">
+                <rect x="96" y="80" width="320" height="400" rx="32" ry="32" fill="url(#boardGrad)"/>
+                <rect x="128" y="140" width="256" height="310" rx="16" ry="16" fill="url(#paperGrad)"/>
+                <g fill="#C7D2FE">
+                  <rect x="160" y="180" width="180" height="14" rx="7"/>
+                  <rect x="160" y="215" width="140" height="14" rx="7"/>
+                  <rect x="160" y="250" width="192" height="14" rx="7"/>
+                  <rect x="160" y="285" width="120" height="14" rx="7"/>
+                  <rect x="160" y="320" width="160" height="14" rx="7"/>
+                </g>
+                <g>
+                  <rect x="186" y="48" width="140" height="72" rx="12" ry="12" fill="url(#clipGrad)"/>
+                  <g stroke="#64748B" strokeWidth="3" strokeLinecap="round">
+                    <line x1="206" y1="60" x2="206" y2="108"/>
+                    <line x1="222" y1="60" x2="222" y2="108"/>
+                    <line x1="290" y1="60" x2="290" y2="108"/>
+                    <line x1="306" y1="60" x2="306" y2="108"/>
+                  </g>
+                  <path d="M194 120 C194 136, 210 148, 230 148" stroke="#94A3B8" strokeWidth="10" strokeLinecap="round" fill="none"/>
+                  <path d="M318 120 C318 136, 302 148, 282 148" stroke="#94A3B8" strokeWidth="10" strokeLinecap="round" fill="none"/>
+                </g>
+              </g>
+              <g filter="url(#innerDepth)">
+                <circle cx="368" cy="400" r="44" fill="#10B981"/>
+                <path d="M346 400 L360 414 L390 384" stroke="#FFFFFF" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              </g>
+            </svg>
             <h1 className="app-title">{t("app.title")}</h1>
           </div>
           <div className="header-buttons">
