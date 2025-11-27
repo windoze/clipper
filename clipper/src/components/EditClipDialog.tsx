@@ -35,6 +35,20 @@ export function EditClipDialog({ clip, isOpen, onClose, onSave }: EditClipDialog
     }
   }, [isOpen, clip]);
 
+  // Handle ESC key to close dialog
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleAddTag = () => {
     const trimmedTag = tagInput.trim();
     if (trimmedTag && !tags.includes(trimmedTag) && !trimmedTag.startsWith("$")) {
