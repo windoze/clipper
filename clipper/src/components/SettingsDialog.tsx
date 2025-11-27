@@ -257,6 +257,47 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
               </div>
 
               <div className="settings-section">
+                <h3>Startup</h3>
+                <div className="settings-field settings-checkbox">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={settings.openOnStartup}
+                      onChange={(e) =>
+                        handleChange("openOnStartup", e.target.checked)
+                      }
+                    />
+                    <span className="checkbox-text">
+                      Open main window on startup
+                    </span>
+                  </label>
+                  <p className="settings-hint">
+                    Show the main window when the app starts. If disabled, the
+                    app will start minimized to the system tray.
+                  </p>
+                </div>
+
+                <div className="settings-field settings-checkbox">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={settings.startOnLogin}
+                      onChange={(e) =>
+                        handleChange("startOnLogin", e.target.checked)
+                      }
+                    />
+                    <span className="checkbox-text">
+                      Start application on login
+                    </span>
+                  </label>
+                  <p className="settings-hint">
+                    Automatically start Clipper when you log in to your
+                    computer.
+                  </p>
+                </div>
+              </div>
+
+              <div className="settings-section">
                 <h3>Server</h3>
                 <div className="settings-field">
                   <label>Server Mode</label>
@@ -395,47 +436,6 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                   </div>
                 </div>
               )}
-
-              <div className="settings-section">
-                <h3>Startup</h3>
-                <div className="settings-field settings-checkbox">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={settings.openOnStartup}
-                      onChange={(e) =>
-                        handleChange("openOnStartup", e.target.checked)
-                      }
-                    />
-                    <span className="checkbox-text">
-                      Open main window on startup
-                    </span>
-                  </label>
-                  <p className="settings-hint">
-                    Show the main window when the app starts. If disabled, the
-                    app will start minimized to the system tray.
-                  </p>
-                </div>
-
-                <div className="settings-field settings-checkbox">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={settings.startOnLogin}
-                      onChange={(e) =>
-                        handleChange("startOnLogin", e.target.checked)
-                      }
-                    />
-                    <span className="checkbox-text">
-                      Start application on login
-                    </span>
-                  </label>
-                  <p className="settings-hint">
-                    Automatically start Clipper when you log in to your
-                    computer.
-                  </p>
-                </div>
-              </div>
 
               {settings.useBundledServer && (
                 <div className="settings-section">
