@@ -28,6 +28,7 @@ function App() {
     loadMore,
     toggleFavorite,
     updateClipInList,
+    deleteClipFromList,
   } = useClips();
 
   const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
@@ -87,6 +88,7 @@ function App() {
             onToggleFavorite={toggleFavorite}
             onLoadMore={loadMore}
             onClipUpdated={updateClipInList}
+            onClipDeleted={deleteClipFromList}
           />
         </main>
 

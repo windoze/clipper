@@ -11,6 +11,7 @@ interface ClipListProps {
   onToggleFavorite: (clip: Clip) => void;
   onLoadMore: () => void;
   onClipUpdated?: (updatedClip: Clip) => void;
+  onClipDeleted?: (clipId: string) => void;
 }
 
 export function ClipList({
@@ -22,6 +23,7 @@ export function ClipList({
   onToggleFavorite,
   onLoadMore,
   onClipUpdated,
+  onClipDeleted,
 }: ClipListProps) {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
@@ -93,6 +95,7 @@ export function ClipList({
           clip={clip}
           onToggleFavorite={onToggleFavorite}
           onClipUpdated={onClipUpdated}
+          onClipDeleted={onClipDeleted}
         />
       ))}
 

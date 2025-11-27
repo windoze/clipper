@@ -1,9 +1,14 @@
 {
     "cSpell.words": [
+        "afinet",
+        "arboard",
         "autolaunch",
         "hkcu",
         "mpsc",
+        "netifas",
+        "portpicker",
         "println",
+        "serde",
         "Skia",
         "subkey",
         "surrealdb",

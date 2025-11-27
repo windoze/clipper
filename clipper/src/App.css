@@ -1028,6 +1028,94 @@ body {
   background: rgba(102, 126, 234, 0.1);
 }
 
+.delete-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #adb5bd;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.delete-button:hover {
+  color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+}
+
+/* Delete Confirmation Dialog */
+.delete-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.delete-confirm-dialog {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  padding: 20px 24px;
+  max-width: 350px;
+  width: 90%;
+  animation: slideUp 0.2s ease-out;
+}
+
+.delete-confirm-dialog p {
+  margin: 0 0 20px 0;
+  font-size: 15px;
+  color: #212529;
+  text-align: center;
+}
+
+.delete-confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.delete-confirm-btn {
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.delete-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.delete-confirm-btn.cancel {
+  background: #e9ecef;
+  border: 1px solid #dee2e6;
+  color: #495057;
+}
+
+.delete-confirm-btn.cancel:hover:not(:disabled) {
+  background: #dee2e6;
+}
+
+.delete-confirm-btn.confirm {
+  background: #dc3545;
+  border: 1px solid #dc3545;
+  color: white;
+}
+
+.delete-confirm-btn.confirm:hover:not(:disabled) {
+  background: #c82333;
+  border-color: #c82333;
+}
+
 .edit-clip-backdrop {
   position: fixed;
   inset: 0;
@@ -1507,6 +1595,33 @@ body {
 :root[data-theme="dark"] .edit-button:hover {
   color: #99aaf7;
   background: rgba(102, 126, 234, 0.2);
+}
+
+:root[data-theme="dark"] .delete-button {
+  color: #6c757d;
+}
+
+:root[data-theme="dark"] .delete-button:hover {
+  color: #f8a0a0;
+  background: rgba(220, 53, 69, 0.2);
+}
+
+:root[data-theme="dark"] .delete-confirm-dialog {
+  background: #2d2d2d;
+}
+
+:root[data-theme="dark"] .delete-confirm-dialog p {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .delete-confirm-btn.cancel {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .delete-confirm-btn.cancel:hover:not(:disabled) {
+  background: #4a4a4a;
 }
 
 :root[data-theme="dark"] .edit-clip-dialog {

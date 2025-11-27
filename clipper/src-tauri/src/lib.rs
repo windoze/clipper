@@ -21,6 +21,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_prevent_default::init())
         .setup(move |app| {
             // Initialize settings manager
             let config_dir = get_app_config_dir(app.handle())?;
@@ -55,7 +56,10 @@ pub fn run() {
                             url
                         }
                         Err(e) => {
-                            eprintln!("Failed to start bundled server: {}. Falling back to settings.", e);
+                            eprintln!(
+                                "Failed to start bundled server: {}. Falling back to settings.",
+                                e
+                            );
                             // Fall back to settings if bundled server fails
                             settings_manager.get().server_address.clone()
                         }
