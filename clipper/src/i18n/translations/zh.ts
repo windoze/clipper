@@ -111,4 +111,18 @@ export const zh = {
   "tray.showHide": "显示/隐藏主窗口",
   "tray.settings": "设置...",
   "tray.quit": "退出应用",
+
+  // Notifications Settings
+  "settings.notifications": "显示通知",
+  "settings.notifications.hint": "显示剪贴板操作和同步事件的通知。",
+
+  // Toast Messages
+  "toast.clipCopied": "已复制到剪贴板",
+  "toast.clipSaved": "剪贴已保存",
+  "toast.clipDeleted": "剪贴已删除",
+  "toast.clipReceived": "收到新剪贴",
+  "toast.dataCleared": "所有数据已清除",
+  "toast.serverStarted": "服务器已启动",
+  "toast.serverStopped": "服务器已停止",
+  "toast.serverConnected": "已连接到服务器",
 };

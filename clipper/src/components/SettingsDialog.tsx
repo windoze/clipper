@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useI18n, Language, supportedLanguages, languageNames } from "../i18n";
+import { useToast } from "./Toast";
 
 export type ThemePreference = "light" | "dark" | "auto";
 
@@ -14,6 +15,7 @@ export interface Settings {
   useBundledServer: boolean;
   listenOnAllInterfaces: boolean;
   language: string | null;
+  notificationsEnabled: boolean;
 }
 
 interface SettingsDialogProps {
@@ -24,6 +26,7 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialogProps) {
   const { t, language: currentLanguage, setLanguage } = useI18n();
+  const { showToast } = useToast();
   const [settings, setSettings] = useState<Settings>({
     serverAddress: "http://localhost:3000",
     defaultSaveLocation: null,
@@ -33,6 +36,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     useBundledServer: true,
     listenOnAllInterfaces: false,
     language: null,
+    notificationsEnabled: true,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -146,11 +150,13 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
         const newUrl = await invoke<string>("switch_to_bundled_server");
         setServerUrl(newUrl);
         setSettings((prev) => ({ ...prev, useBundledServer: true }));
+        showToast(t("toast.serverStarted"));
       } else {
         // Switch to external server
         await invoke("switch_to_external_server", { serverUrl: settings.serverAddress });
         setServerUrl(settings.serverAddress);
         setSettings((prev) => ({ ...prev, useBundledServer: false }));
+        showToast(t("toast.serverConnected"));
       }
     } catch (e) {
       setError(`Failed to switch server mode: ${e}`);
@@ -164,6 +170,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     try {
       await invoke("clear_all_data");
       setShowClearConfirm(false);
+      showToast(t("toast.dataCleared"));
       // Close the dialog after successful clear
       onClose();
     } catch (e) {
@@ -275,6 +282,24 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                   </select>
                   <p className="settings-hint">
                     {t("settings.language.hint")}
+                  </p>
+                </div>
+
+                <div className="settings-field settings-checkbox">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={settings.notificationsEnabled}
+                      onChange={(e) =>
+                        handleChange("notificationsEnabled", e.target.checked)
+                      }
+                    />
+                    <span className="checkbox-text">
+                      {t("settings.notifications")}
+                    </span>
+                  </label>
+                  <p className="settings-hint">
+                    {t("settings.notifications.hint")}
                   </p>
                 </div>
               </div>

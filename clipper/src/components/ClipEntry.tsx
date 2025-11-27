@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ImagePopup } from "./ImagePopup";
 import { EditClipDialog } from "./EditClipDialog";
 import { useI18n } from "../i18n";
+import { useToast } from "./Toast";
 
 interface ClipEntryProps {
   clip: Clip;
@@ -22,6 +23,7 @@ function isImageFile(filename: string): boolean {
 
 export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted }: ClipEntryProps) {
   const { t } = useI18n();
+  const { showToast } = useToast();
   const favorite = isFavorite(clip);
   const displayTags = clip.tags.filter((t) => !t.startsWith("$"));
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -55,6 +57,7 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
     try {
       // Use custom command that copies without creating a new server clip
       await invoke("copy_to_clipboard", { content: clip.content });
+      showToast(t("toast.clipCopied"));
     } catch (err) {
       console.error("Failed to copy to clipboard:", err);
     }
@@ -85,6 +88,7 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
       await invoke("delete_clip", { id: clip.id });
       setShowDeleteConfirm(false);
       onClipDeleted?.(clip.id);
+      showToast(t("toast.clipDeleted"));
     } catch (err) {
       console.error("Failed to delete clip:", err);
     } finally {

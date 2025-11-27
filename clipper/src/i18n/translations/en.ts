@@ -111,6 +111,20 @@ export const en = {
   "tray.showHide": "Show/Hide Main Window",
   "tray.settings": "Settings...",
   "tray.quit": "Quit Application",
+
+  // Notifications Settings
+  "settings.notifications": "Show notifications",
+  "settings.notifications.hint": "Show toast notifications for clipboard actions and sync events.",
+
+  // Toast Messages
+  "toast.clipCopied": "Copied to clipboard",
+  "toast.clipSaved": "Clip saved",
+  "toast.clipDeleted": "Clip deleted",
+  "toast.clipReceived": "New clip received",
+  "toast.dataCleared": "All data cleared",
+  "toast.serverStarted": "Server started",
+  "toast.serverStopped": "Server stopped",
+  "toast.serverConnected": "Connected to server",
 };
 
 export type TranslationKey = keyof typeof en;

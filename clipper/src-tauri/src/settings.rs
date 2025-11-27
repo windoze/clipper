@@ -42,9 +42,16 @@ pub struct Settings {
     /// Language preference (e.g., "en", "zh")
     #[serde(default)]
     pub language: Option<String>,
+    /// Whether to show toast notifications
+    #[serde(default = "default_notifications_enabled")]
+    pub notifications_enabled: bool,
 }
 
 fn default_use_bundled_server() -> bool {
+    true
+}
+
+fn default_notifications_enabled() -> bool {
     true
 }
 
@@ -60,6 +67,7 @@ impl Default for Settings {
             use_bundled_server: true,
             listen_on_all_interfaces: false,
             language: None,
+            notifications_enabled: true,
         }
     }
 }

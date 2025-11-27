@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useClips } from "./hooks/useClips";
 import { useTheme } from "./hooks/useTheme";
 import { useI18n } from "./i18n";
+import { useToast } from "./components/Toast";
 import { SearchBox } from "./components/SearchBox";
 import { DateFilter } from "./components/DateFilter";
 import { FavoriteToggle } from "./components/FavoriteToggle";
@@ -35,6 +36,7 @@ function App() {
 
   const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
   const { updateTheme } = useTheme();
+  const { showToast } = useToast();
 
   // Listen for data-cleared and server-switched events to refresh clips
   useEffect(() => {
@@ -46,11 +48,17 @@ function App() {
       refetch();
     });
 
+    // Listen for new clips from WebSocket (from server)
+    const unlistenNewClip = listen("new-clip", () => {
+      showToast(t("toast.clipReceived"));
+    });
+
     return () => {
       unlistenDataCleared.then((fn) => fn());
       unlistenServerSwitched.then((fn) => fn());
+      unlistenNewClip.then((fn) => fn());
     };
-  }, [refetch]);
+  }, [refetch, showToast, t]);
 
   return (
     <DropZone>

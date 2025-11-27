@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Clip } from "../types";
 import { useI18n } from "../i18n";
+import { useToast } from "./Toast";
 
 interface EditClipDialogProps {
   clip: Clip;
@@ -12,6 +13,7 @@ interface EditClipDialogProps {
 
 export function EditClipDialog({ clip, isOpen, onClose, onSave }: EditClipDialogProps) {
   const { t } = useI18n();
+  const { showToast } = useToast();
   // Filter out system tags (starting with $) for editing
   const userTags = clip.tags.filter((tag) => !tag.startsWith("$"));
   const systemTags = clip.tags.filter((tag) => tag.startsWith("$"));
@@ -85,6 +87,7 @@ export function EditClipDialog({ clip, isOpen, onClose, onSave }: EditClipDialog
       });
       onSave(updatedClip);
       onClose();
+      showToast(t("toast.clipSaved"));
     } catch (e) {
       setError(t("editClip.saveError", { error: String(e) }));
     } finally {
