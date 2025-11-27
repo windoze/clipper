@@ -7,8 +7,13 @@ use surrealdb::engine::local::{Db, RocksDb};
 use surrealdb::Surreal;
 
 const TABLE_NAME: &str = "clipboard";
+const CONFIG_TABLE: &str = "config";
+const INDEX_VERSION_KEY: &str = "index_schema";
+const SEARCH_ANALYZER_NAME: &str = "clipper_analyzer";
+const SEARCH_INDEX_NAME: &str = "idx_search_content";
 const NAMESPACE: &str = "clipper";
 const DATABASE: &str = "library";
+const CURRENT_INDEX_VERSION: i64 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct DbClipboardEntry {
@@ -20,6 +25,11 @@ struct DbClipboardEntry {
     file_attachment: Option<String>,
     original_filename: Option<String>,
     search_content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct IndexSchemaVersion {
+    version: i64,
 }
 
 pub struct ClipperIndexer {
@@ -37,6 +47,7 @@ impl ClipperIndexer {
 
         // Initialize schema and indexes
         Self::initialize_schema(&db).await?;
+        Self::run_migrations(&db).await?;
 
         // Initialize file storage
         let storage = FileStorage::new(storage_path)?;
@@ -57,6 +68,9 @@ impl ClipperIndexer {
             DEFINE FIELD IF NOT EXISTS file_attachment ON TABLE {} TYPE option<string>;
             DEFINE FIELD IF NOT EXISTS original_filename ON TABLE {} TYPE option<string>;
             DEFINE FIELD IF NOT EXISTS search_content ON TABLE {} TYPE string;
+
+            DEFINE TABLE IF NOT EXISTS {} SCHEMAFULL;
+            DEFINE FIELD IF NOT EXISTS version ON TABLE {} TYPE int;
             "#,
             TABLE_NAME,
             TABLE_NAME,
@@ -65,7 +79,9 @@ impl ClipperIndexer {
             TABLE_NAME,
             TABLE_NAME,
             TABLE_NAME,
-            TABLE_NAME
+            TABLE_NAME,
+            CONFIG_TABLE,
+            CONFIG_TABLE
         );
 
         db.query(schema_query).await?;
@@ -75,14 +91,66 @@ impl ClipperIndexer {
             r#"
             DEFINE INDEX IF NOT EXISTS idx_created_at ON TABLE {} COLUMNS created_at;
             DEFINE INDEX IF NOT EXISTS idx_tags ON TABLE {} COLUMNS tags;
-            DEFINE ANALYZER IF NOT EXISTS clipper_analyzer TOKENIZERS blank,class,camel FILTERS lowercase,snowball(english),ngram(1, 20);
-            DEFINE INDEX IF NOT EXISTS idx_search_content ON TABLE {} COLUMNS search_content
-                SEARCH ANALYZER clipper_analyzer BM25 HIGHLIGHTS;
             "#,
-            TABLE_NAME, TABLE_NAME, TABLE_NAME
+            TABLE_NAME, TABLE_NAME
         );
 
         db.query(index_query).await?;
+
+        Ok(())
+    }
+
+    async fn run_migrations(db: &Surreal<Db>) -> Result<()> {
+        let mut version = Self::get_index_schema_version(db).await?;
+
+        if version >= CURRENT_INDEX_VERSION {
+            return Ok(());
+        }
+
+        if version < 1 {
+            Self::migrate_to_v1(db).await?;
+            version = 1;
+        }
+
+        if version != CURRENT_INDEX_VERSION {
+            Self::set_index_schema_version(db, CURRENT_INDEX_VERSION).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn get_index_schema_version(db: &Surreal<Db>) -> Result<i64> {
+        let record: Option<IndexSchemaVersion> =
+            db.select((CONFIG_TABLE, INDEX_VERSION_KEY)).await?;
+
+        Ok(record.map(|r| r.version).unwrap_or(0))
+    }
+
+    async fn set_index_schema_version(db: &Surreal<Db>, version: i64) -> Result<()> {
+        let _: Option<IndexSchemaVersion> = db
+            .update((CONFIG_TABLE, INDEX_VERSION_KEY))
+            .content(IndexSchemaVersion { version })
+            .await?;
+
+        Ok(())
+    }
+
+    async fn migrate_to_v1(db: &Surreal<Db>) -> Result<()> {
+        let migration_query = format!(
+            r#"
+            REMOVE ANALYZER IF EXISTS {analyzer};
+            REMOVE INDEX IF EXISTS {index} ON TABLE {table};
+
+            DEFINE ANALYZER {analyzer} TOKENIZERS blank,class,camel FILTERS lowercase,snowball(english),ngram(1, 24);
+            DEFINE INDEX {index} ON TABLE {table} COLUMNS search_content
+                SEARCH ANALYZER {analyzer} BM25 HIGHLIGHTS;
+            "#,
+            analyzer = SEARCH_ANALYZER_NAME,
+            index = SEARCH_INDEX_NAME,
+            table = TABLE_NAME
+        );
+
+        db.query(migration_query).await?;
 
         Ok(())
     }

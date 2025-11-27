@@ -77,7 +77,8 @@ fn get_launch_agent_path() -> Result<PathBuf, String> {
 #[cfg(target_os = "macos")]
 fn get_app_executable_path() -> Result<PathBuf, String> {
     // Get the path to the running executable
-    let exe_path = std::env::current_exe().map_err(|e| format!("Failed to get executable path: {}", e))?;
+    let exe_path =
+        std::env::current_exe().map_err(|e| format!("Failed to get executable path: {}", e))?;
 
     // In development, use the exe path directly
     // In production (inside .app bundle), use the .app path
@@ -152,8 +153,8 @@ async fn set_auto_launch_linux(enabled: bool) -> Result<(), String> {
                 .map_err(|e| format!("Failed to create autostart directory: {}", e))?;
         }
 
-        let exe_path = std::env::current_exe()
-            .map_err(|e| format!("Failed to get executable path: {}", e))?;
+        let exe_path =
+            std::env::current_exe().map_err(|e| format!("Failed to get executable path: {}", e))?;
 
         let desktop_content = format!(
             r#"[Desktop Entry]
@@ -201,8 +202,8 @@ async fn set_auto_launch_windows(enabled: bool) -> Result<(), String> {
         .map_err(|e| format!("Failed to open registry key: {}", e))?;
 
     if enabled {
-        let exe_path = std::env::current_exe()
-            .map_err(|e| format!("Failed to get executable path: {}", e))?;
+        let exe_path =
+            std::env::current_exe().map_err(|e| format!("Failed to get executable path: {}", e))?;
         run_key
             .set_value("Clipper", &exe_path.to_string_lossy().to_string())
             .map_err(|e| format!("Failed to set registry value: {}", e))?;

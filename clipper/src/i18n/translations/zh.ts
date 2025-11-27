@@ -21,6 +21,8 @@ export const zh = {
   "clip.favorite.remove": "从收藏中移除",
   "clip.download": "点击下载",
   "clip.delete_confirm": "确定要删除这条剪贴吗？",
+  "clip.expand": "展开",
+  "clip.collapse": "收起",
 
   // Clip List
   "clipList.loading": "加载剪贴中...",

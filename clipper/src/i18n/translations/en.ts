@@ -21,6 +21,8 @@ export const en = {
   "clip.favorite.remove": "Remove from favorites",
   "clip.download": "Click to download",
   "clip.delete_confirm": "Are you sure you want to delete this clip?",
+  "clip.expand": "Show more",
+  "clip.collapse": "Show less",
 
   // Clip List
   "clipList.loading": "Loading clips...",

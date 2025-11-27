@@ -21,6 +21,8 @@ function isImageFile(filename: string): boolean {
   return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
+const MAX_CONTENT_LENGTH = 200;
+
 export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted }: ClipEntryProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
@@ -31,8 +33,10 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const isImage = clip.file_attachment && isImageFile(clip.file_attachment);
+  const isLongContent = clip.content.length > MAX_CONTENT_LENGTH;
 
   // Get file URL for image clips
   useEffect(() => {
@@ -121,9 +125,14 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
     }
   };
 
-  const truncateContent = (content: string, maxLength: number = 200): string => {
-    if (content.length <= maxLength) return content;
-    return content.substring(0, maxLength) + "...";
+  const truncateContent = (content: string): string => {
+    if (content.length <= MAX_CONTENT_LENGTH) return content;
+    return content.substring(0, MAX_CONTENT_LENGTH) + "...";
+  };
+
+  const handleExpandToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
   };
 
   return (
@@ -170,7 +179,18 @@ export function ClipEntry({ clip, onToggleFavorite, onClipUpdated, onClipDeleted
             </div>
           </div>
         ) : (
-          <div className="clip-content">{truncateContent(clip.content)}</div>
+          <div className={`clip-content ${isExpanded ? "expanded" : ""}`}>
+            {isExpanded ? clip.content : truncateContent(clip.content)}
+            {isLongContent && (
+              <button
+                className="expand-button"
+                onClick={handleExpandToggle}
+                title={isExpanded ? t("clip.collapse") : t("clip.expand")}
+              >
+                {isExpanded ? t("clip.collapse") : t("clip.expand")}
+              </button>
+            )}
+          </div>
         )}
 
         {displayTags.length > 0 && (

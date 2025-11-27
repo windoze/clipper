@@ -92,10 +92,7 @@ pub fn run() {
 
             // Setup system tray with language from settings
             let settings_for_tray = settings_manager.get();
-            let tray_language = settings_for_tray
-                .language
-                .as_deref()
-                .unwrap_or("en");
+            let tray_language = settings_for_tray.language.as_deref().unwrap_or("en");
             if let Err(e) = tray::setup_tray(app.handle(), tray_language) {
                 eprintln!("Failed to setup tray: {}", e);
             }

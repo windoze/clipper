@@ -12,13 +12,27 @@ use crate::tray_i18n::{t, Language};
 pub fn setup_tray(app: &AppHandle, language: &str) -> Result<(), Box<dyn std::error::Error>> {
     let lang = Language::from_str(language);
 
-    let show_hide_item =
-        MenuItem::with_id(app, "show_hide", t(lang, "tray.showHide"), true, None::<&str>)?;
-    let settings_item = MenuItem::with_id(app, "settings", t(lang, "tray.settings"), true, None::<&str>)?;
+    let show_hide_item = MenuItem::with_id(
+        app,
+        "show_hide",
+        t(lang, "tray.showHide"),
+        true,
+        None::<&str>,
+    )?;
+    let settings_item = MenuItem::with_id(
+        app,
+        "settings",
+        t(lang, "tray.settings"),
+        true,
+        None::<&str>,
+    )?;
     let separator = PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, "quit", t(lang, "tray.quit"), true, None::<&str>)?;
 
-    let menu = Menu::with_items(app, &[&show_hide_item, &settings_item, &separator, &quit_item])?;
+    let menu = Menu::with_items(
+        app,
+        &[&show_hide_item, &settings_item, &separator, &quit_item],
+    )?;
 
     // Use the tray icon embedded at compile time via include_image! macro
     let tray_icon = include_image!("icons/tray-icon.png");
@@ -92,20 +106,37 @@ pub fn setup_tray(app: &AppHandle, language: &str) -> Result<(), Box<dyn std::er
 }
 
 /// Update the tray menu language
-pub fn update_tray_language(app: &AppHandle, language: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn update_tray_language(
+    app: &AppHandle,
+    language: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let lang = Language::from_str(language);
 
     // Get all tray icons and update the first one (there should only be one)
     let trays = app.tray_by_id("main");
     if let Some(tray) = trays {
         // Create new menu items with updated language
-        let show_hide_item =
-            MenuItem::with_id(app, "show_hide", t(lang, "tray.showHide"), true, None::<&str>)?;
-        let settings_item = MenuItem::with_id(app, "settings", t(lang, "tray.settings"), true, None::<&str>)?;
+        let show_hide_item = MenuItem::with_id(
+            app,
+            "show_hide",
+            t(lang, "tray.showHide"),
+            true,
+            None::<&str>,
+        )?;
+        let settings_item = MenuItem::with_id(
+            app,
+            "settings",
+            t(lang, "tray.settings"),
+            true,
+            None::<&str>,
+        )?;
         let separator = PredefinedMenuItem::separator(app)?;
         let quit_item = MenuItem::with_id(app, "quit", t(lang, "tray.quit"), true, None::<&str>)?;
 
-        let menu = Menu::with_items(app, &[&show_hide_item, &settings_item, &separator, &quit_item])?;
+        let menu = Menu::with_items(
+            app,
+            &[&show_hide_item, &settings_item, &separator, &quit_item],
+        )?;
 
         tray.set_menu(Some(menu))?;
     }

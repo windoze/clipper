@@ -28,8 +28,7 @@ fn image_data_to_png(image_data: &arboard::ImageData) -> Option<Vec<u8>> {
 
     // Encode to PNG
     let mut png_bytes = Cursor::new(Vec::new());
-    img.write_to(&mut png_bytes, image::ImageFormat::Png)
-        .ok()?;
+    img.write_to(&mut png_bytes, image::ImageFormat::Png).ok()?;
 
     Some(png_bytes.into_inner())
 }
@@ -120,10 +119,16 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                     });
                 }
                 ClipboardContent::Image(png_bytes) => {
-                    let filename = format!("screenshot-{}.png", Utc::now().format("%Y-%m-%d-%H-%M-%S"));
+                    let filename =
+                        format!("screenshot-{}.png", Utc::now().format("%Y-%m-%d-%H-%M-%S"));
                     rt.spawn(async move {
                         match client_clone
-                            .upload_file_bytes(png_bytes, filename, vec!["$image".to_string()], None)
+                            .upload_file_bytes(
+                                png_bytes,
+                                filename,
+                                vec!["$image".to_string()],
+                                None,
+                            )
                             .await
                         {
                             Ok(clip) => {

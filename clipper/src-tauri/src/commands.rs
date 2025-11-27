@@ -279,7 +279,10 @@ pub async fn clear_all_data(
     // 5. Emit event to refresh the clip list in the main window
     let _ = app.emit("data-cleared", ());
 
-    eprintln!("[clipper] All data cleared and server restarted at {}", new_url);
+    eprintln!(
+        "[clipper] All data cleared and server restarted at {}",
+        new_url
+    );
     Ok(())
 }
 
@@ -324,7 +327,10 @@ pub async fn switch_to_external_server(
 ) -> Result<(), String> {
     use tauri::Emitter;
 
-    eprintln!("[clipper] Switching to external server at {}...", server_url);
+    eprintln!(
+        "[clipper] Switching to external server at {}...",
+        server_url
+    );
 
     // Stop the bundled server if running
     if server_manager.is_running().await {
@@ -419,6 +425,5 @@ pub async fn toggle_listen_on_all_interfaces(
 /// Update the tray menu language
 #[tauri::command]
 pub fn update_tray_language(app: tauri::AppHandle, language: String) -> Result<(), String> {
-    crate::tray::update_tray_language(&app, &language)
-        .map_err(|e| e.to_string())
+    crate::tray::update_tray_language(&app, &language).map_err(|e| e.to_string())
 }

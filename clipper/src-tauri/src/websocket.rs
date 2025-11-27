@@ -25,11 +25,14 @@ pub async fn start_websocket_listener(app: AppHandle) {
                             }
 
                             // Emit event to frontend
-                            let _ = app.emit("new-clip", serde_json::json!({
-                                "id": id,
-                                "content": content,
-                                "tags": tags
-                            }));
+                            let _ = app.emit(
+                                "new-clip",
+                                serde_json::json!({
+                                    "id": id,
+                                    "content": content,
+                                    "tags": tags
+                                }),
+                            );
                         }
                         ClipNotification::UpdatedClip { id } => {
                             let _ = app.emit("clip-updated", serde_json::json!({ "id": id }));

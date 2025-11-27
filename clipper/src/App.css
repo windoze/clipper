@@ -372,6 +372,27 @@ body {
   line-height: 1.5;
 }
 
+.clip-content.expanded {
+  max-height: none;
+}
+
+.expand-button {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #007bff;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.expand-button:hover {
+  text-decoration: underline;
+  color: #0056b3;
+}
+
 .clip-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1436,6 +1457,14 @@ body {
   color: #e9ecef;
 }
 
+:root[data-theme="dark"] .expand-button {
+  color: #6ea8fe;
+}
+
+:root[data-theme="dark"] .expand-button:hover {
+  color: #9ec5fe;
+}
+
 :root[data-theme="dark"] .clip-date,
 :root[data-theme="dark"] .status-bar,
 :root[data-theme="dark"] .clip-attachment {
@@ -1845,6 +1874,14 @@ body {
 
   :root:not([data-theme="light"]) .clip-content {
     color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .expand-button {
+    color: #6ea8fe;
+  }
+
+  :root:not([data-theme="light"]) .expand-button:hover {
+    color: #9ec5fe;
   }
 
   :root:not([data-theme="light"]) .clip-date,

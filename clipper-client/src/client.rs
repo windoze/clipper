@@ -292,9 +292,10 @@ impl ClipperClient {
                 let bytes = response.bytes().await?;
                 Ok(bytes.to_vec())
             }
-            StatusCode::NOT_FOUND => {
-                Err(ClientError::NotFound(format!("File not found for clip {}", id)))
-            }
+            StatusCode::NOT_FOUND => Err(ClientError::NotFound(format!(
+                "File not found for clip {}",
+                id
+            ))),
             status => {
                 let error_text = response.text().await.unwrap_or_default();
                 Err(ClientError::ServerError {

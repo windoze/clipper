@@ -106,7 +106,11 @@ impl ServerManager {
 
         // Determine listen address based on settings
         let listen_on_all = settings_manager.get_listen_on_all_interfaces();
-        let listen_addr = if listen_on_all { "0.0.0.0" } else { "127.0.0.1" };
+        let listen_addr = if listen_on_all {
+            "0.0.0.0"
+        } else {
+            "127.0.0.1"
+        };
         eprintln!(
             "[clipper-server] Binding to {} (listen_on_all_interfaces: {})",
             listen_addr, listen_on_all
