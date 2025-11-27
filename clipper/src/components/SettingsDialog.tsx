@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useI18n, Language, supportedLanguages, languageNames } from "../i18n";
@@ -35,17 +35,12 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     language: null,
   });
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string>("");
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [localIpAddresses, setLocalIpAddresses] = useState<string[]>([]);
   const [togglingNetworkAccess, setTogglingNetworkAccess] = useState(false);
-
-  // Store the original theme and language when dialog opens to revert on cancel
-  const originalThemeRef = useRef<ThemePreference>("auto");
-  const originalLanguageRef = useRef<Language>(currentLanguage);
 
   // Load settings when dialog opens
   useEffect(() => {
@@ -62,9 +57,6 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     try {
       const loadedSettings = await invoke<Settings>("get_settings");
       setSettings(loadedSettings);
-      // Store the original theme and language to revert on cancel
-      originalThemeRef.current = loadedSettings.theme;
-      originalLanguageRef.current = currentLanguage;
     } catch (e) {
       setError(`Failed to load settings: ${e}`);
     } finally {
@@ -90,19 +82,12 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    setError(null);
+  // Save settings immediately
+  const saveSettings = async (newSettings: Settings) => {
     try {
-      // Save settings with current language
-      const settingsToSave = { ...settings, language: currentLanguage };
-      await invoke("save_settings", { settings: settingsToSave });
-      // Theme and language are already applied via preview, just close the dialog
-      onClose();
+      await invoke("save_settings", { settings: newSettings });
     } catch (e) {
       setError(`Failed to save settings: ${e}`);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -110,42 +95,44 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     try {
       const path = await invoke<string | null>("browse_directory");
       if (path) {
-        setSettings((prev) => ({ ...prev, defaultSaveLocation: path }));
+        const newSettings = { ...settings, defaultSaveLocation: path };
+        setSettings(newSettings);
+        await saveSettings(newSettings);
       }
     } catch (e) {
       setError(`Failed to browse directory: ${e}`);
     }
   };
 
-  const handleChange = (
+  const handleChange = async (
     field: keyof Settings,
     value: string | boolean | null
   ) => {
-    setSettings((prev) => ({ ...prev, [field]: value }));
+    const newSettings = { ...settings, [field]: value };
+    setSettings(newSettings);
 
-    // Preview theme change immediately
+    // Apply theme change immediately
     if (field === "theme" && typeof value === "string") {
       onThemeChange?.(value as ThemePreference);
     }
+
+    // Save settings immediately
+    await saveSettings(newSettings);
   };
 
-  // Handle cancel - revert theme and language to original
-  const handleCancel = () => {
-    // Revert theme to original if it was changed
-    if (settings.theme !== originalThemeRef.current) {
-      onThemeChange?.(originalThemeRef.current);
-    }
-    // Revert language to original if it was changed
-    if (currentLanguage !== originalLanguageRef.current) {
-      setLanguage(originalLanguageRef.current);
-    }
+  // Handle close
+  const handleClose = () => {
     setShowClearConfirm(false);
     onClose();
   };
 
-  // Handle language change with preview
-  const handleLanguageChange = (lang: Language) => {
+  // Handle language change - save immediately
+  const handleLanguageChange = async (lang: Language) => {
     setLanguage(lang);
+    // Save settings with new language
+    const newSettings = { ...settings, language: lang };
+    setSettings(newSettings);
+    await saveSettings(newSettings);
   };
 
   // Handle server mode change
@@ -218,11 +205,11 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   if (!isOpen) return null;
 
   return (
-    <div className="settings-backdrop" onClick={handleCancel}>
+    <div className="settings-backdrop" onClick={handleClose}>
       <div className="settings-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="settings-header">
           <h2>{t("settings.title")}</h2>
-          <button className="settings-close" onClick={handleCancel}>
+          <button className="settings-close" onClick={handleClose}>
             &times;
           </button>
         </div>
@@ -523,15 +510,12 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
         </div>
 
         <div className="settings-footer">
-          <button className="settings-btn secondary" onClick={handleCancel}>
-            {t("common.cancel")}
-          </button>
           <button
             className="settings-btn primary"
-            onClick={handleSave}
-            disabled={loading || saving}
+            onClick={handleClose}
+            disabled={loading}
           >
-            {saving ? t("common.saving") : t("common.save")}
+            {t("common.close")}
           </button>
         </div>
       </div>
