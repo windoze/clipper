@@ -16,10 +16,10 @@ pub fn routes() -> Router<AppState> {
         .route("/clips/upload", post(upload_clip_file))
         .route("/clips", get(list_clips))
         .route("/clips/search", get(search_clips))
-        .route("/clips/:id", get(get_clip))
-        .route("/clips/:id", put(update_clip))
-        .route("/clips/:id", delete(delete_clip))
-        .route("/clips/:id/file", get(get_clip_file))
+        .route("/clips/{id}", get(get_clip))
+        .route("/clips/{id}", put(update_clip))
+        .route("/clips/{id}", delete(delete_clip))
+        .route("/clips/{id}/file", get(get_clip_file))
 }
 
 #[derive(Debug, Deserialize)]

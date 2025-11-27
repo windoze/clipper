@@ -58,7 +58,14 @@ impl ClipperIndexer {
             DEFINE FIELD IF NOT EXISTS original_filename ON TABLE {} TYPE option<string>;
             DEFINE FIELD IF NOT EXISTS search_content ON TABLE {} TYPE string;
             "#,
-            TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME, TABLE_NAME
+            TABLE_NAME,
+            TABLE_NAME,
+            TABLE_NAME,
+            TABLE_NAME,
+            TABLE_NAME,
+            TABLE_NAME,
+            TABLE_NAME,
+            TABLE_NAME
         );
 
         db.query(schema_query).await?;
@@ -68,7 +75,7 @@ impl ClipperIndexer {
             r#"
             DEFINE INDEX IF NOT EXISTS idx_created_at ON TABLE {} COLUMNS created_at;
             DEFINE INDEX IF NOT EXISTS idx_tags ON TABLE {} COLUMNS tags;
-            DEFINE ANALYZER IF NOT EXISTS clipper_analyzer TOKENIZERS blank,class FILTERS lowercase,snowball(english);
+            DEFINE ANALYZER IF NOT EXISTS clipper_analyzer TOKENIZERS blank,class,camel FILTERS lowercase,snowball(english),ngram(1, 20);
             DEFINE INDEX IF NOT EXISTS idx_search_content ON TABLE {} COLUMNS search_content
                 SEARCH ANALYZER clipper_analyzer BM25 HIGHLIGHTS;
             "#,
@@ -187,8 +194,8 @@ impl ClipperIndexer {
             .await?;
 
         // Try to read file content as text for search indexing
-        let text_content = String::from_utf8(file_content.to_vec())
-            .unwrap_or_else(|_|  original_filename.clone());
+        let text_content =
+            String::from_utf8(file_content.to_vec()).unwrap_or_else(|_| original_filename.clone());
 
         let mut entry = ClipboardEntry::new(text_content, tags);
         entry = entry.with_file_attachment(stored_file_key);

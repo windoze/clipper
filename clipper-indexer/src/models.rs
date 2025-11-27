@@ -1,5 +1,20 @@
 use chrono::{DateTime, Utc};
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
+
+static JIEBA: OnceCell<jieba_rs::Jieba> = OnceCell::new();
+
+fn tokenize(text: &str) -> String {
+    // Use jieba-rs for Chinese text segmentation
+    let jieba = JIEBA.get_or_init(jieba_rs::Jieba::new);
+    // Tokenize text and join tokens with zero-width space
+    jieba
+        .cut(text, false)
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>()
+        .join("\u{200B}")
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClipboardEntry {
@@ -44,7 +59,8 @@ impl ClipboardEntry {
     pub fn new(content: String, tags: Vec<String>) -> Self {
         // Use UUID without hyphens for SurrealDB compatibility
         let id = uuid::Uuid::new_v4().simple().to_string();
-        let search_content = content.clone();
+        // Pre-tokenize content for search indexing
+        let search_content = tokenize(&content);
 
         Self {
             id,
