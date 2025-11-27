@@ -1,3 +1,5 @@
+// Not used under Windows
+#[allow(unused_imports)]
 use std::path::PathBuf;
 
 #[cfg(target_os = "macos")]
