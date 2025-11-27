@@ -127,8 +127,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     try {
       await invoke("clear_all_data");
       setShowClearConfirm(false);
-      // Reload server info after restart
-      await loadServerInfo();
+      // Close the dialog after successful clear
+      onClose();
     } catch (e) {
       setError(`Failed to clear data: ${e}`);
     } finally {
