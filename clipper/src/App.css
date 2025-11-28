@@ -898,6 +898,26 @@ body {
   transform: scale(1.05);
 }
 
+/* Host tag styling */
+.tag.tag-host {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.tag.tag-host:hover {
+  background: #1565c0;
+  color: white;
+  border-color: #1565c0;
+}
+
+.tag-host-icon {
+  flex-shrink: 0;
+}
+
 .clip-attachment {
   display: flex;
   align-items: center;
@@ -1981,6 +2001,17 @@ body {
   color: #adb5bd;
 }
 
+:root[data-theme="dark"] .tag.tag-host {
+  background: #1e3a5f;
+  color: #90caf9;
+  border-color: #1565c0;
+}
+
+:root[data-theme="dark"] .tag.tag-host:hover {
+  background: #1565c0;
+  color: white;
+}
+
 :root[data-theme="dark"] .clip-attachment {
   background: #363636;
 }
@@ -2415,6 +2446,17 @@ body {
   :root:not([data-theme="light"]) .tag {
     background: #404040;
     color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .tag.tag-host {
+    background: #1e3a5f;
+    color: #90caf9;
+    border-color: #1565c0;
+  }
+
+  :root:not([data-theme="light"]) .tag.tag-host:hover {
+    background: #1565c0;
+    color: white;
   }
 
   :root:not([data-theme="light"]) .clip-attachment {

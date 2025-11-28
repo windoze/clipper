@@ -43,7 +43,14 @@ export function ClipEntry({
   const { showToast } = useToast();
   const api = useApi();
   const favorite = isFavorite(clip);
-  const displayTags = clip.tags.filter((tag) => !tag.startsWith("$"));
+  // Show regular tags and $host: tags (with special styling)
+  const displayTags = clip.tags.filter((tag) => !tag.startsWith("$") || tag.startsWith("$host:"));
+
+  // Helper to check if a tag is a host tag
+  const isHostTag = (tag: string) => tag.startsWith("$host:");
+
+  // Get the display name for a host tag (remove the $host: prefix)
+  const getHostTagDisplay = (tag: string) => tag.replace("$host:", "");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -226,14 +233,31 @@ export function ClipEntry({
             {displayTags.map((tag) => (
               <button
                 key={tag}
-                className="tag tag-clickable"
+                className={`tag tag-clickable ${isHostTag(tag) ? "tag-host" : ""}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onTagClick?.(tag);
                 }}
                 title={t("filter.clickToFilter")}
               >
-                {tag}
+                {isHostTag(tag) && (
+                  <svg
+                    className="tag-host-icon"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                )}
+                {isHostTag(tag) ? getHostTagDisplay(tag) : tag}
               </button>
             ))}
           </div>
