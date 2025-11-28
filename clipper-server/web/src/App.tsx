@@ -322,6 +322,14 @@ function App() {
 
       <div className="status-bar">
         <span className="clip-count">{t("app.clips_count", { count: total })}</span>
+        <span className={`ws-status ${isConnected ? "connected" : isSecure ? "disconnected" : "unavailable"}`} title={
+          isConnected ? t("status.wsConnected") : isSecure ? t("status.wsDisconnected") : t("status.wsUnavailable")
+        }>
+          <span className="ws-status-dot" />
+          <span className="ws-status-text">
+            {isConnected ? t("status.wsConnected") : isSecure ? t("status.wsDisconnected") : t("status.wsUnavailable")}
+          </span>
+        </span>
       </div>
 
       <main className="app-main">

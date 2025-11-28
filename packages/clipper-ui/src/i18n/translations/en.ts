@@ -79,6 +79,11 @@ export const en = {
   "fileDrop.hint": "Drop files here to upload",
   "fileDrop.uploading": "Uploading...",
 
+  // Status Indicator
+  "status.wsConnected": "Real-time sync",
+  "status.wsDisconnected": "Disconnected",
+  "status.wsUnavailable": "HTTPS required",
+
   // Toast Messages
   "toast.clipCopied": "Copied to clipboard",
   "toast.clipSaved": "Clip saved",

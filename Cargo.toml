@@ -1,6 +1,13 @@
 [workspace]
 members = [
-    "clipper-slint", "clipper-server", "clipper-indexer", "clipper-client", "clipper-cli",
+    "clipper-slint",
+    "clipper-server",
+    "clipper-indexer",
+    "clipper-client",
+    "clipper-cli",
     "clipper/src-tauri",
 ]
 resolver = "2"
+
+[patch.crates-io]
+cmake = { git = "https://github.com/windoze/cmake-rs", branch = "master" }

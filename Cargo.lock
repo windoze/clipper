@@ -1719,8 +1719,7 @@ checksum = "cbd0f76e066e64fdc5631e3bb46381254deab9ef1158292f27c8c57e3bf3fe59"
 [[package]]
 name = "cmake"
 version = "0.1.54"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7caa3f9de89ddbe2c607f4101924c5abec803763ae9534e4f4d7d8f84aa81f0"
+source = "git+https://github.com/windoze/cmake-rs?branch=master#6d21d37f402e74f9ceb7033510cf34deb300e4cd"
 dependencies = [
  "cc",
 ]

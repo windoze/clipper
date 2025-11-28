@@ -78,6 +78,11 @@ export const zh = {
   "fileDrop.hint": "拖拽文件到此处上传",
   "fileDrop.uploading": "上传中...",
 
+  // Status Indicator
+  "status.wsConnected": "实时同步",
+  "status.wsDisconnected": "已断开",
+  "status.wsUnavailable": "需要 HTTPS",
+
   // Toast Messages
   "toast.clipCopied": "已复制到剪贴板",
   "toast.clipSaved": "剪贴已保存",

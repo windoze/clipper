@@ -376,11 +376,47 @@
 
 /* Status Bar */
 .status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 8px 16px;
   background: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
   font-size: 12px;
   color: #6c757d;
+}
+
+/* WebSocket Status Indicator */
+.ws-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.ws-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ws-status.connected .ws-status-dot {
+  background: #28a745;
+  box-shadow: 0 0 4px rgba(40, 167, 69, 0.5);
+}
+
+.ws-status.disconnected .ws-status-dot {
+  background: #dc3545;
+  box-shadow: 0 0 4px rgba(220, 53, 69, 0.5);
+}
+
+.ws-status.unavailable .ws-status-dot {
+  background: #6c757d;
+}
+
+.ws-status-text {
+  color: inherit;
 }
 
 /* Main Content */
