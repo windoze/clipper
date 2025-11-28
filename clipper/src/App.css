@@ -901,18 +901,18 @@ body {
 }
 
 .clip-tags .tag:nth-child(5n+3) {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  box-shadow: 0 2px 4px rgba(79, 172, 254, 0.3);
+  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+  box-shadow: 0 2px 4px rgba(8, 145, 178, 0.3);
 }
 
 .clip-tags .tag:nth-child(5n+4) {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  box-shadow: 0 2px 4px rgba(67, 233, 123, 0.3);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
 }
 
 .clip-tags .tag:nth-child(5n+5) {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  box-shadow: 0 2px 4px rgba(250, 112, 154, 0.3);
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);
 }
 
 .tag.tag-clickable {
@@ -926,20 +926,21 @@ body {
   filter: brightness(1.1);
 }
 
-/* Host tag styling */
+/* Host tag styling - use !important to override gradient colors */
 .tag.tag-host {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #90caf9;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+  color: white !important;
+  border: 1px solid #1565c0 !important;
+  box-shadow: 0 2px 4px rgba(21, 101, 192, 0.3) !important;
 }
 
 .tag.tag-host:hover {
-  background: #1565c0;
-  color: white;
-  border-color: #1565c0;
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
+  color: white !important;
+  border-color: #0d47a1 !important;
 }
 
 .tag-host-icon {
@@ -2097,26 +2098,27 @@ body {
 }
 
 :root[data-theme="dark"] .clip-tags .tag:nth-child(5n+3) {
-  background: linear-gradient(135deg, #3182ce 0%, #00b5d8 100%);
+  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
 }
 
 :root[data-theme="dark"] .clip-tags .tag:nth-child(5n+4) {
-  background: linear-gradient(135deg, #38a169 0%, #319795 100%);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
 }
 
 :root[data-theme="dark"] .clip-tags .tag:nth-child(5n+5) {
-  background: linear-gradient(135deg, #ed64a6 0%, #ecc94b 100%);
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
 }
 
 :root[data-theme="dark"] .tag.tag-host {
-  background: #1e3a5f;
-  color: #90caf9;
-  border-color: #1565c0;
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
+  color: white !important;
+  border-color: #0d47a1 !important;
+  box-shadow: 0 2px 4px rgba(13, 71, 161, 0.4) !important;
 }
 
 :root[data-theme="dark"] .tag.tag-host:hover {
-  background: #1565c0;
-  color: white;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+  color: white !important;
 }
 
 :root[data-theme="dark"] .clip-attachment {
@@ -2590,26 +2592,27 @@ body {
   }
 
   :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+3) {
-    background: linear-gradient(135deg, #3182ce 0%, #00b5d8 100%);
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
   }
 
   :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+4) {
-    background: linear-gradient(135deg, #38a169 0%, #319795 100%);
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
   }
 
   :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+5) {
-    background: linear-gradient(135deg, #ed64a6 0%, #ecc94b 100%);
+    background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
   }
 
   :root:not([data-theme="light"]) .tag.tag-host {
-    background: #1e3a5f;
-    color: #90caf9;
-    border-color: #1565c0;
+    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
+    color: white !important;
+    border-color: #0d47a1 !important;
+    box-shadow: 0 2px 4px rgba(13, 71, 161, 0.4) !important;
   }
 
   :root:not([data-theme="light"]) .tag.tag-host:hover {
-    background: #1565c0;
-    color: white;
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+    color: white !important;
   }
 
   :root:not([data-theme="light"]) .clip-attachment {
