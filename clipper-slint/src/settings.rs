@@ -15,24 +15,6 @@ pub enum Theme {
     Auto,
 }
 
-impl Theme {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Theme::Light => "light",
-            Theme::Dark => "dark",
-            Theme::Auto => "auto",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
-            "light" => Theme::Light,
-            "dark" => Theme::Dark,
-            _ => Theme::Auto,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     /// Whether to use the bundled server (true) or external server (false)
@@ -87,8 +69,7 @@ impl SettingsManager {
             .context("Failed to get config directory")?
             .join(APP_NAME);
 
-        std::fs::create_dir_all(&config_dir)
-            .context("Failed to create config directory")?;
+        std::fs::create_dir_all(&config_dir).context("Failed to create config directory")?;
 
         let settings_path = config_dir.join(SETTINGS_FILE);
         let settings = Self::load_settings(&settings_path);
@@ -123,10 +104,9 @@ impl SettingsManager {
 
     pub fn save(&self) -> Result<()> {
         let settings = self.settings.read().unwrap().clone();
-        let content = serde_json::to_string_pretty(&settings)
-            .context("Failed to serialize settings")?;
-        std::fs::write(&self.settings_path, content)
-            .context("Failed to write settings file")?;
+        let content =
+            serde_json::to_string_pretty(&settings).context("Failed to serialize settings")?;
+        std::fs::write(&self.settings_path, content).context("Failed to write settings file")?;
         Ok(())
     }
 
