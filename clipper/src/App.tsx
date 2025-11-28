@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useClips } from "./hooks/useClips";
@@ -104,6 +104,35 @@ function App() {
   const handleClose = () => {
     getCurrentWindow().close();
   };
+
+  // Tag filter handlers
+  const filterTags = filters.tags || [];
+
+  const handleAddTagFilter = useCallback((tag: string) => {
+    setFilters((prev) => {
+      const currentTags = prev.tags || [];
+      // Don't add if already in filter
+      if (currentTags.includes(tag)) return prev;
+      return {
+        ...prev,
+        tags: [...currentTags, tag],
+      };
+    });
+  }, [setFilters]);
+
+  const handleRemoveTagFilter = useCallback((tag: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      tags: (prev.tags || []).filter((t) => t !== tag),
+    }));
+  }, [setFilters]);
+
+  const handleClearAllTags = useCallback(() => {
+    setFilters((prev) => ({
+      ...prev,
+      tags: [],
+    }));
+  }, [setFilters]);
 
   return (
     <DropZone>
@@ -238,7 +267,13 @@ function App() {
         </header>
 
         <div className="filters-bar">
-          <SearchBox value={searchQuery} onChange={setSearchQuery} />
+          <SearchBox
+            value={searchQuery}
+            onChange={setSearchQuery}
+            filterTags={filterTags}
+            onRemoveTag={handleRemoveTagFilter}
+            onClearAllTags={handleClearAllTags}
+          />
           <DateFilter filters={filters} onChange={setFilters} />
           <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
         </div>
@@ -258,6 +293,7 @@ function App() {
             onLoadMore={loadMore}
             onClipUpdated={updateClipInList}
             onClipDeleted={deleteClipFromList}
+            onTagClick={handleAddTagFilter}
           />
         </main>
 

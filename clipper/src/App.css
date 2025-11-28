@@ -519,21 +519,83 @@ body {
   position: relative;
   flex: 1;
   min-width: 200px;
+  display: flex;
+  align-items: center;
 }
 
-.search-input {
-  width: 100%;
-  padding: 8px 32px 8px 12px;
+.search-box-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  padding: 4px 32px 4px 8px;
   border: 1px solid #dee2e6;
   border-radius: 6px;
-  font-size: 14px;
-  outline: none;
+  background: #ffffff;
+  min-height: 38px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.search-input:focus {
+.search-box-inner:focus-within {
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.search-filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #667eea;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.search-filter-tag-remove {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  margin-left: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+}
+
+.search-filter-tag-remove:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.search-box-inner .search-input {
+  flex: 1;
+  min-width: 100px;
+  padding: 4px;
+  border: none;
+  border-radius: 0;
+  font-size: 14px;
+  outline: none;
+  background: transparent;
+}
+
+.search-box-inner .search-input:focus {
+  box-shadow: none;
 }
 
 .search-box .clear-button {
@@ -822,6 +884,18 @@ body {
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 11px;
+  border: none;
+}
+
+.tag.tag-clickable {
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.1s;
+}
+
+.tag.tag-clickable:hover {
+  background: #667eea;
+  color: white;
+  transform: scale(1.05);
 }
 
 .clip-attachment {
@@ -1837,6 +1911,15 @@ body {
   border-color: #404040;
 }
 
+:root[data-theme="dark"] .search-box-inner {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .search-box-inner:focus-within {
+  border-color: #667eea;
+}
+
 :root[data-theme="dark"] .search-input,
 :root[data-theme="dark"] .date-input {
   background: #2d2d2d;
@@ -1844,9 +1927,17 @@ body {
   color: #e9ecef;
 }
 
+:root[data-theme="dark"] .search-box-inner .search-input {
+  background: transparent;
+}
+
 :root[data-theme="dark"] .search-input:focus,
 :root[data-theme="dark"] .date-input:focus {
   border-color: #667eea;
+}
+
+:root[data-theme="dark"] .tag.tag-clickable:hover {
+  background: #7b93f5;
 }
 
 :root[data-theme="dark"] .toggle-switch {
@@ -2256,6 +2347,15 @@ body {
     border-color: #404040;
   }
 
+  :root:not([data-theme="light"]) .search-box-inner {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .search-box-inner:focus-within {
+    border-color: #667eea;
+  }
+
   :root:not([data-theme="light"]) .search-input,
   :root:not([data-theme="light"]) .date-input {
     background: #2d2d2d;
@@ -2263,9 +2363,17 @@ body {
     color: #e9ecef;
   }
 
+  :root:not([data-theme="light"]) .search-box-inner .search-input {
+    background: transparent;
+  }
+
   :root:not([data-theme="light"]) .search-input:focus,
   :root:not([data-theme="light"]) .date-input:focus {
     border-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .tag.tag-clickable:hover {
+    background: #7b93f5;
   }
 
   :root:not([data-theme="light"]) .toggle-switch {

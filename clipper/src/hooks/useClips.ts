@@ -18,7 +18,7 @@ interface UseClipsReturn extends UseClipsState {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   filters: SearchFilters;
-  setFilters: (filters: SearchFilters) => void;
+  setFilters: (filters: SearchFilters | ((prev: SearchFilters) => SearchFilters)) => void;
   favoritesOnly: boolean;
   setFavoritesOnly: (value: boolean) => void;
   refetch: () => void;
@@ -56,6 +56,9 @@ export function useClips(): UseClipsReturn {
 
   const fetchClips = useCallback(
     async (page: number = 1, append: boolean = false) => {
+      // Capture the current filter state at the start of this fetch
+      const fetchFilters = { searchQuery, filters, favoritesOnly };
+
       if (append) {
         setState((prev) => ({ ...prev, loadingMore: true }));
       } else {
@@ -88,14 +91,14 @@ export function useClips(): UseClipsReturn {
           });
         }
 
-        // Check if filters changed during the fetch
+        // Check if filters changed during the fetch by comparing against the ref
         const current = currentFiltersRef.current;
         if (
-          current.searchQuery !== searchQuery ||
-          current.favoritesOnly !== favoritesOnly ||
-          JSON.stringify(current.filters) !== JSON.stringify(filters)
+          current.searchQuery !== fetchFilters.searchQuery ||
+          current.favoritesOnly !== fetchFilters.favoritesOnly ||
+          JSON.stringify(current.filters) !== JSON.stringify(fetchFilters.filters)
         ) {
-          // Filters changed, ignore this result
+          // Filters changed during the fetch, ignore this stale result
           return;
         }
 
