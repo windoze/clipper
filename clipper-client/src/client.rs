@@ -4,9 +4,10 @@ use crate::models::{
 };
 use futures_util::StreamExt;
 use reqwest::StatusCode;
+use std::sync::Arc;
 use tokio::io::AsyncRead;
 use tokio::sync::mpsc;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_tungstenite::tungstenite::Message;
 use tokio_util::io::ReaderStream;
 use url::Url;
 
@@ -344,9 +345,7 @@ impl ClipperClient {
             .replace("https://", "wss://");
         let ws_url = format!("{}/ws", ws_url);
 
-        let (ws_stream, _) = connect_async(&ws_url)
-            .await
-            .map_err(|e| ClientError::WebSocket(e.to_string()))?;
+        let (ws_stream, _) = Self::connect_websocket(&ws_url).await?;
 
         let (mut _write, mut read) = ws_stream.split();
 
@@ -381,6 +380,59 @@ impl ClipperClient {
         Ok(handle)
     }
 
+    /// Connect to a WebSocket URL with proper TLS handling
+    async fn connect_websocket(
+        url: &str,
+    ) -> Result<(
+        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
+        tokio_tungstenite::tungstenite::http::Response<Option<Vec<u8>>>,
+    )> {
+        let parsed_url = url
+            .parse::<Url>()
+            .map_err(|e| ClientError::WebSocket(format!("Invalid URL: {}", e)))?;
+
+        let is_secure = parsed_url.scheme() == "wss";
+
+        if is_secure {
+            // For WSS connections, use a custom TLS connector
+            use tokio_tungstenite::Connector;
+
+            // Build rustls config
+            let mut root_store = rustls::RootCertStore::empty();
+            root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+
+            #[cfg(feature = "danger-accept-invalid-certs")]
+            let config = {
+                // Accept any certificate (for development with self-signed certs)
+                let config = rustls::ClientConfig::builder()
+                    .dangerous()
+                    .with_custom_certificate_verifier(Arc::new(NoVerifier))
+                    .with_no_client_auth();
+                Arc::new(config)
+            };
+
+            #[cfg(not(feature = "danger-accept-invalid-certs"))]
+            let config = {
+                // Use proper certificate validation with system roots
+                let config = rustls::ClientConfig::builder()
+                    .with_root_certificates(root_store)
+                    .with_no_client_auth();
+                Arc::new(config)
+            };
+
+            let connector = Connector::Rustls(config);
+
+            tokio_tungstenite::connect_async_tls_with_config(url, None, false, Some(connector))
+                .await
+                .map_err(|e| ClientError::WebSocket(e.to_string()))
+        } else {
+            // For WS connections, use the simple connect_async
+            tokio_tungstenite::connect_async(url)
+                .await
+                .map_err(|e| ClientError::WebSocket(e.to_string()))
+        }
+    }
+
     async fn handle_response<T: serde::de::DeserializeOwned>(
         &self,
         response: reqwest::Response,
@@ -406,5 +458,57 @@ impl ClipperClient {
                 })
             }
         }
+    }
+}
+
+/// Certificate verifier that accepts any certificate (for development only)
+#[cfg(feature = "danger-accept-invalid-certs")]
+#[derive(Debug)]
+struct NoVerifier;
+
+#[cfg(feature = "danger-accept-invalid-certs")]
+impl rustls::client::danger::ServerCertVerifier for NoVerifier {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &rustls::pki_types::CertificateDer<'_>,
+        _intermediates: &[rustls::pki_types::CertificateDer<'_>],
+        _server_name: &rustls::pki_types::ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: rustls::pki_types::UnixTime,
+    ) -> std::result::Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
+        Ok(rustls::client::danger::ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> std::result::Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> std::result::Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        vec![
+            rustls::SignatureScheme::RSA_PKCS1_SHA256,
+            rustls::SignatureScheme::RSA_PKCS1_SHA384,
+            rustls::SignatureScheme::RSA_PKCS1_SHA512,
+            rustls::SignatureScheme::ECDSA_NISTP256_SHA256,
+            rustls::SignatureScheme::ECDSA_NISTP384_SHA384,
+            rustls::SignatureScheme::ECDSA_NISTP521_SHA512,
+            rustls::SignatureScheme::RSA_PSS_SHA256,
+            rustls::SignatureScheme::RSA_PSS_SHA384,
+            rustls::SignatureScheme::RSA_PSS_SHA512,
+            rustls::SignatureScheme::ED25519,
+        ]
     }
 }

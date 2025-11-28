@@ -20,7 +20,14 @@ tauri-plugin-shell = "2"
 tauri-plugin-prevent-default = "4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "fs", "process", "io-util"] }
+tokio = { version = "1", features = [
+    "rt-multi-thread",
+    "sync",
+    "time",
+    "fs",
+    "process",
+    "io-util",
+] }
 clipper-client = { path = "../../clipper-client" }
 chrono = { version = "0.4", features = ["serde"] }
 arboard = { version = "3", features = ["image-data"] }
@@ -29,7 +36,9 @@ tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
 portpicker = "0.1"
 dirs = "6"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = [
+    "rustls-tls",
+] }
 local-ip-address = "0.6"
 
 [target.'cfg(windows)'.dependencies]
