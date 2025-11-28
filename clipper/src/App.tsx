@@ -82,15 +82,26 @@ function App() {
       refetch();
     });
 
-    // Listen for new clips from WebSocket (from server)
+    // Listen for WebSocket notifications from server
     const unlistenNewClip = listen("new-clip", () => {
       showToast(t("toast.clipReceived"));
+      refetch();
+    });
+
+    const unlistenClipUpdated = listen("clip-updated", () => {
+      refetch();
+    });
+
+    const unlistenClipDeleted = listen("clip-deleted", () => {
+      refetch();
     });
 
     return () => {
       unlistenDataCleared.then((fn) => fn());
       unlistenServerSwitched.then((fn) => fn());
       unlistenNewClip.then((fn) => fn());
+      unlistenClipUpdated.then((fn) => fn());
+      unlistenClipDeleted.then((fn) => fn());
     };
   }, [refetch, showToast, t]);
 
