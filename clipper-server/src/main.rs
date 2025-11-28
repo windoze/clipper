@@ -1,8 +1,15 @@
-use axum::{routing::get, Router};
+use axum::{
+    body::Body,
+    http::{Request, StatusCode, Uri},
+    response::Response,
+    routing::get,
+    Router,
+};
 use clap::Parser;
 use clipper_indexer::ClipperIndexer;
 use clipper_server::{api, websocket, AppState, Cli, ServerConfig};
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use std::convert::Infallible;
+use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -39,14 +46,44 @@ async fn main() {
     // Create application state
     let state = AppState::new(indexer);
 
+    // Determine web UI directory (bundled with binary or relative path for development)
+    let web_dir = std::env::var("CLIPPER_WEB_DIR").unwrap_or_else(|_| {
+        // Check common locations for the web UI
+        let possible_paths = [
+            "./web/dist",                 // Development
+            "../clipper-server/web/dist", // Running from repo root
+            "./clipper-server/web/dist",  // Running from repo root
+        ];
+        for path in possible_paths {
+            if std::path::Path::new(path).exists() {
+                return path.to_string();
+            }
+        }
+        // Default to ./web/dist even if it doesn't exist (will serve 404s)
+        "./web/dist".to_string()
+    });
+
+    tracing::info!("Web UI directory: {}", web_dir);
+
     // Build the application with routes
-    let app = Router::new()
+    let api_routes = Router::new()
         .route("/health", get(health_check))
         .merge(api::routes())
         .merge(websocket::routes())
-        .layer(CorsLayer::permissive())
-        .layer(TraceLayer::new_for_http())
         .with_state(state);
+
+    // Serve static files and fall back to index.html for SPA routing
+    let serve_dir =
+        ServeDir::new(&web_dir).not_found_service(tower::service_fn(move |req: Request<Body>| {
+            let web_dir = web_dir.clone();
+            async move { serve_index_html(&web_dir, req.uri().clone()).await }
+        }));
+
+    let app = Router::new()
+        .merge(api_routes)
+        .fallback_service(serve_dir)
+        .layer(CorsLayer::permissive())
+        .layer(TraceLayer::new_for_http());
 
     // Get socket address
     let addr = config.socket_addr().unwrap_or_else(|err| {
@@ -71,6 +108,21 @@ async fn main() {
 
 async fn health_check() -> &'static str {
     "OK"
+}
+
+async fn serve_index_html(web_dir: &str, _uri: Uri) -> Result<Response<Body>, Infallible> {
+    let index_path = format!("{}/index.html", web_dir);
+    match tokio::fs::read(&index_path).await {
+        Ok(contents) => Ok(Response::builder()
+            .status(StatusCode::OK)
+            .header("Content-Type", "text/html; charset=utf-8")
+            .body(Body::from(contents))
+            .unwrap()),
+        Err(_) => Ok(Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Body::from("Web UI not found. Build the web UI first with: cd web && npm install && npm run build"))
+            .unwrap()),
+    }
 }
 
 async fn shutdown_signal() {

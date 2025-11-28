@@ -4,9 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Clipper is a clipboard management system with six main components:
+Clipper is a clipboard management system with seven main components:
 - **clipper-indexer**: Core library for indexing and searching clipboard entries using SurrealDB (RocksDB backend) and object_store
-- **clipper-server**: REST API server with WebSocket support for real-time clip updates
+- **clipper-server**: REST API server with WebSocket support for real-time clip updates, includes built-in web UI
+- **clipper-server/web**: Pure frontend Web UI (React + Vite) for browser-based access
 - **clipper-client**: Rust client library for interacting with the server REST API and WebSocket
 - **clipper-cli**: Command-line interface application for managing clips
 - **clipper** (Tauri): Desktop GUI application built with Tauri 2 + React + TypeScript
@@ -30,6 +31,19 @@ cargo build -p clipper-slint
 
 # Release build
 cargo build --workspace --release
+```
+
+### Web UI (clipper-server/web)
+
+```bash
+# Install dependencies
+cd clipper-server/web && npm install
+
+# Development mode (requires server running on localhost:3000)
+cd clipper-server/web && npm run dev
+
+# Build production (output in dist/)
+cd clipper-server/web && npm run build
 ```
 
 ### Tauri Application
@@ -97,29 +111,50 @@ cargo run --bin clipper-cli -- watch
    - All operations are async (Tokio runtime)
    - **Pagination support**: `search_entries()` and `list_entries()` return `PagedResult<ClipboardEntry>`
 
-2. **clipper-server (REST API + WebSocket)**
+2. **clipper-server (REST API + WebSocket + Web UI)**
    - Built with Axum framework
    - `AppState` wraps `Arc<ClipperIndexer>` and broadcast channel for WebSocket updates
    - REST endpoints in `api.rs`: CRUD operations, search with pagination, file upload
    - WebSocket in `websocket.rs`: real-time clip updates
    - All state mutations trigger WebSocket notifications
    - **Configuration**: Multi-source configuration (CLI args, env vars, TOML files)
+   - **Built-in Web UI**: Serves static files from `web/dist/` directory
+   - **Web UI features**: View, search, edit, delete clips with i18n support (English/Chinese)
 
-3. **clipper-client (Client Library)**
+3. **clipper-server/web (Web UI Frontend)**
+   - **Technology**: React 19 + TypeScript + Vite
+   - **Features**:
+     - View and search clips with infinite scroll
+     - Edit clip tags and notes
+     - Delete clips with confirmation
+     - Image preview popup
+     - Favorites filtering
+     - Date range filtering
+     - Theme support (light/dark/auto)
+     - **Internationalization**: English and Chinese languages
+   - **Architecture**: Pure frontend, communicates with server via REST API
+   - **Components** (in `clipper-server/web/src/`):
+     - `api/client.ts`: REST API client
+     - `hooks/useClips.ts`: Clip data management with pagination
+     - `hooks/useTheme.ts`: Theme persistence
+     - `i18n/`: Internationalization (same pattern as Tauri app)
+     - `components/`: Reusable UI components
+
+4. **clipper-client (Client Library)**
    - Built with reqwest for HTTP client
    - Uses tokio-tungstenite for WebSocket connections
    - Type-safe API wrapping all server endpoints
    - `subscribe_notifications()` for real-time updates via WebSocket
    - Full support for pagination in search and list operations
 
-4. **clipper-cli (Command-Line Interface)**
+5. **clipper-cli (Command-Line Interface)**
    - Built with clap for argument parsing
    - Commands: create, get, update, search, delete, watch
    - Search with pagination support (--page, --page-size flags)
    - Output formats: JSON (default) or text
    - Watch command outputs NDJSON (newline-delimited JSON) for real-time updates
 
-5. **clipper (Tauri Desktop App)**
+6. **clipper (Tauri Desktop App)**
    - **Frontend**: React 19 + TypeScript + Vite
    - **Backend**: Tauri 2 with Rust
    - **Features**:
@@ -150,13 +185,13 @@ cargo run --bin clipper-cli -- watch
      - `autolaunch.rs`: Platform-specific auto-start configuration
      - `server.rs`: ServerManager for bundled server lifecycle
 
-6. **clipper-slint (Slint GUI - Alternative)**
+7. **clipper-slint (Slint GUI - Alternative)**
    - Built with Slint 1.14 UI framework
    - Uses Skia renderer with Winit backend
    - Simpler architecture than Tauri version
    - Connects to clipper-server via clipper-client
 
-7. **Database Schema (SurrealDB)**
+8. **Database Schema (SurrealDB)**
    - Table: `clipboard` with fields: id, content, created_at, tags, additional_notes, file_attachment, search_content
    - Indexes: created_at, tags, full-text search on search_content
    - Schema auto-initialized in `ClipperIndexer::new()`
@@ -285,6 +320,7 @@ Environment variables:
 - `CLIPPER_DB_PATH` (default: `./data/db`)
 - `CLIPPER_STORAGE_PATH` (default: `./data/storage`)
 - `CLIPPER_LISTEN_ADDR` (default: `0.0.0.0`)
+- `CLIPPER_WEB_DIR` - Path to web UI dist directory (default: auto-detected `./web/dist`)
 - `PORT` (default: `3000`)
 - `RUST_LOG` for tracing (default: `clipper_server=debug,tower_http=debug`)
 
@@ -410,6 +446,15 @@ update_tray_language(language: string): Promise<void>
   - **Clear all data** functionality
   - **Auto-reconnect** on server URL change
 - Slint GUI alternative (basic implementation)
+- **Web UI** (clipper-server/web):
+  - React + TypeScript + Vite frontend
+  - Aligned look and feel with desktop app
+  - View, search, edit, delete clips
+  - Theme support (light/dark/auto)
+  - Internationalization (English, Chinese)
+  - Infinite scroll with pagination
+  - Favorites and date filtering
+  - Served directly from clipper-server
 
 ### Future Work
 - File content preview/rendering improvements
