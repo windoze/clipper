@@ -6,6 +6,33 @@ use std::sync::RwLock;
 const APP_NAME: &str = "clipper-slint";
 const SETTINGS_FILE: &str = "settings.json";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    Light,
+    Dark,
+    #[default]
+    Auto,
+}
+
+impl Theme {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Theme::Light => "light",
+            Theme::Dark => "dark",
+            Theme::Auto => "auto",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "light" => Theme::Light,
+            "dark" => Theme::Dark,
+            _ => Theme::Auto,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     /// Whether to use the bundled server (true) or external server (false)
@@ -23,6 +50,10 @@ pub struct Settings {
     /// Whether to listen on all interfaces (0.0.0.0) for LAN access
     #[serde(default)]
     pub listen_on_all_interfaces: bool,
+
+    /// UI theme (light, dark, auto)
+    #[serde(default)]
+    pub theme: Theme,
 }
 
 fn default_use_bundled_server() -> bool {
@@ -40,6 +71,7 @@ impl Default for Settings {
             external_server_url: default_external_server_url(),
             server_port: None,
             listen_on_all_interfaces: false,
+            theme: Theme::default(),
         }
     }
 }
@@ -129,5 +161,33 @@ impl SettingsManager {
 
     pub fn get_external_server_url(&self) -> String {
         self.settings.read().unwrap().external_server_url.clone()
+    }
+
+    pub fn set_external_server_url(&self, url: String) -> Result<()> {
+        {
+            let mut settings = self.settings.write().unwrap();
+            settings.external_server_url = url;
+        }
+        self.save()
+    }
+
+    pub fn set_use_bundled_server(&self, value: bool) -> Result<()> {
+        {
+            let mut settings = self.settings.write().unwrap();
+            settings.use_bundled_server = value;
+        }
+        self.save()
+    }
+
+    pub fn get_theme(&self) -> Theme {
+        self.settings.read().unwrap().theme
+    }
+
+    pub fn set_theme(&self, theme: Theme) -> Result<()> {
+        {
+            let mut settings = self.settings.write().unwrap();
+            settings.theme = theme;
+        }
+        self.save()
     }
 }

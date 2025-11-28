@@ -11,7 +11,7 @@ mod server;
 mod settings;
 
 use server::ServerManager;
-use settings::SettingsManager;
+use settings::{SettingsManager, Theme};
 
 slint::include_modules!();
 
@@ -49,7 +49,95 @@ fn main() -> Result<()> {
     let client = ClipperClient::new(base_url);
 
     let app = App::new().map_err(|e| anyhow!("Failed to initialize UI: {e}"))?;
+
+    // Initialize theme and settings state
+    {
+        let current_theme = settings.get_theme();
+        let theme_index = match current_theme {
+            Theme::Light => 0,
+            Theme::Dark => 1,
+            Theme::Auto => 2,
+        };
+        app.set_theme_mode(theme_index);
+
+        // Determine if dark mode based on theme setting
+        let is_dark = match current_theme {
+            Theme::Light => false,
+            Theme::Dark => true,
+            Theme::Auto => is_system_dark_mode(),
+        };
+        app.set_is_dark_mode(is_dark);
+
+        // Set server settings
+        app.set_use_bundled_server(settings.is_bundled_server());
+        app.set_external_server_url(settings.get_external_server_url().into());
+    }
+
     let controller = AppController::new(client, runtime.handle().clone(), app.as_weak());
+
+    // Settings callbacks
+    {
+        let settings_clone = Arc::clone(&settings);
+        let app_weak = app.as_weak();
+        app.on_open_settings(move || {
+            // Refresh settings state when opening dialog
+            if let Some(app) = app_weak.upgrade() {
+                app.set_use_bundled_server(settings_clone.is_bundled_server());
+                app.set_external_server_url(settings_clone.get_external_server_url().into());
+            }
+        });
+    }
+
+    {
+        let settings_clone = Arc::clone(&settings);
+        let app_weak = app.as_weak();
+        app.on_theme_changed(move |index| {
+            let theme = match index {
+                0 => Theme::Light,
+                1 => Theme::Dark,
+                _ => Theme::Auto,
+            };
+
+            if let Err(e) = settings_clone.set_theme(theme) {
+                eprintln!("[clipper-slint] Failed to save theme: {}", e);
+            }
+
+            // Update dark mode based on new theme
+            let is_dark = match theme {
+                Theme::Light => false,
+                Theme::Dark => true,
+                Theme::Auto => is_system_dark_mode(),
+            };
+
+            if let Some(app) = app_weak.upgrade() {
+                app.set_is_dark_mode(is_dark);
+            }
+        });
+    }
+
+    {
+        let settings_clone = Arc::clone(&settings);
+        app.on_server_mode_changed(move |bundled| {
+            if let Err(e) = settings_clone.set_use_bundled_server(bundled) {
+                eprintln!("[clipper-slint] Failed to save server mode: {}", e);
+            }
+        });
+    }
+
+    {
+        let settings_clone = Arc::clone(&settings);
+        app.on_external_url_changed(move |url| {
+            if let Err(e) = settings_clone.set_external_server_url(url.to_string()) {
+                eprintln!("[clipper-slint] Failed to save external URL: {}", e);
+            }
+        });
+    }
+
+    {
+        app.on_save_settings(move || {
+            eprintln!("[clipper-slint] Settings saved");
+        });
+    }
 
     {
         let controller = controller.clone();
@@ -373,4 +461,24 @@ fn update_clip_list(ui: &slint::Weak<App>, clips: Vec<ClipEntryData>) {
             app.set_clips(model.clone());
         }
     });
+}
+
+/// Detect if system is in dark mode
+fn is_system_dark_mode() -> bool {
+    // Try to detect system dark mode
+    // On macOS, we can check the AppleInterfaceStyle default
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+        if let Ok(output) = Command::new("defaults")
+            .args(["read", "-g", "AppleInterfaceStyle"])
+            .output()
+        {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            return stdout.trim().eq_ignore_ascii_case("dark");
+        }
+    }
+
+    // Default to light mode if detection fails
+    false
 }
