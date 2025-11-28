@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Clip } from "../types";
+import type { Clip } from "@anthropic/clipper-ui";
 
 interface UseFileUploadState {
   uploading: boolean;

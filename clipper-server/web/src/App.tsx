@@ -1,13 +1,14 @@
 import { useCallback } from "react";
-import { useClips } from "./hooks/useClips";
-import { useTheme } from "./hooks/useTheme";
-import { useI18n } from "./i18n";
-import { SearchBox } from "./components/SearchBox";
-import { DateFilter } from "./components/DateFilter";
-import { FavoriteToggle } from "./components/FavoriteToggle";
-import { ClipList } from "./components/ClipList";
+import {
+  useClips,
+  useTheme,
+  useI18n,
+  SearchBox,
+  DateFilter,
+  FavoriteToggle,
+  ClipList,
+} from "@anthropic/clipper-ui";
 import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
-import "./App.css";
 
 function App() {
   const { t } = useI18n();

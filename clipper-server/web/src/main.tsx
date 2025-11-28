@@ -1,15 +1,25 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { I18nProvider } from "./i18n/I18nProvider";
-import { ToastProvider } from "./components/Toast";
+import {
+  I18nProvider,
+  ToastProvider,
+  ApiProvider,
+  createRestApiClient,
+} from "@anthropic/clipper-ui";
 import App from "./App";
+import "./App.css";
+
+// Create the REST API client for the web UI
+const api = createRestApiClient("");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <I18nProvider>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
+    <I18nProvider storageKey="clipper-web-language">
+      <ApiProvider value={api}>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </ApiProvider>
     </I18nProvider>
   </StrictMode>
 );

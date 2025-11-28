@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { useI18n, Language, languageNames, supportedLanguages } from "../i18n";
-import { Theme } from "../hooks/useTheme";
+import {
+  useI18n,
+  languageNames,
+  supportedLanguages,
+} from "@anthropic/clipper-ui";
+import type { Language, Theme } from "@anthropic/clipper-ui";
 
 interface SettingsDialogProps {
   isOpen: boolean;

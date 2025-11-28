@@ -1,8 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { useI18n, Language, supportedLanguages, languageNames } from "../i18n";
-import { useToast } from "./Toast";
+import {
+  useI18n,
+  useToast,
+  supportedLanguages,
+  languageNames,
+} from "@anthropic/clipper-ui";
+import type { Language } from "@anthropic/clipper-ui";
 
 export type ThemePreference = "light" | "dark" | "auto";
 

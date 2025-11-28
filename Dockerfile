@@ -5,10 +5,21 @@ FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web-builder
 
 WORKDIR /app
 
-# Copy web UI source
-COPY clipper-server/web/package*.json ./
+# Copy shared UI package and install its dependencies first
+COPY packages/clipper-ui/package*.json ./packages/clipper-ui/
+WORKDIR /app/packages/clipper-ui
+RUN npm ci
 
-# Install dependencies
+# Copy the rest of the shared UI source
+COPY packages/clipper-ui/ ./
+
+# Copy web UI package.json and install dependencies
+WORKDIR /app
+COPY clipper-server/web/package*.json ./clipper-server/web/
+
+WORKDIR /app/clipper-server/web
+
+# Install dependencies (including the local clipper-ui package)
 RUN npm ci
 
 # Copy the rest of the web source
@@ -37,7 +48,7 @@ COPY clipper-indexer ./clipper-indexer
 COPY clipper-server ./clipper-server
 
 # Copy the built web UI from the web-builder stage
-COPY --from=web-builder /app/dist ./clipper-server/web/dist
+COPY --from=web-builder /app/clipper-server/web/dist ./clipper-server/web/dist
 
 # Create a minimal workspace Cargo.toml for the server build
 RUN echo '[workspace]\nmembers = ["clipper-server", "clipper-indexer"]\nresolver = "2"' > Cargo.toml

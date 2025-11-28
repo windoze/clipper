@@ -1,6 +1,6 @@
 import { useState, useEffect, ReactNode } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { useI18n } from "../i18n";
+import { useI18n } from "@anthropic/clipper-ui";
 
 interface DropZoneProps {
   children: ReactNode;

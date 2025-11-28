@@ -1,15 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useClips } from "./hooks/useClips";
-import { useTheme } from "./hooks/useTheme";
-import { useI18n } from "./i18n";
-import { useToast } from "./components/Toast";
+import {
+  useClips,
+  useTheme,
+  useI18n,
+  useToast,
+  SearchBox,
+  DateFilter,
+  FavoriteToggle,
+  ClipList,
+} from "@anthropic/clipper-ui";
 import { TitleBar } from "./components/TitleBar";
-import { SearchBox } from "./components/SearchBox";
-import { DateFilter } from "./components/DateFilter";
-import { FavoriteToggle } from "./components/FavoriteToggle";
-import { ClipList } from "./components/ClipList";
 import { DropZone } from "./components/DropZone";
 import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
 import "./App.css";

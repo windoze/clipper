@@ -1,0 +1,11 @@
+{
+  "name": "clipper-monorepo",
+  "private": true,
+  "scripts": {
+    "build:ui": "cd packages/clipper-ui && tsc --noEmit",
+    "build:web": "cd clipper-server/web && npm run build",
+    "build:tauri": "cd clipper && npm run tauri:build",
+    "dev:web": "cd clipper-server/web && npm run dev",
+    "dev:tauri": "cd clipper && npm run tauri:dev"
+  }
+}
