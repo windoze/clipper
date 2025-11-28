@@ -36,6 +36,15 @@ struct WebAssets;
 
 #[tokio::main]
 async fn main() {
+    // Install the ring crypto provider for rustls
+    // This must be done before any TLS operations
+    #[cfg(feature = "tls")]
+    {
+        rustls::crypto::ring::default_provider()
+            .install_default()
+            .expect("Failed to install rustls crypto provider");
+    }
+
     // Initialize tracing
     tracing_subscriber::registry()
         .with(
