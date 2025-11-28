@@ -3,7 +3,13 @@ name = "clipper-server"
 version = "0.4.0"
 edition = "2021"
 
+[features]
+default = []
+embed-web = ["rust-embed", "mime_guess"]
+
 [dependencies]
+rust-embed = { version = "8", optional = true }
+mime_guess = { version = "2", optional = true }
 clipper_indexer = { path = "../clipper-indexer" }
 axum = { version = "0.8", features = ["ws", "macros", "multipart"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }

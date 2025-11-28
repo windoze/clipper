@@ -31,6 +31,9 @@ cargo build -p clipper-slint
 
 # Release build
 cargo build --workspace --release
+
+# Build with embedded web UI (for Docker/deployment)
+cargo build -p clipper-server --release --features embed-web
 ```
 
 ### Web UI (clipper-server/web)
@@ -98,6 +101,18 @@ cargo run --bin clipper-server -- --config config.toml
 cargo run --bin clipper-cli -- create "Hello, World!" --tags greeting
 cargo run --bin clipper-cli -- search hello --page 1 --page-size 20
 cargo run --bin clipper-cli -- watch
+```
+
+### Docker
+
+```bash
+# Build Docker image (includes embedded web UI)
+docker build -t clipper-server .
+
+# Run container
+docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
+
+# Access at http://localhost:3000
 ```
 
 ## Architecture
