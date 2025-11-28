@@ -37,6 +37,29 @@ export function createTauriApiClient(): ClipperApi {
       return invoke<Clip>("get_clip", { id });
     },
 
+    async createClip(
+      content: string,
+      tags?: string[],
+      additionalNotes?: string
+    ): Promise<Clip> {
+      return invoke<Clip>("create_clip", {
+        content,
+        tags: tags || [],
+        additionalNotes,
+      });
+    },
+
+    async uploadFile(
+      _file: File,
+      _tags?: string[],
+      _additionalNotes?: string
+    ): Promise<Clip> {
+      // In Tauri, file uploads are handled via the path-based upload_file command
+      // which is called directly from the drag-and-drop handler, not through this interface.
+      // This method is primarily for the web UI.
+      throw new Error("Use the upload_file Tauri command with a file path instead");
+    },
+
     async updateClip(
       id: string,
       tags?: string[],
