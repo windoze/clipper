@@ -1,11 +1,18 @@
 use crate::state::AppState;
 use arboard::Clipboard;
 use chrono::Utc;
+use gethostname::gethostname;
 use image::{ImageBuffer, Rgba};
 use std::io::Cursor;
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
+
+/// Get the hostname tag in the format `$host:<hostname>`
+fn get_hostname_tag() -> String {
+    let hostname = gethostname().to_string_lossy().to_string();
+    format!("$host:{}", hostname)
+}
 
 const POLL_INTERVAL_MS: u64 = 500;
 
@@ -107,8 +114,12 @@ pub fn start_clipboard_monitor(app: AppHandle) {
 
             match current_content {
                 ClipboardContent::Text(text) => {
+                    let hostname_tag = get_hostname_tag();
                     rt.spawn(async move {
-                        match client_clone.create_clip(text, vec![], None).await {
+                        match client_clone
+                            .create_clip(text, vec![hostname_tag], None)
+                            .await
+                        {
                             Ok(clip) => {
                                 let _ = app_handle.emit("clip-created", &clip);
                             }
@@ -121,12 +132,13 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                 ClipboardContent::Image(png_bytes) => {
                     let filename =
                         format!("screenshot-{}.png", Utc::now().format("%Y-%m-%d-%H-%M-%S"));
+                    let hostname_tag = get_hostname_tag();
                     rt.spawn(async move {
                         match client_clone
                             .upload_file_bytes(
                                 png_bytes,
                                 filename,
-                                vec!["$image".to_string()],
+                                vec!["$image".to_string(), hostname_tag],
                                 None,
                             )
                             .await

@@ -5,10 +5,17 @@ use crate::state::AppState;
 use chrono::{DateTime, Utc};
 use clipper_client::models::PagedResult;
 use clipper_client::{Clip, SearchFilters};
+use gethostname::gethostname;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::State;
 use tokio::fs;
+
+/// Get the hostname tag in the format `$host:<hostname>`
+fn get_hostname_tag() -> String {
+    let hostname = gethostname().to_string_lossy().to_string();
+    format!("$host:{}", hostname)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchFiltersInput {
@@ -78,8 +85,10 @@ pub async fn create_clip(
     additional_notes: Option<String>,
 ) -> Result<Clip, String> {
     let client = state.client();
+    let mut tags_with_host = tags;
+    tags_with_host.push(get_hostname_tag());
     client
-        .create_clip(content, tags, additional_notes)
+        .create_clip(content, tags_with_host, additional_notes)
         .await
         .map_err(|e| e.to_string())
 }
@@ -144,8 +153,10 @@ pub async fn upload_file(
         .to_string();
 
     let client = state.client();
+    let mut tags_with_host = tags;
+    tags_with_host.push(get_hostname_tag());
     client
-        .upload_file_bytes(bytes, filename, tags, additional_notes)
+        .upload_file_bytes(bytes, filename, tags_with_host, additional_notes)
         .await
         .map_err(|e| e.to_string())
 }

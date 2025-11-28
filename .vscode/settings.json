@@ -19,6 +19,7 @@
     "dtolnay",
     "elif",
     "findme",
+    "gethostname",
     "hkcu",
     "jieba",
     "libappindicator",
