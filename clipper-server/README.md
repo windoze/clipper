@@ -11,6 +11,9 @@ A REST API server with WebSocket support for managing clipboard entries using th
 - **Metadata management** (tags and additional notes)
 - **Multi-source configuration** (CLI args, environment variables, config files)
 - **Graceful shutdown** handling
+- **Built-in Web UI** with drag-and-drop file upload
+- **TLS/HTTPS support** with manual or automatic (Let's Encrypt) certificates
+- **Certificate hot-reload** for zero-downtime certificate updates
 
 ## Getting Started
 
@@ -70,6 +73,47 @@ clipper-server --config /path/to/config.toml
 
 See `config.toml.example` for a complete example.
 
+### TLS/HTTPS Configuration
+
+Build with TLS features for HTTPS support:
+
+```bash
+# Manual certificates
+cargo build -p clipper-server --features tls
+
+# Automatic Let's Encrypt certificates
+cargo build -p clipper-server --features acme
+
+# Full TLS with secure credential storage
+cargo build -p clipper-server --features full-tls
+```
+
+#### TLS Environment Variables (requires `tls` feature)
+
+- `CLIPPER_TLS_ENABLED` - Enable HTTPS (default: `false`)
+- `CLIPPER_TLS_PORT` - HTTPS port (default: `443`)
+- `CLIPPER_TLS_CERT` - Path to TLS certificate file (PEM format)
+- `CLIPPER_TLS_KEY` - Path to TLS private key file (PEM format)
+- `CLIPPER_TLS_REDIRECT` - Redirect HTTP to HTTPS (default: `true`)
+- `CLIPPER_TLS_RELOAD_INTERVAL` - Seconds between certificate reload checks (default: `0` = disabled)
+
+#### ACME Environment Variables (requires `acme` feature)
+
+- `CLIPPER_ACME_ENABLED` - Enable automatic certificate management (default: `false`)
+- `CLIPPER_ACME_DOMAIN` - Domain name for the certificate
+- `CLIPPER_ACME_EMAIL` - Contact email for Let's Encrypt notifications
+- `CLIPPER_ACME_STAGING` - Use staging environment for testing (default: `false`)
+- `CLIPPER_CERTS_DIR` - Directory for certificate cache (default: `~/.config/com.0d0a.clipper/certs/`)
+
+#### Example: HTTPS with Let's Encrypt
+
+```bash
+CLIPPER_ACME_ENABLED=true \
+CLIPPER_ACME_DOMAIN=clips.example.com \
+CLIPPER_ACME_EMAIL=admin@example.com \
+cargo run --bin clipper-server --features acme
+```
+
 ### Running the Server
 
 Basic usage:
@@ -93,6 +137,30 @@ CLIPPER_DB_PATH=/var/lib/clipper/db PORT=8080 cargo run --bin clipper-server
 ```
 
 The server will start on `http://0.0.0.0:3000` by default (configurable).
+
+## Web UI
+
+The server includes a built-in web UI accessible at the root URL (e.g., `http://localhost:3000/`).
+
+### Web UI Features
+
+- View, search, edit, and delete clips
+- Drag-and-drop file upload
+- Send clipboard content button (for manual clipboard sync)
+- Real-time updates via WebSocket (HTTPS only)
+- Theme support (light/dark/auto)
+- Internationalization (English/Chinese)
+- Favorites and date filtering
+- Infinite scroll with pagination
+
+### Building with Embedded Web UI
+
+For Docker deployments, build with the embedded web UI:
+
+```bash
+cd clipper-server/web && npm install && npm run build
+cargo build -p clipper-server --release --features embed-web
+```
 
 ## REST API Endpoints
 
@@ -450,22 +518,116 @@ Tests cover:
 
 5. **Graceful Shutdown**: The server handles SIGTERM and SIGINT signals for clean shutdowns.
 
-### Docker Deployment (Example)
+### Docker Deployment
 
-```dockerfile
-FROM rust:1.70 as builder
-WORKDIR /app
-COPY . .
-RUN cargo build --release --bin clipper-server
+The project includes a production-ready multi-stage Dockerfile that builds clipper-server with the embedded Web UI and full TLS support.
 
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /app/target/release/clipper-server /usr/local/bin/
-ENV CLIPPER_DB_PATH=/data/db
-ENV CLIPPER_STORAGE_PATH=/data/storage
-VOLUME ["/data"]
-EXPOSE 3000
-CMD ["clipper-server"]
+#### Quick Start with Docker
+
+```bash
+# Build the image from the project root
+docker build -t clipper-server .
+
+# Run with HTTP only
+docker run -d \
+  --name clipper \
+  -p 3000:3000 \
+  -v clipper-data:/data \
+  clipper-server
+
+# Access at http://localhost:3000
+```
+
+#### Docker with HTTPS (Manual Certificates)
+
+```bash
+docker run -d \
+  --name clipper \
+  -p 3000:3000 \
+  -p 443:443 \
+  -v clipper-data:/data \
+  -v /path/to/certs:/certs:ro \
+  -e CLIPPER_TLS_ENABLED=true \
+  -e CLIPPER_TLS_CERT=/certs/cert.pem \
+  -e CLIPPER_TLS_KEY=/certs/key.pem \
+  clipper-server
+```
+
+#### Docker with HTTPS (Let's Encrypt)
+
+```bash
+docker run -d \
+  --name clipper \
+  -p 80:3000 \
+  -p 443:443 \
+  -v clipper-data:/data \
+  -e CLIPPER_ACME_ENABLED=true \
+  -e CLIPPER_ACME_DOMAIN=clips.example.com \
+  -e CLIPPER_ACME_EMAIL=admin@example.com \
+  clipper-server
+```
+
+#### Docker Compose
+
+```yaml
+version: "3.8"
+services:
+  clipper:
+    build: .
+    ports:
+      - "3000:3000"
+      - "443:443"
+    volumes:
+      - clipper-data:/data
+      - ./certs:/certs:ro  # Optional: for manual TLS
+    environment:
+      - RUST_LOG=clipper_server=info
+      # TLS with manual certificates:
+      # - CLIPPER_TLS_ENABLED=true
+      # - CLIPPER_TLS_CERT=/certs/cert.pem
+      # - CLIPPER_TLS_KEY=/certs/key.pem
+      # Or with Let's Encrypt:
+      # - CLIPPER_ACME_ENABLED=true
+      # - CLIPPER_ACME_DOMAIN=clips.example.com
+      # - CLIPPER_ACME_EMAIL=admin@example.com
+    restart: unless-stopped
+
+volumes:
+  clipper-data:
+```
+
+#### Docker Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLIPPER_DB_PATH` | `/data/db` | Database directory |
+| `CLIPPER_STORAGE_PATH` | `/data/storage` | File storage directory |
+| `CLIPPER_LISTEN_ADDR` | `0.0.0.0` | Listen address |
+| `PORT` | `3000` | HTTP port |
+| `RUST_LOG` | `clipper_server=info` | Log level |
+| `CLIPPER_TLS_ENABLED` | `false` | Enable HTTPS |
+| `CLIPPER_TLS_PORT` | `443` | HTTPS port |
+| `CLIPPER_TLS_CERT` | `/certs/cert.pem` | TLS certificate path |
+| `CLIPPER_TLS_KEY` | `/certs/key.pem` | TLS private key path |
+| `CLIPPER_TLS_REDIRECT` | `true` | Redirect HTTP to HTTPS |
+| `CLIPPER_ACME_ENABLED` | `false` | Enable Let's Encrypt |
+| `CLIPPER_ACME_DOMAIN` | - | Domain for certificate |
+| `CLIPPER_ACME_EMAIL` | - | Contact email |
+| `CLIPPER_ACME_STAGING` | `false` | Use staging environment |
+| `CLIPPER_CERTS_DIR` | `/data/certs` | ACME certificate cache |
+
+#### Docker Volumes
+
+- `/data` - Persistent storage for database and files
+- `/certs` - Optional: Mount your TLS certificates here
+
+#### Multi-Architecture Support
+
+The Docker image supports multiple architectures via Docker buildx:
+
+```bash
+# Build for multiple platforms
+docker buildx build --platform linux/amd64,linux/arm64 -t clipper-server .
 ```
 
 ## License

@@ -2,7 +2,7 @@
 
 一款现代化、跨平台的剪贴板管理器，支持全文搜索、实时同步，拥有精美的桌面界面。
 
-![Version](https://img.shields.io/badge/version-0.4.0-blue)
+![Version](https://img.shields.io/badge/version-0.7.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -17,6 +17,8 @@
 - **实时同步** - 基于 WebSocket 的跨设备同步
 - **内置服务器** - 零配置启动，内嵌服务器
 - **局域网共享** - 在本地网络中共享剪贴内容
+- **HTTPS/TLS 支持** - 支持手动证书或 Let's Encrypt 自动证书的安全连接
+- **Web 界面** - 浏览器访问，支持拖放上传文件
 - **多语言支持** - 中英文界面
 - **主题支持** - 浅色、深色和自动主题
 - **跨平台** - 支持 macOS、Windows 和 Linux
@@ -49,11 +51,12 @@ Clipper 是一个模块化的 Rust 工作空间，包含六个主要组件：
 ```
 clipper/
 ├── clipper-indexer/     # 核心库 - SurrealDB 存储和全文搜索
-├── clipper-server/      # REST API + WebSocket 服务器 (Axum)
+├── clipper-server/      # REST API + WebSocket 服务器 (Axum)，含内置 Web 界面
 ├── clipper-client/      # Rust 客户端库
 ├── clipper-cli/         # 命令行界面
 ├── clipper/             # 桌面应用 (Tauri 2 + React + TypeScript)
-└── clipper-slint/       # 备选 GUI (Slint UI)
+├── clipper-slint/       # 备选 GUI (Slint UI)
+└── packages/clipper-ui/ # 共享的 React UI 组件
 ```
 
 ### 技术栈
@@ -117,6 +120,43 @@ cargo run --bin clipper-server -- \
 | `CLIPPER_STORAGE_PATH` | `./data/storage` | 文件存储目录 |
 | `CLIPPER_LISTEN_ADDR` | `0.0.0.0` | 服务器绑定地址 |
 | `PORT` | `3000` | 服务器端口 |
+
+### TLS/HTTPS 配置
+
+如需安全连接，请使用 TLS 功能构建：
+
+```bash
+# 手动证书
+cargo build -p clipper-server --features tls
+
+# 自动 Let's Encrypt 证书
+cargo build -p clipper-server --features acme
+
+# 完整 TLS 支持（含安全存储）
+cargo build -p clipper-server --features full-tls
+```
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `CLIPPER_TLS_ENABLED` | `false` | 启用 HTTPS |
+| `CLIPPER_TLS_PORT` | `443` | HTTPS 端口 |
+| `CLIPPER_TLS_CERT` | - | 证书路径 (PEM) |
+| `CLIPPER_TLS_KEY` | - | 私钥路径 (PEM) |
+| `CLIPPER_ACME_ENABLED` | `false` | 启用 Let's Encrypt |
+| `CLIPPER_ACME_DOMAIN` | - | 证书域名 |
+| `CLIPPER_ACME_EMAIL` | - | 联系邮箱 |
+
+### Docker 部署
+
+```bash
+# 构建镜像
+docker build -t clipper-server .
+
+# 运行容器
+docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
+
+# 访问 http://localhost:3000
+```
 
 ### REST API
 

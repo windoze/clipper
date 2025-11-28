@@ -156,13 +156,13 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
      - Date range filtering
      - Theme support (light/dark/auto)
      - **Internationalization**: English and Chinese languages
-   - **Architecture**: Pure frontend, communicates with server via REST API
+     - **Drag-and-drop file upload**: Drop files anywhere to upload
+     - **Send clipboard button**: Manually send clipboard content (browsers can't auto-monitor)
+     - **WebSocket real-time sync**: Toast notifications on new/updated clips (HTTPS only)
+   - **Architecture**: Pure frontend, communicates with server via REST API and WebSocket
    - **Components** (in `clipper-server/web/src/`):
-     - `api/client.ts`: REST API client
-     - `hooks/useClips.ts`: Clip data management with pagination
-     - `hooks/useTheme.ts`: Theme persistence
-     - `i18n/`: Internationalization (same pattern as Tauri app)
-     - `components/`: Reusable UI components
+     - `hooks/useWebSocket.ts`: WebSocket connection for real-time updates
+     - `components/`: Reusable UI components (shared via @anthropic/clipper-ui package)
 
 4. **clipper-client (Client Library)**
    - Built with reqwest for HTTP client
@@ -494,6 +494,15 @@ update_tray_language(language: string): Promise<void>
   - Infinite scroll with pagination
   - Favorites and date filtering
   - Served directly from clipper-server
+  - **Drag-and-drop file upload**
+  - **Send clipboard button** (manual clipboard sync)
+  - **WebSocket real-time sync** with toast notifications (HTTPS only)
+- **TLS/HTTPS Support** (clipper-server):
+  - Manual certificate configuration (`tls` feature)
+  - Automatic Let's Encrypt certificates (`acme` feature)
+  - Certificate hot-reload support
+  - HTTP to HTTPS redirect
+  - Secure storage for ACME credentials (`full-tls` feature)
 
 ### Future Work
 - File content preview/rendering improvements

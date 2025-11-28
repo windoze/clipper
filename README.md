@@ -2,7 +2,7 @@
 
 A modern, cross-platform clipboard manager with full-text search, real-time sync, and a beautiful desktop interface.
 
-![Version](https://img.shields.io/badge/version-0.4.0-blue)
+![Version](https://img.shields.io/badge/version-0.7.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -17,6 +17,8 @@ English | [简体中文](README.zh-CN.md)
 - **Real-time Sync** - WebSocket-based synchronization across devices
 - **Bundled Server** - Zero-configuration setup with embedded server
 - **Network Sharing** - Share clips across your local network
+- **HTTPS/TLS Support** - Secure connections with manual certificates or automatic Let's Encrypt
+- **Web UI** - Browser-based access with drag-and-drop file upload
 - **Multi-language** - English and Chinese interface
 - **Theme Support** - Light, dark, and auto themes
 - **Cross-platform** - Works on macOS, Windows, and Linux
@@ -49,11 +51,12 @@ Clipper is built as a modular Rust workspace with six main components:
 ```
 clipper/
 ├── clipper-indexer/     # Core library - SurrealDB storage & full-text search
-├── clipper-server/      # REST API + WebSocket server (Axum)
+├── clipper-server/      # REST API + WebSocket server (Axum) with built-in Web UI
 ├── clipper-client/      # Rust client library
 ├── clipper-cli/         # Command-line interface
 ├── clipper/             # Desktop app (Tauri 2 + React + TypeScript)
-└── clipper-slint/       # Alternative GUI (Slint UI)
+├── clipper-slint/       # Alternative GUI (Slint UI)
+└── packages/clipper-ui/ # Shared React UI components
 ```
 
 ### Technology Stack
@@ -117,6 +120,31 @@ cargo run --bin clipper-server -- \
 | `CLIPPER_STORAGE_PATH` | `./data/storage` | File storage directory |
 | `CLIPPER_LISTEN_ADDR` | `0.0.0.0` | Server bind address |
 | `PORT` | `3000` | Server port |
+
+### TLS/HTTPS Configuration
+
+For secure connections, build with TLS features:
+
+```bash
+# Manual certificates
+cargo build -p clipper-server --features tls
+
+# Automatic Let's Encrypt certificates
+cargo build -p clipper-server --features acme
+
+# Full TLS support with secure storage
+cargo build -p clipper-server --features full-tls
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLIPPER_TLS_ENABLED` | `false` | Enable HTTPS |
+| `CLIPPER_TLS_PORT` | `443` | HTTPS port |
+| `CLIPPER_TLS_CERT` | - | Path to certificate (PEM) |
+| `CLIPPER_TLS_KEY` | - | Path to private key (PEM) |
+| `CLIPPER_ACME_ENABLED` | `false` | Enable Let's Encrypt |
+| `CLIPPER_ACME_DOMAIN` | - | Domain for certificate |
+| `CLIPPER_ACME_EMAIL` | - | Contact email |
 
 ### REST API
 
