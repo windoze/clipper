@@ -53,15 +53,24 @@ COPY --from=web-builder /app/clipper-server/web/dist ./clipper-server/web/dist
 # Create a minimal workspace Cargo.toml for the server build
 RUN echo '[workspace]\nmembers = ["clipper-server", "clipper-indexer"]\nresolver = "2"' > Cargo.toml
 
-# Build release binary with embedded web UI
-RUN cargo build --release -p clipper-server --features embed-web
+# Build release binary with embedded web UI and TLS support
+RUN cargo build --release -p clipper-server --features embed-web,full-tls
 
 # =============================================================================
-# Stage 3: Runtime (using distroless for minimal size ~20MB base)
+# Stage 3: Get tini for proper signal handling
+# =============================================================================
+FROM debian:bookworm-slim AS tini
+RUN apt-get update && apt-get install -y tini && rm -rf /var/lib/apt/lists/*
+
+# =============================================================================
+# Stage 4: Runtime (using distroless for minimal size ~20MB base)
 # =============================================================================
 FROM gcr.io/distroless/cc-debian12:nonroot
 
 WORKDIR /app
+
+# Copy tini for proper signal handling (PID 1 reaping and signal forwarding)
+COPY --from=tini /usr/bin/tini /tini
 
 # Copy the binary from builder
 COPY --from=builder /app/target/release/clipper-server /app/clipper-server
@@ -73,14 +82,28 @@ ENV CLIPPER_LISTEN_ADDR=0.0.0.0
 ENV PORT=3000
 ENV RUST_LOG=clipper_server=info,tower_http=info
 
-# Expose the server port
-EXPOSE 3000
+# TLS configuration (disabled by default)
+# Set CLIPPER_TLS_ENABLED=true and provide cert/key to enable HTTPS
+ENV CLIPPER_TLS_ENABLED=false
+ENV CLIPPER_TLS_PORT=443
+ENV CLIPPER_TLS_CERT=/certs/cert.pem
+ENV CLIPPER_TLS_KEY=/certs/key.pem
+ENV CLIPPER_TLS_REDIRECT=true
 
-# Define volume for persistent data
-VOLUME ["/data"]
+# ACME configuration (for automatic Let's Encrypt certificates)
+# Set CLIPPER_ACME_ENABLED=true and provide domain/email to enable
+ENV CLIPPER_ACME_ENABLED=false
+ENV CLIPPER_ACME_STAGING=false
+ENV CLIPPER_CERTS_DIR=/data/certs
+
+# Expose HTTP and HTTPS ports
+EXPOSE 3000 443
+
+# Define volumes for persistent data and certificates
+VOLUME ["/data", "/certs"]
 
 # Run as nonroot user (UID 65532)
 USER nonroot:nonroot
 
-# Run the server
-ENTRYPOINT ["/app/clipper-server"]
+# Run the server with tini for proper signal handling
+ENTRYPOINT ["/tini", "--", "/app/clipper-server"]
