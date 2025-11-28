@@ -33,11 +33,15 @@ export const zh = {
 
   // Search & Filters
   "search.placeholder": "搜索剪贴...",
+  "search.placeholderWithTags": "在筛选的标签中搜索...",
   "filter.from": "从：",
   "filter.to": "至：",
   "filter.startDate": "开始日期",
   "filter.endDate": "结束日期",
   "filter.favorites": "仅显示收藏",
+  "filter.removeTag": "移除标签筛选",
+  "filter.clearAll": "清除所有筛选",
+  "filter.clickToFilter": "点击按此标签筛选",
 
   // Settings
   "settings.title": "设置",

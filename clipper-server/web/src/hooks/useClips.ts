@@ -17,7 +17,7 @@ interface UseClipsReturn extends UseClipsState {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   filters: SearchFilters;
-  setFilters: (filters: SearchFilters) => void;
+  setFilters: (filters: SearchFilters | ((prev: SearchFilters) => SearchFilters)) => void;
   favoritesOnly: boolean;
   setFavoritesOnly: (value: boolean) => void;
   refetch: () => void;

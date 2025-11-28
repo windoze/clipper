@@ -33,11 +33,15 @@ export const en = {
 
   // Search & Filters
   "search.placeholder": "Search clips...",
+  "search.placeholderWithTags": "Search within filtered tags...",
   "filter.from": "From:",
   "filter.to": "To:",
   "filter.startDate": "Start date",
   "filter.endDate": "End date",
   "filter.favorites": "Favorites only",
+  "filter.removeTag": "Remove tag filter",
+  "filter.clearAll": "Clear all filters",
+  "filter.clickToFilter": "Click to filter by this tag",
 
   // Settings
   "settings.title": "Settings",

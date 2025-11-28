@@ -11,6 +11,7 @@ interface ClipEntryProps {
   onToggleFavorite: (clip: Clip) => void;
   onClipUpdated?: (updatedClip: Clip) => void;
   onClipDeleted?: (clipId: string) => void;
+  onTagClick?: (tag: string) => void;
 }
 
 // Image file extensions
@@ -28,6 +29,7 @@ export function ClipEntry({
   onToggleFavorite,
   onClipUpdated,
   onClipDeleted,
+  onTagClick,
 }: ClipEntryProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
@@ -198,9 +200,17 @@ export function ClipEntry({
         {displayTags.length > 0 && (
           <div className="clip-tags">
             {displayTags.map((tag) => (
-              <span key={tag} className="tag">
+              <button
+                key={tag}
+                className="tag tag-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTagClick?.(tag);
+                }}
+                title={t("filter.clickToFilter")}
+              >
                 {tag}
-              </span>
+              </button>
             ))}
           </div>
         )}
