@@ -55,6 +55,13 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.notifications": "Show notifications",
     "settings.notifications.hint": "Show toast notifications for clipboard actions and sync events.",
 
+    // Global Shortcut Settings
+    "settings.globalShortcut": "Global Shortcut",
+    "settings.globalShortcut.hint": "Keyboard shortcut to show/hide the main window from anywhere.",
+    "settings.globalShortcut.recording": "Press keys...",
+    "settings.shortcut.updated": "Shortcut updated",
+    "settings.shortcut.error": "Failed to set shortcut",
+
     // Extra Toast Messages
     "toast.clipReceived": "New clip received",
     "toast.dataCleared": "All data cleared",
@@ -114,6 +121,13 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     // Notifications Settings
     "settings.notifications": "显示通知",
     "settings.notifications.hint": "显示剪贴板操作和同步事件的通知。",
+
+    // Global Shortcut Settings
+    "settings.globalShortcut": "全局快捷键",
+    "settings.globalShortcut.hint": "从任何位置显示/隐藏主窗口的快捷键。",
+    "settings.globalShortcut.recording": "请按下快捷键...",
+    "settings.shortcut.updated": "快捷键已更新",
+    "settings.shortcut.error": "设置快捷键失败",
 
     // Extra Toast Messages
     "toast.clipReceived": "收到新剪贴",

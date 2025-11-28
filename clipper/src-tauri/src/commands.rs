@@ -438,3 +438,29 @@ pub async fn toggle_listen_on_all_interfaces(
 pub fn update_tray_language(app: tauri::AppHandle, language: String) -> Result<(), String> {
     crate::tray::update_tray_language(&app, &language).map_err(|e| e.to_string())
 }
+
+/// Update the global shortcut
+#[tauri::command]
+pub fn update_global_shortcut(
+    app: tauri::AppHandle,
+    shortcut: String,
+) -> Result<(), String> {
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+    // Parse the new shortcut
+    let new_shortcut = crate::parse_shortcut(&shortcut)
+        .ok_or_else(|| format!("Invalid shortcut format: {}", shortcut))?;
+
+    // Unregister all existing shortcuts
+    app.global_shortcut()
+        .unregister_all()
+        .map_err(|e| format!("Failed to unregister shortcuts: {}", e))?;
+
+    // Register the new shortcut
+    app.global_shortcut()
+        .register(new_shortcut)
+        .map_err(|e| format!("Failed to register shortcut '{}': {}", shortcut, e))?;
+
+    eprintln!("[clipper] Global shortcut updated to: {}", shortcut);
+    Ok(())
+}

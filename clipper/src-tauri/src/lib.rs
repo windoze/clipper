@@ -14,6 +14,106 @@ use state::AppState;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
 use tauri::{DragDropEvent, Emitter, Manager, RunEvent};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+
+/// Parse a shortcut string like "Command+Shift+V" or "Ctrl+Alt+C" into a Shortcut
+pub fn parse_shortcut(shortcut_str: &str) -> Option<Shortcut> {
+    let parts: Vec<&str> = shortcut_str.split('+').map(|s| s.trim()).collect();
+    if parts.is_empty() {
+        return None;
+    }
+
+    let mut modifiers = Modifiers::empty();
+    let mut key_code: Option<Code> = None;
+
+    for part in parts {
+        match part.to_lowercase().as_str() {
+            "command" | "cmd" | "super" | "meta" => modifiers |= Modifiers::SUPER,
+            "ctrl" | "control" => modifiers |= Modifiers::CONTROL,
+            "alt" | "option" => modifiers |= Modifiers::ALT,
+            "shift" => modifiers |= Modifiers::SHIFT,
+            // Single character keys
+            key if key.len() == 1 => {
+                let c = key.chars().next().unwrap().to_ascii_uppercase();
+                key_code = match c {
+                    'A' => Some(Code::KeyA),
+                    'B' => Some(Code::KeyB),
+                    'C' => Some(Code::KeyC),
+                    'D' => Some(Code::KeyD),
+                    'E' => Some(Code::KeyE),
+                    'F' => Some(Code::KeyF),
+                    'G' => Some(Code::KeyG),
+                    'H' => Some(Code::KeyH),
+                    'I' => Some(Code::KeyI),
+                    'J' => Some(Code::KeyJ),
+                    'K' => Some(Code::KeyK),
+                    'L' => Some(Code::KeyL),
+                    'M' => Some(Code::KeyM),
+                    'N' => Some(Code::KeyN),
+                    'O' => Some(Code::KeyO),
+                    'P' => Some(Code::KeyP),
+                    'Q' => Some(Code::KeyQ),
+                    'R' => Some(Code::KeyR),
+                    'S' => Some(Code::KeyS),
+                    'T' => Some(Code::KeyT),
+                    'U' => Some(Code::KeyU),
+                    'V' => Some(Code::KeyV),
+                    'W' => Some(Code::KeyW),
+                    'X' => Some(Code::KeyX),
+                    'Y' => Some(Code::KeyY),
+                    'Z' => Some(Code::KeyZ),
+                    '0' => Some(Code::Digit0),
+                    '1' => Some(Code::Digit1),
+                    '2' => Some(Code::Digit2),
+                    '3' => Some(Code::Digit3),
+                    '4' => Some(Code::Digit4),
+                    '5' => Some(Code::Digit5),
+                    '6' => Some(Code::Digit6),
+                    '7' => Some(Code::Digit7),
+                    '8' => Some(Code::Digit8),
+                    '9' => Some(Code::Digit9),
+                    _ => None,
+                };
+            }
+            // Named keys
+            "space" => key_code = Some(Code::Space),
+            "enter" | "return" => key_code = Some(Code::Enter),
+            "tab" => key_code = Some(Code::Tab),
+            "escape" | "esc" => key_code = Some(Code::Escape),
+            "backspace" => key_code = Some(Code::Backspace),
+            "delete" => key_code = Some(Code::Delete),
+            "up" => key_code = Some(Code::ArrowUp),
+            "down" => key_code = Some(Code::ArrowDown),
+            "left" => key_code = Some(Code::ArrowLeft),
+            "right" => key_code = Some(Code::ArrowRight),
+            "home" => key_code = Some(Code::Home),
+            "end" => key_code = Some(Code::End),
+            "pageup" => key_code = Some(Code::PageUp),
+            "pagedown" => key_code = Some(Code::PageDown),
+            "f1" => key_code = Some(Code::F1),
+            "f2" => key_code = Some(Code::F2),
+            "f3" => key_code = Some(Code::F3),
+            "f4" => key_code = Some(Code::F4),
+            "f5" => key_code = Some(Code::F5),
+            "f6" => key_code = Some(Code::F6),
+            "f7" => key_code = Some(Code::F7),
+            "f8" => key_code = Some(Code::F8),
+            "f9" => key_code = Some(Code::F9),
+            "f10" => key_code = Some(Code::F10),
+            "f11" => key_code = Some(Code::F11),
+            "f12" => key_code = Some(Code::F12),
+            _ => {}
+        }
+    }
+
+    key_code.map(|code| {
+        if modifiers.is_empty() {
+            Shortcut::new(None, code)
+        } else {
+            Shortcut::new(Some(modifiers), code)
+        }
+    })
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -116,6 +216,47 @@ pub fn run() {
                 }
             });
 
+            // Register global shortcut to toggle window visibility
+            // Use shortcut from settings, or default to Cmd+Shift+V on macOS, Ctrl+Shift+V on others
+            let shortcut_str = settings_manager.get().global_shortcut;
+            let shortcut = parse_shortcut(&shortcut_str).unwrap_or_else(|| {
+                #[cfg(target_os = "macos")]
+                {
+                    Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyV)
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyV)
+                }
+            });
+
+            let app_handle = app.handle().clone();
+            app.handle().plugin(
+                tauri_plugin_global_shortcut::Builder::new()
+                    .with_handler(move |_app, _shortcut, event| {
+                        if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                            if let Some(window) = app_handle.get_webview_window("main") {
+                                if window.is_visible().unwrap_or(false) {
+                                    let _ = window.hide();
+                                    #[cfg(target_os = "macos")]
+                                    let _ = app_handle.set_activation_policy(ActivationPolicy::Accessory);
+                                } else {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                    #[cfg(target_os = "macos")]
+                                    let _ = app_handle.set_activation_policy(ActivationPolicy::Regular);
+                                }
+                            }
+                        }
+                    })
+                    .build(),
+            )?;
+
+            // Register the shortcut
+            if let Err(e) = app.global_shortcut().register(shortcut) {
+                eprintln!("Failed to register global shortcut '{}': {}", shortcut_str, e);
+            }
+
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -199,6 +340,7 @@ pub fn run() {
             commands::get_local_ip_addresses,
             commands::toggle_listen_on_all_interfaces,
             commands::update_tray_language,
+            commands::update_global_shortcut,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

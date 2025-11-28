@@ -1553,6 +1553,66 @@ body {
   font-size: 20px;
 }
 
+/* Shortcut Editor */
+.shortcut-editor {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.shortcut-input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  background: #fff;
+  color: #212529;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  min-width: 160px;
+}
+
+.shortcut-input:hover {
+  border-color: #adb5bd;
+  background: #f8f9fa;
+}
+
+.shortcut-input:focus,
+.shortcut-input.recording {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  outline: none;
+  background: #f0f4ff;
+}
+
+.shortcut-input.recording {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2); }
+  50% { box-shadow: 0 0 0 6px rgba(102, 126, 234, 0.1); }
+}
+
+.shortcut-cancel {
+  padding: 10px 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #e9ecef;
+  color: #495057;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.shortcut-cancel:hover {
+  background: #dee2e6;
+}
+
 /* Server Mode Selector */
 .server-mode-selector {
   display: flex;
@@ -2208,6 +2268,33 @@ body {
   border-color: #667eea;
   background: rgba(102, 126, 234, 0.2);
   color: #99aaf7;
+}
+
+:root[data-theme="dark"] .shortcut-input {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .shortcut-input:hover {
+  background: #4a4a4a;
+  border-color: #5a5a5a;
+}
+
+:root[data-theme="dark"] .shortcut-input:focus,
+:root[data-theme="dark"] .shortcut-input.recording {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.2);
+}
+
+:root[data-theme="dark"] .shortcut-cancel {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .shortcut-cancel:hover {
+  background: #4a4a4a;
 }
 
 :root[data-theme="dark"] .server-mode-option {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
@@ -21,6 +21,7 @@ export interface Settings {
   listenOnAllInterfaces: boolean;
   language: string | null;
   notificationsEnabled: boolean;
+  globalShortcut: string;
 }
 
 interface SettingsDialogProps {
@@ -32,6 +33,10 @@ interface SettingsDialogProps {
 export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialogProps) {
   const { t, language: currentLanguage, setLanguage } = useI18n();
   const { showToast } = useToast();
+  // Detect platform for default shortcut
+  const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+  const defaultShortcut = isMac ? "Command+Shift+V" : "Ctrl+Shift+V";
+
   const [settings, setSettings] = useState<Settings>({
     serverAddress: "http://localhost:3000",
     defaultSaveLocation: null,
@@ -42,6 +47,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     listenOnAllInterfaces: false,
     language: null,
     notificationsEnabled: true,
+    globalShortcut: defaultShortcut,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +58,10 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   const [togglingNetworkAccess, setTogglingNetworkAccess] = useState(false);
   // Track the original server address to detect changes on close
   const [originalServerAddress, setOriginalServerAddress] = useState<string>("");
+  // Shortcut recording state
+  const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
+  const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
+  const shortcutInputRef = useRef<HTMLDivElement>(null);
 
   // Load settings when dialog opens
   useEffect(() => {
@@ -230,6 +240,97 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     }
   };
 
+  // Handle shortcut recording
+  const handleShortcutKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!isRecordingShortcut) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const keys: string[] = [];
+
+    // Add modifiers in a consistent order
+    if (e.metaKey) keys.push(isMac ? "Command" : "Super");
+    if (e.ctrlKey) keys.push("Ctrl");
+    if (e.altKey) keys.push(isMac ? "Option" : "Alt");
+    if (e.shiftKey) keys.push("Shift");
+
+    // Get the main key
+    const key = e.key;
+    if (!["Control", "Shift", "Alt", "Meta", "OS"].includes(key)) {
+      // Handle special keys
+      let keyName = key;
+      if (key.length === 1) {
+        keyName = key.toUpperCase();
+      } else if (key === " ") {
+        keyName = "Space";
+      } else if (key === "ArrowUp") {
+        keyName = "Up";
+      } else if (key === "ArrowDown") {
+        keyName = "Down";
+      } else if (key === "ArrowLeft") {
+        keyName = "Left";
+      } else if (key === "ArrowRight") {
+        keyName = "Right";
+      }
+      keys.push(keyName);
+    }
+
+    setRecordedKeys(keys);
+  }, [isRecordingShortcut, isMac]);
+
+  const handleShortcutKeyUp = useCallback(async (_e: React.KeyboardEvent) => {
+    if (!isRecordingShortcut) return;
+
+    // If we have a complete shortcut (at least one modifier + one key)
+    if (recordedKeys.length >= 2) {
+      const shortcutStr = recordedKeys.join("+");
+
+      // Try to update the shortcut
+      try {
+        await invoke("update_global_shortcut", { shortcut: shortcutStr });
+        const newSettings = { ...settings, globalShortcut: shortcutStr };
+        setSettings(newSettings);
+        await saveSettings(newSettings);
+        setIsRecordingShortcut(false);
+        setRecordedKeys([]);
+        showToast(t("settings.shortcut.updated"));
+      } catch (err) {
+        setError(`${t("settings.shortcut.error")}: ${err}`);
+        setRecordedKeys([]);
+      }
+    }
+  }, [isRecordingShortcut, recordedKeys, settings, showToast, t]);
+
+  const startRecordingShortcut = () => {
+    setIsRecordingShortcut(true);
+    setRecordedKeys([]);
+    setError(null);
+    // Focus the input after state update
+    setTimeout(() => {
+      shortcutInputRef.current?.focus();
+    }, 0);
+  };
+
+  const cancelRecordingShortcut = () => {
+    setIsRecordingShortcut(false);
+    setRecordedKeys([]);
+  };
+
+  // Format shortcut for display (replace Ctrl/Command based on platform)
+  const formatShortcutForDisplay = (shortcut: string) => {
+    if (isMac) {
+      return shortcut
+        .replace(/Ctrl/gi, "⌃")
+        .replace(/Command/gi, "⌘")
+        .replace(/Option/gi, "⌥")
+        .replace(/Alt/gi, "⌥")
+        .replace(/Shift/gi, "⇧")
+        .replace(/\+/g, "");
+    }
+    return shortcut;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -321,6 +422,47 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                   </label>
                   <p className="settings-hint">
                     {t("settings.notifications.hint")}
+                  </p>
+                </div>
+
+                <div className="settings-field">
+                  <label>{t("settings.globalShortcut")}</label>
+                  <div className="shortcut-editor">
+                    {isRecordingShortcut ? (
+                      <div
+                        ref={shortcutInputRef}
+                        className="shortcut-input recording"
+                        tabIndex={0}
+                        onKeyDown={handleShortcutKeyDown}
+                        onKeyUp={handleShortcutKeyUp}
+                        onBlur={cancelRecordingShortcut}
+                      >
+                        {recordedKeys.length > 0
+                          ? formatShortcutForDisplay(recordedKeys.join("+"))
+                          : t("settings.globalShortcut.recording")}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="shortcut-input"
+                        onClick={startRecordingShortcut}
+                      >
+                        {formatShortcutForDisplay(settings.globalShortcut)}
+                      </button>
+                    )}
+                    {isRecordingShortcut && (
+                      <button
+                        type="button"
+                        className="shortcut-cancel"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={cancelRecordingShortcut}
+                      >
+                        {t("common.cancel")}
+                      </button>
+                    )}
+                  </div>
+                  <p className="settings-hint">
+                    {t("settings.globalShortcut.hint")}
                   </p>
                 </div>
               </div>

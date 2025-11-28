@@ -45,6 +45,20 @@ pub struct Settings {
     /// Whether to show toast notifications
     #[serde(default = "default_notifications_enabled")]
     pub notifications_enabled: bool,
+    /// Global shortcut to toggle window visibility (e.g., "CmdOrCtrl+Shift+V")
+    #[serde(default = "default_global_shortcut")]
+    pub global_shortcut: String,
+}
+
+fn default_global_shortcut() -> String {
+    #[cfg(target_os = "macos")]
+    {
+        "Command+Shift+V".to_string()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        "Ctrl+Shift+V".to_string()
+    }
 }
 
 fn default_use_bundled_server() -> bool {
@@ -68,6 +82,7 @@ impl Default for Settings {
             listen_on_all_interfaces: false,
             language: None,
             notifications_enabled: true,
+            global_shortcut: default_global_shortcut(),
         }
     }
 }
