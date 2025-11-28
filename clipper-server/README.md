@@ -148,6 +148,8 @@ The server includes a built-in web UI accessible at the root URL (e.g., `http://
 - Drag-and-drop file upload
 - Send clipboard content button (for manual clipboard sync)
 - Real-time updates via WebSocket (HTTPS only)
+- WebSocket connection status indicator (connected/disconnected/HTTPS required)
+- Auto-refresh clip list on WebSocket notifications
 - Theme support (light/dark/auto)
 - Internationalization (English/Chinese)
 - Favorites and date filtering

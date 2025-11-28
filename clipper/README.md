@@ -167,9 +167,9 @@ The app emits the following events to the frontend:
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `new-clip` | `{ id, content, tags }` | New clip from WebSocket |
-| `clip-updated` | `{ id }` | Clip updated from WebSocket |
-| `clip-deleted` | `{ id }` | Clip deleted from WebSocket |
+| `new-clip` | `{ id, content, tags }` | New clip from WebSocket (triggers list refresh) |
+| `clip-updated` | `{ id }` | Clip updated from WebSocket (triggers list refresh) |
+| `clip-deleted` | `{ id }` | Clip deleted from WebSocket (triggers list refresh) |
 | `clip-created` | `{ id, ... }` | Clip created from clipboard monitor |
 | `open-settings` | - | Settings requested from tray |
 | `server-switched` | - | Server mode changed |

@@ -484,6 +484,7 @@ update_tray_language(language: string): Promise<void>
   - **Toast notifications**
   - **Clear all data** functionality
   - **Auto-reconnect** on server URL change
+  - **Auto-refresh clip list** on WebSocket notifications (new/update/delete)
 - Slint GUI alternative (basic implementation)
 - **Web UI** (clipper-server/web):
   - React + TypeScript + Vite frontend
@@ -497,6 +498,8 @@ update_tray_language(language: string): Promise<void>
   - **Drag-and-drop file upload**
   - **Send clipboard button** (manual clipboard sync)
   - **WebSocket real-time sync** with toast notifications (HTTPS only)
+  - **WebSocket connection status indicator** (connected/disconnected/HTTPS required)
+  - **Auto-refresh clip list** on WebSocket notifications
 - **TLS/HTTPS Support** (clipper-server):
   - Manual certificate configuration (`tls` feature)
   - Automatic Let's Encrypt certificates (`acme` feature)
