@@ -147,8 +147,14 @@ async fn list_clips(
     }
 
     if let Some(tags_str) = query.tags {
-        let tags: Vec<String> = tags_str.split(',').map(|s| s.trim().to_string()).collect();
-        filters = filters.with_tags(tags);
+        let tags: Vec<String> = tags_str
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !tags.is_empty() {
+            filters = filters.with_tags(tags);
+        }
     }
 
     let paging = PagingParams::new(query.page, query.page_size);
@@ -198,8 +204,14 @@ async fn search_clips(
     }
 
     if let Some(tags_str) = query.tags {
-        let tags: Vec<String> = tags_str.split(',').map(|s| s.trim().to_string()).collect();
-        filters = filters.with_tags(tags);
+        let tags: Vec<String> = tags_str
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !tags.is_empty() {
+            filters = filters.with_tags(tags);
+        }
     }
 
     let paging = PagingParams::new(query.page, query.page_size);

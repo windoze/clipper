@@ -396,6 +396,621 @@ async fn test_search_clips() {
     assert_eq!(items[0]["content"], "The quick brown fox");
 }
 
+// ============================================================================
+// Search Combination Tests
+// ============================================================================
+
+/// Helper to create multiple clips with different tags for testing search combinations
+async fn create_test_clips_for_search(app: &Router) {
+    // Clip 1: rust, programming
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "Rust programming language",
+                        "tags": ["rust", "programming"],
+                        "additional_notes": "A systems programming language"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Clip 2: python, programming
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "Python scripting language",
+                        "tags": ["python", "programming"],
+                        "additional_notes": "A dynamic programming language"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Clip 3: rust, webdev
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "Rust web development with Axum",
+                        "tags": ["rust", "webdev"],
+                        "additional_notes": "Building web apps in Rust"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Clip 4: no tags
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "Untagged content about programming",
+                        "tags": []
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Clip 5: favorite tag only
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "My favorite Rust snippet",
+                        "tags": ["favorite"]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn test_search_no_filters() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // Search with query only, no tags filter
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips/search?q=programming")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // Should find all clips containing "programming" (clips 1, 2, 4)
+    assert!(items.len() >= 3, "Expected at least 3 clips, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_search_with_empty_tags_parameter() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // Search with empty tags parameter - should behave same as no tags
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips/search?q=programming&tags=")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // Should find all clips containing "programming" (same as no tags filter)
+    assert!(items.len() >= 3, "Expected at least 3 clips, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_search_with_single_tag() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // Search with single tag filter
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips/search?q=Rust&tags=rust")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // Should find clips 1 and 3 (both have "rust" tag and contain "Rust")
+    assert_eq!(items.len(), 2, "Expected 2 clips with rust tag, got {}", items.len());
+    for item in items {
+        let tags = item["tags"].as_array().unwrap();
+        assert!(tags.iter().any(|t| t == "rust"), "Expected rust tag in {:?}", tags);
+    }
+}
+
+#[tokio::test]
+async fn test_search_with_multiple_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // Search with multiple tags (OR logic) - clips must have ANY of the tags
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips/search?q=Rust&tags=rust,programming")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // With OR logic: clips 1 (rust, programming) and 3 (rust, webdev) match "Rust" and have at least one of the tags
+    assert_eq!(items.len(), 2, "Expected 2 clips with rust OR programming tags, got {}", items.len());
+    for item in items {
+        let tags = item["tags"].as_array().unwrap();
+        assert!(
+            tags.iter().any(|t| t == "rust") || tags.iter().any(|t| t == "programming"),
+            "Expected rust or programming tag in {:?}",
+            tags
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_search_with_nonexistent_tag() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // Search with a tag that doesn't exist
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips/search?q=programming&tags=nonexistent")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // Should find no clips
+    assert_eq!(items.len(), 0, "Expected 0 clips with nonexistent tag, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_list_no_filters() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // List with no filters
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // Should return all 5 clips
+    assert_eq!(items.len(), 5, "Expected 5 clips, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_list_with_empty_tags_parameter() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // List with empty tags parameter - should behave same as no tags
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips?tags=")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // Should return all 5 clips (empty tags = no filter)
+    assert_eq!(items.len(), 5, "Expected 5 clips with empty tags filter, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_list_with_single_tag() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // List with single tag filter
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips?tags=programming")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // Should find clips 1 and 2 (both have "programming" tag)
+    assert_eq!(items.len(), 2, "Expected 2 clips with programming tag, got {}", items.len());
+    for item in items {
+        let tags = item["tags"].as_array().unwrap();
+        assert!(tags.iter().any(|t| t == "programming"), "Expected programming tag in {:?}", tags);
+    }
+}
+
+#[tokio::test]
+async fn test_list_with_multiple_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // List with multiple tags (OR logic) - clips must have ANY of the tags
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips?tags=rust,webdev")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // With OR logic: clips 1 (rust, programming), 3 (rust, webdev) have at least one of the tags
+    assert_eq!(items.len(), 2, "Expected 2 clips with rust OR webdev tags, got {}", items.len());
+    for item in items {
+        let tags = item["tags"].as_array().unwrap();
+        assert!(
+            tags.iter().any(|t| t == "rust") || tags.iter().any(|t| t == "webdev"),
+            "Expected rust or webdev tag in {:?}",
+            tags
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_list_with_nonexistent_tag() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // List with a tag that doesn't exist
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips?tags=nonexistent")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // Should find no clips
+    assert_eq!(items.len(), 0, "Expected 0 clips with nonexistent tag, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_search_empty_query_with_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // Search with empty query but with tags filter
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips/search?q=&tags=rust")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // With empty query, should still filter by tag
+    // Clips 1, 3, and 5 have "rust" tag
+    for item in items {
+        let tags = item["tags"].as_array().unwrap();
+        assert!(tags.iter().any(|t| t == "rust"), "Expected rust tag in {:?}", tags);
+    }
+}
+
+#[tokio::test]
+async fn test_search_with_whitespace_in_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // Search with whitespace around tags (should be trimmed)
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips/search?q=Rust&tags=%20rust%20,%20programming%20")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // With OR logic and trimmed tags: clips 1 (rust, programming) and 3 (rust, webdev) match
+    assert_eq!(items.len(), 2, "Expected 2 clips with whitespace-trimmed tags, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_list_with_whitespace_only_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // List with whitespace-only tags (should behave like empty/no tags after trimming)
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips?tags=%20%20%20")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // After trimming whitespace and filtering empty strings, should return all 5 clips
+    assert_eq!(items.len(), 5, "Expected 5 clips with whitespace-only tags filter, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_list_with_comma_only_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // List with only commas (should behave like no tags filter after filtering empty strings)
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips?tags=,,,")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // After splitting by comma and filtering empty strings, should return all 5 clips
+    assert_eq!(items.len(), 5, "Expected 5 clips with comma-only tags filter, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_search_with_comma_only_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // Search with only commas (should behave like no tags filter)
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips/search?q=programming&tags=,,,")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // Should find all clips containing "programming" (same as no tags filter)
+    assert!(items.len() >= 3, "Expected at least 3 clips with comma-only tags filter, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_search_empty_query_and_empty_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // Search with empty query and empty tags
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips/search?q=&tags=")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    // Empty query with no tags filter - depends on search implementation
+    // Should return results (possibly all) since no filtering is applied
+    assert!(body["total"].as_u64().is_some());
+}
+
+#[tokio::test]
+async fn test_list_with_mixed_valid_and_empty_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // List with mix of valid tags and empty strings
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips?tags=rust,,programming,")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    // Empty strings should be filtered out, leaving [rust, programming]
+    // With OR logic: clips 1 (rust, programming), 2 (python, programming), 3 (rust, webdev) match
+    assert_eq!(items.len(), 3, "Expected 3 clips with mixed tags filter, got {}", items.len());
+}
+
+#[tokio::test]
+async fn test_search_pagination_with_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // Search with pagination and tags
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips/search?q=Rust&tags=rust&page=1&page_size=1")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    assert_eq!(items.len(), 1, "Expected 1 clip per page");
+    assert_eq!(body["page"].as_u64().unwrap(), 1);
+    assert_eq!(body["page_size"].as_u64().unwrap(), 1);
+    // Total should be 2 (clips 1 and 3 have rust tag)
+    assert_eq!(body["total"].as_u64().unwrap(), 2, "Expected total of 2 clips with rust tag");
+    assert_eq!(body["total_pages"].as_u64().unwrap(), 2);
+}
+
+#[tokio::test]
+async fn test_list_pagination_with_tags() {
+    let (app, _temp_dir) = create_test_app().await;
+    create_test_clips_for_search(&app).await;
+
+    // List with pagination and tags
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips?tags=programming&page=1&page_size=1")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    let items = body["items"].as_array().unwrap();
+    assert_eq!(items.len(), 1, "Expected 1 clip per page");
+    assert_eq!(body["page"].as_u64().unwrap(), 1);
+    // Total should be 2 (clips 1 and 2 have programming tag)
+    assert_eq!(body["total"].as_u64().unwrap(), 2, "Expected total of 2 clips with programming tag");
+}
+
 #[tokio::test]
 async fn test_upload_file() {
     let (app, _temp_dir) = create_test_app().await;
