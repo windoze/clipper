@@ -394,7 +394,7 @@ impl ClipperIndexer {
                     .iter()
                     .map(|tag| format!("'{}' IN tags", tag))
                     .collect();
-                where_clauses.push(format!("({})", tag_conditions.join(" OR ")));
+                where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
             }
         }
 
@@ -479,7 +479,7 @@ impl ClipperIndexer {
                     .iter()
                     .map(|tag| format!("'{}' IN tags", tag))
                     .collect();
-                where_clauses.push(format!("({})", tag_conditions.join(" OR ")));
+                where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
             }
         }
 

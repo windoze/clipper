@@ -18,6 +18,7 @@
     "dpkg",
     "dtolnay",
     "elif",
+    "findme",
     "hkcu",
     "jieba",
     "libappindicator",
@@ -47,6 +48,7 @@
     "Tauri",
     "tungstenite",
     "unlisten",
+    "webdev",
     "Winit",
     "winreg",
     "xattr"

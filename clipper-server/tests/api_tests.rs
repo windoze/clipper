@@ -585,7 +585,7 @@ async fn test_search_with_multiple_tags() {
     let (app, _temp_dir) = create_test_app().await;
     create_test_clips_for_search(&app).await;
 
-    // Search with multiple tags (OR logic) - clips must have ANY of the tags
+    // Search with multiple tags (AND logic) - clips must have ALL of the tags
     let response = app
         .oneshot(
             Request::builder()
@@ -601,13 +601,13 @@ async fn test_search_with_multiple_tags() {
 
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
-    // With OR logic: clips 1 (rust, programming) and 3 (rust, webdev) match "Rust" and have at least one of the tags
-    assert_eq!(items.len(), 2, "Expected 2 clips with rust OR programming tags, got {}", items.len());
+    // With AND logic: only clip 1 (rust, programming) matches "Rust" and has BOTH tags
+    assert_eq!(items.len(), 1, "Expected 1 clip with rust AND programming tags, got {}", items.len());
     for item in items {
         let tags = item["tags"].as_array().unwrap();
         assert!(
-            tags.iter().any(|t| t == "rust") || tags.iter().any(|t| t == "programming"),
-            "Expected rust or programming tag in {:?}",
+            tags.iter().any(|t| t == "rust") && tags.iter().any(|t| t == "programming"),
+            "Expected both rust and programming tags in {:?}",
             tags
         );
     }
@@ -722,7 +722,7 @@ async fn test_list_with_multiple_tags() {
     let (app, _temp_dir) = create_test_app().await;
     create_test_clips_for_search(&app).await;
 
-    // List with multiple tags (OR logic) - clips must have ANY of the tags
+    // List with multiple tags (AND logic) - clips must have ALL of the tags
     let response = app
         .oneshot(
             Request::builder()
@@ -738,13 +738,13 @@ async fn test_list_with_multiple_tags() {
 
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
-    // With OR logic: clips 1 (rust, programming), 3 (rust, webdev) have at least one of the tags
-    assert_eq!(items.len(), 2, "Expected 2 clips with rust OR webdev tags, got {}", items.len());
+    // With AND logic: only clip 3 (rust, webdev) has BOTH tags
+    assert_eq!(items.len(), 1, "Expected 1 clip with rust AND webdev tags, got {}", items.len());
     for item in items {
         let tags = item["tags"].as_array().unwrap();
         assert!(
-            tags.iter().any(|t| t == "rust") || tags.iter().any(|t| t == "webdev"),
-            "Expected rust or webdev tag in {:?}",
+            tags.iter().any(|t| t == "rust") && tags.iter().any(|t| t == "webdev"),
+            "Expected both rust and webdev tags in {:?}",
             tags
         );
     }
@@ -825,8 +825,8 @@ async fn test_search_with_whitespace_in_tags() {
 
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
-    // With OR logic and trimmed tags: clips 1 (rust, programming) and 3 (rust, webdev) match
-    assert_eq!(items.len(), 2, "Expected 2 clips with whitespace-trimmed tags, got {}", items.len());
+    // With AND logic and trimmed tags: only clip 1 (rust, programming) has BOTH tags
+    assert_eq!(items.len(), 1, "Expected 1 clip with whitespace-trimmed tags, got {}", items.len());
 }
 
 #[tokio::test]
@@ -951,8 +951,8 @@ async fn test_list_with_mixed_valid_and_empty_tags() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // Empty strings should be filtered out, leaving [rust, programming]
-    // With OR logic: clips 1 (rust, programming), 2 (python, programming), 3 (rust, webdev) match
-    assert_eq!(items.len(), 3, "Expected 3 clips with mixed tags filter, got {}", items.len());
+    // With AND logic: only clip 1 (rust, programming) has BOTH tags
+    assert_eq!(items.len(), 1, "Expected 1 clip with mixed tags filter, got {}", items.len());
 }
 
 #[tokio::test]
