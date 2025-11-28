@@ -1,14 +1,17 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState, DragEvent } from "react";
 import {
   useClips,
   useTheme,
   useI18n,
+  useToast,
+  useApi,
   SearchBox,
   DateFilter,
   FavoriteToggle,
   ClipList,
 } from "@anthropic/clipper-ui";
 import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
+import { useWebSocket, isSecureContext } from "./hooks/useWebSocket";
 
 function App() {
   const { t } = useI18n();
@@ -34,6 +37,43 @@ function App() {
 
   const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
   const { theme, updateTheme } = useTheme();
+  const { showToast } = useToast();
+  const api = useApi();
+
+  // Track if we've shown the connected toast (only show once per session)
+  const hasShownConnectedToast = useRef(false);
+
+  // File drop state
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const dragCounter = useRef(0);
+
+  // WebSocket for real-time updates (only enabled on HTTPS)
+  const { isConnected, isSecure } = useWebSocket({
+    onNewClip: useCallback((_id: string, _content: string, _tags: string[]) => {
+      showToast(t("toast.newClip"), "info");
+      refetch();
+    }, [showToast, t, refetch]),
+    onUpdatedClip: useCallback((_id: string) => {
+      showToast(t("toast.clipUpdated"), "info");
+      refetch();
+    }, [showToast, t, refetch]),
+    onDeletedClip: useCallback((_id: string) => {
+      refetch();
+    }, [refetch]),
+    onError: useCallback((_error: string) => {
+      showToast(t("toast.serverError"), "error");
+    }, [showToast, t]),
+    enabled: isSecureContext(),
+  });
+
+  // Show connection status toast (only on first connect)
+  useEffect(() => {
+    if (isSecure && isConnected && !hasShownConnectedToast.current) {
+      hasShownConnectedToast.current = true;
+      showToast(t("toast.wsConnected"), "success");
+    }
+  }, [isSecure, isConnected, showToast, t]);
 
   // Tag filter handlers
   const filterTags = filters.tags || [];
@@ -64,8 +104,95 @@ function App() {
     }));
   }, [setFilters]);
 
+  // File drop handlers
+  const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    const files = e.dataTransfer.files;
+    if (files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        await api.uploadFile(file);
+      }
+      showToast(t("toast.fileUploaded"), "success");
+      refetch();
+    } catch (err) {
+      console.error("Upload failed:", err);
+      showToast(t("toast.uploadFailed"), "error");
+    } finally {
+      setIsUploading(false);
+    }
+  }, [api, showToast, t, refetch]);
+
+  // Send clipboard content to server
+  const handleSendClipboard = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text || text.trim() === "") {
+        showToast(t("toast.clipboardEmpty"), "info");
+        return;
+      }
+      await api.createClip(text);
+      showToast(t("toast.clipboardSent"), "success");
+      refetch();
+    } catch (err) {
+      console.error("Failed to read clipboard:", err);
+      showToast(t("toast.clipboardReadFailed"), "error");
+    }
+  }, [api, showToast, t, refetch]);
+
   return (
-    <div className="app">
+    <div
+      className={`app ${isDragging ? "dragging" : ""}`}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drop overlay */}
+      {isDragging && (
+        <div className="drop-overlay">
+          <div className="drop-message">
+            {t("fileDrop.hint")}
+          </div>
+        </div>
+      )}
+
+      {/* Upload indicator */}
+      {isUploading && (
+        <div className="upload-indicator">
+          {t("fileDrop.uploading")}
+        </div>
+      )}
+
       <header className="app-header">
         <div className="app-title-group">
           <svg
@@ -163,18 +290,20 @@ function App() {
         </div>
         <div className="header-buttons">
           <button
+            className="send-clipboard-button"
+            onClick={handleSendClipboard}
+            title={t("tooltip.sendClipboard")}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-2l4-4h-3V7h-2v6H8l4 4z"/>
+            </svg>
+          </button>
+          <button
             className="settings-button"
             onClick={openSettings}
             title={t("tooltip.settings")}
           >
             &#9881;
-          </button>
-          <button
-            className="refresh-button"
-            onClick={refetch}
-            title={t("tooltip.refresh")}
-          >
-            ↻
           </button>
         </div>
       </header>

@@ -24,6 +24,16 @@ export interface ClipperApi {
   /** Get a single clip by ID */
   getClip(id: string): Promise<Clip>;
 
+  /** Create a new clip from text content */
+  createClip(
+    content: string,
+    tags?: string[],
+    additionalNotes?: string
+  ): Promise<Clip>;
+
+  /** Upload a file as a new clip */
+  uploadFile(file: File, tags?: string[], additionalNotes?: string): Promise<Clip>;
+
   /** Update clip tags and/or notes */
   updateClip(
     id: string,
@@ -130,6 +140,50 @@ export function createRestApiClient(baseUrl: string = ""): ClipperApi {
 
     async getClip(id: string): Promise<Clip> {
       const response = await fetch(`${baseUrl}/clips/${id}`);
+      return handleResponse<Clip>(response);
+    },
+
+    async createClip(
+      content: string,
+      tags: string[] = [],
+      additionalNotes?: string
+    ): Promise<Clip> {
+      const body: Record<string, unknown> = {
+        content,
+        tags,
+      };
+      if (additionalNotes) {
+        body.additional_notes = additionalNotes;
+      }
+
+      const response = await fetch(`${baseUrl}/clips`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      return handleResponse<Clip>(response);
+    },
+
+    async uploadFile(
+      file: File,
+      tags: string[] = [],
+      additionalNotes?: string
+    ): Promise<Clip> {
+      const formData = new FormData();
+      formData.append("file", file);
+      if (tags.length > 0) {
+        formData.append("tags", tags.join(","));
+      }
+      if (additionalNotes) {
+        formData.append("additional_notes", additionalNotes);
+      }
+
+      const response = await fetch(`${baseUrl}/clips/upload`, {
+        method: "POST",
+        body: formData,
+      });
       return handleResponse<Clip>(response);
     },
 

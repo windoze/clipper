@@ -72,6 +72,11 @@ export const zh = {
   "tooltip.settings": "设置",
   "tooltip.refresh": "刷新",
   "tooltip.copy": "复制到剪贴板",
+  "tooltip.sendClipboard": "发送剪贴板内容",
+
+  // File Drop
+  "fileDrop.hint": "拖拽文件到此处上传",
+  "fileDrop.uploading": "上传中...",
 
   // Toast Messages
   "toast.clipCopied": "已复制到剪贴板",
@@ -79,4 +84,13 @@ export const zh = {
   "toast.clipDeleted": "剪贴已删除",
   "toast.copyFailed": "复制到剪贴板失败",
   "toast.serverError": "服务器连接错误",
+  "toast.newClip": "新剪贴已添加",
+  "toast.clipUpdated": "剪贴已更新",
+  "toast.wsConnected": "实时同步已连接",
+  "toast.wsDisconnected": "实时同步已断开",
+  "toast.fileUploaded": "文件已上传",
+  "toast.uploadFailed": "文件上传失败",
+  "toast.clipboardSent": "剪贴板内容已发送",
+  "toast.clipboardEmpty": "剪贴板为空",
+  "toast.clipboardReadFailed": "读取剪贴板失败",
 };

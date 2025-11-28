@@ -73,6 +73,11 @@ export const en = {
   "tooltip.settings": "Settings",
   "tooltip.refresh": "Refresh",
   "tooltip.copy": "Copy to clipboard",
+  "tooltip.sendClipboard": "Send clipboard content",
+
+  // File Drop
+  "fileDrop.hint": "Drop files here to upload",
+  "fileDrop.uploading": "Uploading...",
 
   // Toast Messages
   "toast.clipCopied": "Copied to clipboard",
@@ -80,6 +85,15 @@ export const en = {
   "toast.clipDeleted": "Clip deleted",
   "toast.copyFailed": "Failed to copy to clipboard",
   "toast.serverError": "Server connection error",
+  "toast.newClip": "New clip added",
+  "toast.clipUpdated": "Clip updated",
+  "toast.wsConnected": "Real-time sync connected",
+  "toast.wsDisconnected": "Real-time sync disconnected",
+  "toast.fileUploaded": "File uploaded",
+  "toast.uploadFailed": "Failed to upload file",
+  "toast.clipboardSent": "Clipboard content sent",
+  "toast.clipboardEmpty": "Clipboard is empty",
+  "toast.clipboardReadFailed": "Failed to read clipboard",
 };
 
 export type TranslationKey = keyof typeof en;
