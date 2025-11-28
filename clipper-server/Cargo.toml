@@ -4,15 +4,42 @@ version = "0.5.0"
 edition = "2021"
 
 [features]
-default = []
+default = ["full-tls"]
 embed-web = ["rust-embed", "mime_guess"]
+# TLS support with manual certificates
+tls = [
+    "dep:axum-server",
+    "dep:rustls",
+    "dep:rustls-pemfile",
+    "dep:tokio-rustls",
+]
+# ACME automatic certificate management (requires tls)
+acme = [
+    "tls",
+    "dep:instant-acme",
+    "dep:rcgen",
+    "dep:x509-parser",
+    "dep:base64",
+    "dep:ring",
+]
+# Secure storage for ACME account keys (OS keychain)
+secure-storage = ["dep:keyring"]
+# Full TLS with ACME and secure storage
+full-tls = ["acme", "secure-storage"]
 
 [dependencies]
 rust-embed = { version = "8", optional = true }
 mime_guess = { version = "2", optional = true }
 clipper_indexer = { path = "../clipper-indexer" }
 axum = { version = "0.8", features = ["ws", "macros", "multipart"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1", features = [
+    "macros",
+    "rt-multi-thread",
+    "signal",
+    "fs",
+    "time",
+    "sync",
+] }
 tokio-stream = "0.1"
 futures = "0.3"
 serde = { version = "1", features = ["derive"] }
@@ -28,6 +55,30 @@ chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2.0"
 uuid = { version = "1", features = ["v4"] }
 bytes = "1"
+dirs = "6"
+
+# TLS dependencies (optional)
+axum-server = { version = "0.7", features = ["tls-rustls"], optional = true }
+rustls = { version = "0.23", default-features = false, features = [
+    "std",
+    "tls12",
+    "ring",
+], optional = true }
+rustls-pemfile = { version = "2", optional = true }
+tokio-rustls = { version = "0.26", default-features = false, features = [
+    "ring",
+    "tls12",
+], optional = true }
+
+# ACME dependencies (optional)
+instant-acme = { version = "0.8", optional = true }
+rcgen = { version = "0.14", optional = true }
+x509-parser = { version = "0.18", optional = true }
+base64 = { version = "0.22", optional = true }
+ring = { version = "0.17", optional = true }
+
+# Secure storage (optional)
+keyring = { version = "3", optional = true }
 
 [[bin]]
 name = "clipper-server"

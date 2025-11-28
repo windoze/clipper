@@ -13,5 +13,114 @@ path = "./data/storage"
 # Address to listen on (use "0.0.0.0" for all interfaces, "127.0.0.1" for localhost only)
 listen_addr = "0.0.0.0"
 
-# Port to listen on
+# HTTP port to listen on
 port = 3000
+
+# =============================================================================
+# TLS/HTTPS Configuration (requires 'tls' feature)
+# =============================================================================
+[tls]
+# Enable HTTPS
+enabled = false
+
+# HTTPS port (default: 443)
+port = 443
+
+# Path to TLS certificate file (PEM format)
+# Required if TLS is enabled and ACME is disabled
+# cert_path = "/path/to/cert.pem"
+
+# Path to TLS private key file (PEM format)
+# Required if TLS is enabled and ACME is disabled
+# key_path = "/path/to/key.pem"
+
+# Redirect HTTP to HTTPS when both are enabled
+redirect_http = true
+
+# Interval in seconds to reload certificates from disk (0 = disabled)
+# Useful when certificates are managed by external tools (e.g., certbot)
+# The server checks file modification times and only reloads when changed
+reload_interval_secs = 0
+
+# =============================================================================
+# ACME Configuration (Let's Encrypt - requires 'acme' feature)
+# =============================================================================
+[acme]
+# Enable automatic certificate management via Let's Encrypt
+enabled = false
+
+# Domain name for the certificate (required if ACME is enabled)
+# domain = "clipper.example.com"
+
+# Contact email for Let's Encrypt notifications (required if ACME is enabled)
+# contact_email = "admin@example.com"
+
+# Use Let's Encrypt staging environment (for testing)
+# Set to true when testing to avoid rate limits
+staging = false
+
+# Directory for certificate cache
+# Defaults to ~/.config/com.0d0a.clipper/certs/ if not specified
+# certs_dir = "/path/to/certs"
+
+# =============================================================================
+# Example Configurations
+# =============================================================================
+
+# --- Example 1: HTTP only (default) ---
+# [server]
+# listen_addr = "0.0.0.0"
+# port = 3000
+# [tls]
+# enabled = false
+
+# --- Example 2: HTTPS with manual certificates ---
+# [server]
+# listen_addr = "0.0.0.0"
+# port = 80
+# [tls]
+# enabled = true
+# port = 443
+# cert_path = "/etc/ssl/certs/clipper.pem"
+# key_path = "/etc/ssl/private/clipper.key"
+# redirect_http = true
+
+# --- Example 2b: HTTPS with certbot-managed certificates ---
+# [server]
+# listen_addr = "0.0.0.0"
+# port = 80
+# [tls]
+# enabled = true
+# port = 443
+# cert_path = "/etc/letsencrypt/live/example.com/fullchain.pem"
+# key_path = "/etc/letsencrypt/live/example.com/privkey.pem"
+# redirect_http = true
+# reload_interval_secs = 3600  # Check for new certs every hour
+
+# --- Example 3: HTTPS with Let's Encrypt (production) ---
+# [server]
+# listen_addr = "0.0.0.0"
+# port = 80
+# [tls]
+# enabled = true
+# port = 443
+# redirect_http = true
+# [acme]
+# enabled = true
+# domain = "clipper.example.com"
+# contact_email = "admin@example.com"
+# staging = false
+
+# --- Example 4: HTTPS with Let's Encrypt (testing/staging) ---
+# [server]
+# listen_addr = "0.0.0.0"
+# port = 80
+# [tls]
+# enabled = true
+# port = 443
+# redirect_http = true
+# [acme]
+# enabled = true
+# domain = "clipper.example.com"
+# contact_email = "admin@example.com"
+# staging = true  # Use staging to avoid rate limits during testing

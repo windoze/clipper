@@ -34,6 +34,15 @@ cargo build --workspace --release
 
 # Build with embedded web UI (for Docker/deployment)
 cargo build -p clipper-server --release --features embed-web
+
+# Build with TLS support (manual certificates)
+cargo build -p clipper-server --features tls
+
+# Build with ACME (Let's Encrypt automatic certificates)
+cargo build -p clipper-server --features acme
+
+# Build with full TLS + ACME + secure storage (OS keychain)
+cargo build -p clipper-server --features full-tls
 ```
 
 ### Web UI (clipper-server/web)
@@ -338,6 +347,21 @@ Environment variables:
 - `CLIPPER_WEB_DIR` - Path to web UI dist directory (default: auto-detected `./web/dist`)
 - `PORT` (default: `3000`)
 - `RUST_LOG` for tracing (default: `clipper_server=debug,tower_http=debug`)
+
+TLS environment variables (requires `tls` feature):
+- `CLIPPER_TLS_ENABLED` - Enable HTTPS (default: `false`)
+- `CLIPPER_TLS_PORT` - HTTPS port (default: `443`)
+- `CLIPPER_TLS_CERT` - Path to TLS certificate file (PEM format)
+- `CLIPPER_TLS_KEY` - Path to TLS private key file (PEM format)
+- `CLIPPER_TLS_REDIRECT` - Redirect HTTP to HTTPS (default: `true`)
+- `CLIPPER_TLS_RELOAD_INTERVAL` - Seconds between certificate reload checks (default: `0` = disabled)
+
+ACME environment variables (requires `acme` feature):
+- `CLIPPER_ACME_ENABLED` - Enable automatic certificate management (default: `false`)
+- `CLIPPER_ACME_DOMAIN` - Domain name for the certificate
+- `CLIPPER_ACME_EMAIL` - Contact email for Let's Encrypt notifications
+- `CLIPPER_ACME_STAGING` - Use staging environment for testing (default: `false`)
+- `CLIPPER_CERTS_DIR` - Directory for certificate cache (default: `~/.config/com.0d0a.clipper/certs/`)
 
 ### CLI Configuration
 
