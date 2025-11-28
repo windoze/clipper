@@ -7,6 +7,12 @@ use std::env;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, Weak as ArcWeak};
 
+mod server;
+mod settings;
+
+use server::ServerManager;
+use settings::SettingsManager;
+
 slint::include_modules!();
 
 const PAGE_SIZE: usize = 200;
@@ -14,7 +20,32 @@ const FAVORITE_TAG: &str = "$favorite";
 
 fn main() -> Result<()> {
     let runtime = tokio::runtime::Runtime::new().context("Failed to start Tokio runtime")?;
-    let base_url = env::var("CLIPPER_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
+
+    // Initialize settings
+    let settings = Arc::new(SettingsManager::new().context("Failed to initialize settings")?);
+
+    // Determine server URL based on settings
+    let (base_url, server_manager) = if settings.is_bundled_server() {
+        // Start the bundled server
+        eprintln!("[clipper-slint] Starting bundled server...");
+        let server_manager = Arc::new(
+            ServerManager::new(Arc::clone(&settings))
+                .map_err(|e| anyhow!("Failed to create server manager: {}", e))?,
+        );
+
+        let url = runtime
+            .block_on(server_manager.start())
+            .map_err(|e| anyhow!("Failed to start bundled server: {}", e))?;
+
+        eprintln!("[clipper-slint] Bundled server started at {}", url);
+        (url, Some(server_manager))
+    } else {
+        // Use external server URL from environment or settings
+        let url = env::var("CLIPPER_URL").unwrap_or_else(|_| settings.get_external_server_url());
+        eprintln!("[clipper-slint] Using external server at {}", url);
+        (url, None)
+    };
+
     let client = ClipperClient::new(base_url);
 
     let app = App::new().map_err(|e| anyhow!("Failed to initialize UI: {e}"))?;
@@ -65,6 +96,18 @@ fn main() -> Result<()> {
     controller.load_clips();
 
     app.run().map_err(|e| anyhow!("UI error: {e}"))?;
+
+    // Stop the bundled server if running
+    if let Some(server_manager) = server_manager {
+        eprintln!("[clipper-slint] Stopping bundled server...");
+        runtime.block_on(async {
+            if let Err(e) = server_manager.stop().await {
+                eprintln!("[clipper-slint] Warning: Failed to stop server cleanly: {}", e);
+            }
+        });
+        eprintln!("[clipper-slint] Server stopped");
+    }
+
     drop(runtime);
 
     Ok(())
