@@ -595,22 +595,51 @@
 }
 
 .tag {
-  background: #e9ecef;
-  color: #495057;
-  padding: 2px 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 3px 10px;
   border-radius: 12px;
   font-size: 11px;
+  font-weight: 500;
   border: none;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+/* Color variations for tags based on position */
+.clip-tags .tag:nth-child(5n+1) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+.clip-tags .tag:nth-child(5n+2) {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 2px 4px rgba(245, 87, 108, 0.3);
+}
+
+.clip-tags .tag:nth-child(5n+3) {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  box-shadow: 0 2px 4px rgba(79, 172, 254, 0.3);
+}
+
+.clip-tags .tag:nth-child(5n+4) {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  box-shadow: 0 2px 4px rgba(67, 233, 123, 0.3);
+}
+
+.clip-tags .tag:nth-child(5n+5) {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  box-shadow: 0 2px 4px rgba(250, 112, 154, 0.3);
 }
 
 .tag.tag-clickable {
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
 }
 
 .tag.tag-clickable:hover {
-  background: #667eea;
-  color: white;
+  transform: scale(1.08);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  filter: brightness(1.1);
 }
 
 /* Host tag styling */
@@ -1481,8 +1510,27 @@
 }
 
 :root[data-theme="dark"] .tag {
-  background: #404040;
-  color: #adb5bd;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .clip-tags .tag:nth-child(5n+1) {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+:root[data-theme="dark"] .clip-tags .tag:nth-child(5n+2) {
+  background: linear-gradient(135deg, #d53f8c 0%, #e53e3e 100%);
+}
+
+:root[data-theme="dark"] .clip-tags .tag:nth-child(5n+3) {
+  background: linear-gradient(135deg, #3182ce 0%, #00b5d8 100%);
+}
+
+:root[data-theme="dark"] .clip-tags .tag:nth-child(5n+4) {
+  background: linear-gradient(135deg, #38a169 0%, #319795 100%);
+}
+
+:root[data-theme="dark"] .clip-tags .tag:nth-child(5n+5) {
+  background: linear-gradient(135deg, #ed64a6 0%, #ecc94b 100%);
 }
 
 :root[data-theme="dark"] .tag.tag-host {
@@ -1493,11 +1541,6 @@
 
 :root[data-theme="dark"] .tag.tag-host:hover {
   background: #1565c0;
-  color: white;
-}
-
-:root[data-theme="dark"] .tag.tag-clickable:hover {
-  background: #667eea;
   color: white;
 }
 
@@ -1862,8 +1905,27 @@
   }
 
   :root:not([data-theme="light"]) .tag {
-    background: #404040;
-    color: #adb5bd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+1) {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  }
+
+  :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+2) {
+    background: linear-gradient(135deg, #d53f8c 0%, #e53e3e 100%);
+  }
+
+  :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+3) {
+    background: linear-gradient(135deg, #3182ce 0%, #00b5d8 100%);
+  }
+
+  :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+4) {
+    background: linear-gradient(135deg, #38a169 0%, #319795 100%);
+  }
+
+  :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+5) {
+    background: linear-gradient(135deg, #ed64a6 0%, #ecc94b 100%);
   }
 
   :root:not([data-theme="light"]) .tag.tag-host {
@@ -1874,11 +1936,6 @@
 
   :root:not([data-theme="light"]) .tag.tag-host:hover {
     background: #1565c0;
-    color: white;
-  }
-
-  :root:not([data-theme="light"]) .tag.tag-clickable:hover {
-    background: #667eea;
     color: white;
   }
 
