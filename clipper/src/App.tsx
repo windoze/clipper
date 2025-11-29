@@ -30,6 +30,8 @@ function App() {
   const [os] = useState(() => detectPlatform());
   const [isMaximized, setIsMaximized] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
+  // Responsive level: 0 = full, 1 = hide status, 2 = hide date, 3 = hide fav, 4 = hide buttons, 5 = hide title
+  const [responsiveLevel, setResponsiveLevel] = useState(0);
   const {
     clips,
     loading,
@@ -71,6 +73,35 @@ function App() {
 
     return () => {
       unlisten.then((fn) => fn());
+    };
+  }, [os]);
+
+  // Track window width for responsive header (macOS only)
+  useEffect(() => {
+    if (os !== "macos") return;
+
+    const calculateResponsiveLevel = () => {
+      const width = window.innerWidth;
+      // Breakpoints for progressive hiding:
+      // Level 0: >= 720px - show all
+      // Level 1: < 720px - hide clip count & ws status
+      // Level 2: < 620px - hide date filters
+      // Level 3: < 520px - hide favorite toggle
+      // Level 4: < 420px - hide settings/refresh buttons
+      // Level 5: < 320px - hide title (show only icon)
+      if (width >= 720) setResponsiveLevel(0);
+      else if (width >= 620) setResponsiveLevel(1);
+      else if (width >= 520) setResponsiveLevel(2);
+      else if (width >= 420) setResponsiveLevel(3);
+      else if (width >= 320) setResponsiveLevel(4);
+      else setResponsiveLevel(5);
+    };
+
+    calculateResponsiveLevel();
+    window.addEventListener("resize", calculateResponsiveLevel);
+
+    return () => {
+      window.removeEventListener("resize", calculateResponsiveLevel);
     };
   }, [os]);
 
@@ -171,7 +202,7 @@ function App() {
         {os === "macos" && <TitleBar />}
         {/* Composited title bar for macOS with all controls in one row */}
         {os === "macos" ? (
-          <header className="app-header-unified" data-tauri-drag-region>
+          <header className={`app-header-unified responsive-level-${responsiveLevel}`} data-tauri-drag-region>
             {/* Left section: Icon and title */}
             <div className="header-left" data-tauri-drag-region>
               <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" data-tauri-drag-region>
@@ -224,7 +255,7 @@ function App() {
                   <path d="M346 400 L360 414 L390 384" stroke="#FFFFFF" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </g>
               </svg>
-              <h1 className="app-title" data-tauri-drag-region>{t("app.title")}</h1>
+              {responsiveLevel < 5 && <h1 className="app-title" data-tauri-drag-region>{t("app.title")}</h1>}
             </div>
 
             {/* Center section: Search and filters */}
@@ -236,31 +267,49 @@ function App() {
                 onRemoveTag={handleRemoveTagFilter}
                 onClearAllTags={handleClearAllTags}
               />
-              <DateFilter filters={filters} onChange={setFilters} />
-              <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
+              {responsiveLevel < 2 && <DateFilter filters={filters} onChange={setFilters} />}
+              {responsiveLevel < 3 && <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />}
             </div>
 
             {/* Right section: Action buttons */}
             <div className="header-right">
-              <div className="header-button-group">
-                <span className="header-clip-count">{total}</span>
-                <span
-                  className={`header-ws-dot ${wsConnected ? "ws-connected" : "ws-disconnected"}`}
-                  title={wsConnected ? t("status.wsConnected") : t("status.wsDisconnected")}
-                />
-                <button className="header-button-group-item" onClick={openSettings} title={t("tooltip.settings")}>
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z" />
-                    <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z" />
-                  </svg>
-                </button>
-                <button className="header-button-group-item" onClick={refetch} title={t("tooltip.refresh")}>
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-                    <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
-                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
-                  </svg>
-                </button>
-              </div>
+              {responsiveLevel < 4 && (
+                <div className="header-button-group">
+                  {responsiveLevel < 1 && (
+                    <>
+                      <span className="header-clip-count">
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
+                          <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
+                        </svg>
+                        {total}
+                      </span>
+                      <span
+                        className={`header-ws-dot ${wsConnected ? "ws-connected" : "ws-disconnected"}`}
+                        title={wsConnected ? t("status.wsConnected") : t("status.wsDisconnected")}
+                      />
+                    </>
+                  )}
+                  <button className="header-button-group-item" onClick={openSettings} title={t("tooltip.settings")}>
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z" />
+                      <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z" />
+                    </svg>
+                  </button>
+                  <button className="header-button-group-item" onClick={refetch} title={t("tooltip.refresh")}>
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                      <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+                      <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+              {/* Overflow indicator when elements are hidden */}
+              {responsiveLevel > 0 && (
+                <span className="header-overflow-indicator" title={t("tooltip.moreOptions") || "More options hidden"}>
+                  •••
+                </span>
+              )}
             </div>
           </header>
         ) : (

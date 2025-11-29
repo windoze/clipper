@@ -398,9 +398,15 @@ body {
   gap: 10px;
   flex: 1 1 auto;
   min-width: 0;
-  -webkit-app-region: no-drag;
   overflow: hidden;
   justify-content: flex-start;
+}
+
+/* Make interactive elements in center section non-draggable */
+.app-header-unified .header-center .search-box,
+.app-header-unified .header-center .date-filter,
+.app-header-unified .header-center .favorite-toggle {
+  -webkit-app-region: no-drag;
 }
 
 /* Compact search box for unified header */
@@ -488,7 +494,6 @@ body {
   display: flex;
   align-items: center;
   flex: 0 0 auto;
-  -webkit-app-region: no-drag;
 }
 
 /* macOS segmented button group in unified header */
@@ -499,6 +504,7 @@ body {
   padding: 2px;
   gap: 1px;
   flex: 0 0 auto;
+  -webkit-app-region: no-drag;
 }
 
 .app-header-unified .header-button-group-item {
@@ -537,6 +543,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   height: 22px;
   padding: 0 8px;
   font-size: 11px;
@@ -544,6 +551,11 @@ body {
   color: #86868b;
   font-variant-numeric: tabular-nums;
   border-radius: 4px;
+}
+
+.app-header-unified .header-button-group .header-clip-count svg {
+  opacity: 0.7;
+  flex-shrink: 0;
 }
 
 /* WebSocket status dot inside button group */
@@ -573,6 +585,47 @@ body {
   background: #dc3545;
   box-shadow: 0 0 4px rgba(220, 53, 69, 0.5);
   animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Overflow indicator for responsive header */
+.app-header-unified .header-overflow-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #86868b;
+  letter-spacing: 1px;
+  -webkit-app-region: no-drag;
+  cursor: default;
+}
+
+/* Responsive header adjustments */
+/* Level 1+: Search box expands when status hidden */
+.app-header-unified.responsive-level-1 .search-box,
+.app-header-unified.responsive-level-2 .search-box,
+.app-header-unified.responsive-level-3 .search-box,
+.app-header-unified.responsive-level-4 .search-box,
+.app-header-unified.responsive-level-5 .search-box {
+  max-width: none;
+  min-width: 100px;
+}
+
+/* Level 4+: Reduce left padding when buttons hidden */
+.app-header-unified.responsive-level-4,
+.app-header-unified.responsive-level-5 {
+  padding-right: 8px;
+}
+
+/* Level 5: Icon only mode - reduce left padding further */
+.app-header-unified.responsive-level-5 {
+  padding-left: 70px;
+}
+
+.app-header-unified.responsive-level-5 .header-left {
+  gap: 0;
 }
 
 /* Windows: Compact header with integrated window controls */
@@ -2407,6 +2460,10 @@ body {
   color: #adb5bd;
 }
 
+:root[data-theme="dark"] .app-header-unified .header-overflow-indicator {
+  color: #adb5bd;
+}
+
 :root[data-theme="dark"] .filters-bar,
 :root[data-theme="dark"] .status-bar {
   background: #2d2d2d;
@@ -2982,6 +3039,10 @@ body {
   }
 
   :root:not([data-theme="light"]) .app-header-unified .header-clip-count {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .header-overflow-indicator {
     color: #adb5bd;
   }
 
