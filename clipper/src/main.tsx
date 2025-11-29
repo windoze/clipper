@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { I18nProvider, ApiProvider } from "@anthropic/clipper-ui";
+import { I18nProvider, ApiProvider } from "@unwritten-codes/clipper-ui";
 import { TauriToastWrapper } from "./components/TauriToastWrapper";
 import { createTauriApiClient } from "./api/tauriClient";
 import { tauriExtraTranslations } from "./i18n/translations";

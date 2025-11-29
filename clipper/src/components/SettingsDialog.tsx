@@ -6,8 +6,8 @@ import {
   useToast,
   supportedLanguages,
   languageNames,
-} from "@anthropic/clipper-ui";
-import type { Language } from "@anthropic/clipper-ui";
+} from "@unwritten-codes/clipper-ui";
+import type { Language } from "@unwritten-codes/clipper-ui";
 
 export type ThemePreference = "light" | "dark" | "auto";
 

@@ -5,7 +5,7 @@ import {
   ToastProvider,
   ApiProvider,
   createRestApiClient,
-} from "@anthropic/clipper-ui";
+} from "@unwritten-codes/clipper-ui";
 import App from "./App";
 import "./App.css";
 

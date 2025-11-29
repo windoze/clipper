@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@anthropic/clipper-ui": "file:../../packages/clipper-ui",
+    "@unwritten-codes/clipper-ui": "file:../../packages/clipper-ui",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ClipperApi, Clip, PagedResult, SearchFilters } from "@anthropic/clipper-ui";
+import type { ClipperApi, Clip, PagedResult, SearchFilters } from "@unwritten-codes/clipper-ui";
 
 /**
  * Create a Tauri API client that uses invoke commands

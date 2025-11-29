@@ -9,7 +9,7 @@ import {
   DateFilter,
   FavoriteToggle,
   ClipList,
-} from "@anthropic/clipper-ui";
+} from "@unwritten-codes/clipper-ui";
 import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
 import { useWebSocket, isSecureContext } from "./hooks/useWebSocket";
 

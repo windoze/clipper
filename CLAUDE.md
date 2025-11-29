@@ -162,7 +162,7 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
    - **Architecture**: Pure frontend, communicates with server via REST API and WebSocket
    - **Components** (in `clipper-server/web/src/`):
      - `hooks/useWebSocket.ts`: WebSocket connection for real-time updates
-     - `components/`: Reusable UI components (shared via @anthropic/clipper-ui package)
+     - `components/`: Reusable UI components (shared via @unwritten-codes/clipper-ui package)
 
 4. **clipper-client (Client Library)**
    - Built with reqwest for HTTP client

@@ -11,7 +11,7 @@ import {
   DateFilter,
   FavoriteToggle,
   ClipList,
-} from "@anthropic/clipper-ui";
+} from "@unwritten-codes/clipper-ui";
 import { TitleBar } from "./components/TitleBar";
 import { DropZone } from "./components/DropZone";
 import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";

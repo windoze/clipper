@@ -13,7 +13,7 @@
     "tauri:build": "npm run build:server && tauri build"
   },
   "dependencies": {
-    "@anthropic/clipper-ui": "file:../packages/clipper-ui",
+    "@unwritten-codes/clipper-ui": "file:../packages/clipper-ui",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
     "@tauri-apps/plugin-notification": "^2",

@@ -3,8 +3,8 @@ import {
   useI18n,
   languageNames,
   supportedLanguages,
-} from "@anthropic/clipper-ui";
-import type { Language, Theme } from "@anthropic/clipper-ui";
+} from "@unwritten-codes/clipper-ui";
+import type { Language, Theme } from "@unwritten-codes/clipper-ui";
 
 interface SettingsDialogProps {
   isOpen: boolean;

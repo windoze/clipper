@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
-import { ToastProvider, ToastType, useI18n } from "@anthropic/clipper-ui";
+import { ToastProvider, ToastType, useI18n } from "@unwritten-codes/clipper-ui";
 
 interface TauriToastWrapperProps {
   children: ReactNode;

@@ -1,4 +1,4 @@
-import type { Language } from "@anthropic/clipper-ui";
+import type { Language } from "@unwritten-codes/clipper-ui";
 
 // Extra translations specific to the Tauri desktop app
 export const tauriExtraTranslations: Record<Language, Record<string, string>> = {
