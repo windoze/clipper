@@ -2,6 +2,7 @@
   "app": {
     "windows": [
       {
+        "title": "Clipper",
         "decorations": false,
         "minWidth": 360,
         "minHeight": 400
