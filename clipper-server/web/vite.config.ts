@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import path from "path";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -24,6 +25,12 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
       },
+    },
+    fs: {
+      // Allow serving files from the parent packages directory
+      allow: [
+        path.resolve(__dirname, "../.."),
+      ],
     },
   },
 });

@@ -4,7 +4,7 @@
    ============================================ */
 
 /* Import shared styles from clipper-ui package */
-@import "@unwritten-codes/clipper-ui/styles/index.css";
+@import "../../packages/clipper-ui/src/styles/index.css";
 
 /* ============================================
    Tauri-Specific: Custom Title Bar
