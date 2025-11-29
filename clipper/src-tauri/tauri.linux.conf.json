@@ -3,7 +3,9 @@
     "windows": [
       {
         "decorations": false,
-        "transparent": true
+        "transparent": true,
+        "minWidth": 360,
+        "minHeight": 400
       }
     ]
   }
