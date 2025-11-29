@@ -32,6 +32,7 @@ export const en = {
   "clipList.noMore": "No more clips",
 
   // Search & Filters
+  "search.label": "Search",
   "search.placeholder": "Search clips...",
   "search.placeholderWithTags": "Search within filtered tags...",
   "filter.from": "From:",

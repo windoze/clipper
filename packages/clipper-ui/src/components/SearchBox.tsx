@@ -7,6 +7,7 @@ interface SearchBoxProps {
   filterTags?: string[];
   onRemoveTag?: (tag: string) => void;
   onClearAllTags?: () => void;
+  label?: string;
 }
 
 // Helper to check if a tag is a host tag
@@ -21,6 +22,7 @@ export function SearchBox({
   filterTags = [],
   onRemoveTag,
   onClearAllTags,
+  label,
 }: SearchBoxProps) {
   const { t } = useI18n();
   const [localValue, setLocalValue] = useState(value);
@@ -49,6 +51,7 @@ export function SearchBox({
 
   return (
     <div className="search-box">
+      {label && <label className="search-box-label">{label}</label>}
       <div className="search-box-inner">
         {filterTags.length > 0 && (
           <div className="search-filter-tags">

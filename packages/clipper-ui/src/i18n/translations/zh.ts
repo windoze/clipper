@@ -32,6 +32,7 @@ export const zh = {
   "clipList.noMore": "没有更多了",
 
   // Search & Filters
+  "search.label": "搜索",
   "search.placeholder": "搜索剪贴...",
   "search.placeholderWithTags": "在筛选的标签中搜索...",
   "filter.from": "从：",
