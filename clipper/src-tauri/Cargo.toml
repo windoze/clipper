@@ -1,8 +1,8 @@
 [package]
 name = "clipper"
-version = "0.7.1"
+version = "0.7.2"
 description = "Clipper - Clipboard Manager"
-authors = ["chenxu"]
+authors = ["Chen Xu <windoze@0d0a.com>"]
 edition = "2021"
 
 [lib]
