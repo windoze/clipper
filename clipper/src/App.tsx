@@ -411,19 +411,6 @@ function App() {
               <DateFilter filters={filters} onChange={setFilters} />
               <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
             </div>
-
-            <div className="status-bar">
-              <span className="clip-count">{t("app.clips_count", { count: total })}</span>
-              <span
-                className={`ws-status ${wsConnected ? "ws-connected" : "ws-disconnected"}`}
-                title={wsConnected ? t("status.wsConnected") : t("status.wsDisconnected")}
-              >
-                <span className="ws-status-dot"></span>
-                <span className="ws-status-text">
-                  {wsConnected ? t("status.wsConnected") : t("status.wsDisconnected")}
-                </span>
-              </span>
-            </div>
           </>
         )}
 
