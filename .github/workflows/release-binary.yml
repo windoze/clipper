@@ -17,16 +17,13 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
-            rust_target: aarch64-apple-darwin
-            tauri_args: --target aarch64-apple-darwin
-          - platform: macos-latest
-            rust_target: x86_64-apple-darwin
-            tauri_args: --target x86_64-apple-darwin
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+            tauri_args: --target universal-apple-darwin
           - platform: ubuntu-22.04
-            rust_target: x86_64-unknown-linux-gnu
+            rust_targets: x86_64-unknown-linux-gnu
             tauri_args: ''
           - platform: windows-latest
-            rust_target: x86_64-pc-windows-msvc
+            rust_targets: x86_64-pc-windows-msvc
             tauri_args: ''
 
     runs-on: ${{ matrix.platform }}
@@ -37,7 +34,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.rust_target }}
+          targets: ${{ matrix.rust_targets }}
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -65,10 +62,10 @@ jobs:
         working-directory: clipper
         run: npm ci
 
-      # Build clipper-server using the build script
+      # Build clipper-server for all targets (handles universal binary on macOS)
       - name: Build clipper-server
         working-directory: clipper
-        run: node scripts/build-server.js ${{ matrix.rust_target }}
+        run: node scripts/build-server.js ${{ matrix.rust_targets }}
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -88,11 +85,7 @@ jobs:
           if [ "${{ matrix.platform }}" == "macos-latest" ]; then
             DMG_PATH=$(find target -name "*.dmg" -type f | head -1)
             if [ -n "$DMG_PATH" ]; then
-              if [ "${{ matrix.rust_target }}" == "aarch64-apple-darwin" ]; then
-                cp "$DMG_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_macos_aarch64.dmg"
-              else
-                cp "$DMG_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_macos_x64.dmg"
-              fi
+              cp "$DMG_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_macos_universal.dmg"
             fi
           elif [ "${{ matrix.platform }}" == "ubuntu-22.04" ]; then
             DEB_PATH=$(find target -name "*.deb" -type f | head -1)
@@ -122,7 +115,7 @@ jobs:
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.platform }}-${{ matrix.rust_target }}
+          name: release-${{ matrix.platform }}
           path: release-artifacts/*
           if-no-files-found: error
 
