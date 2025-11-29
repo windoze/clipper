@@ -40,23 +40,61 @@ fn image_data_to_png(image_data: &arboard::ImageData) -> Option<Vec<u8>> {
     Some(png_bytes.into_inner())
 }
 
+/// Result of attempting to get clipboard content
+enum ClipboardResult {
+    /// Successfully retrieved content
+    Content(ClipboardContent),
+    /// Clipboard access failed - handle may need recreation
+    AccessError(String),
+}
+
 /// Get current clipboard content (text or image)
-fn get_clipboard_content(clipboard: &mut Clipboard) -> ClipboardContent {
+/// Returns ClipboardResult to indicate whether the clipboard handle is still valid
+fn get_clipboard_content(clipboard: &mut Clipboard) -> ClipboardResult {
     // Try to get image first (images take priority)
-    if let Ok(image_data) = clipboard.get_image() {
-        if let Some(png_bytes) = image_data_to_png(&image_data) {
-            return ClipboardContent::Image(png_bytes);
+    match clipboard.get_image() {
+        Ok(image_data) => {
+            if let Some(png_bytes) = image_data_to_png(&image_data) {
+                return ClipboardResult::Content(ClipboardContent::Image(png_bytes));
+            }
+        }
+        Err(arboard::Error::ContentNotAvailable) => {
+            // No image content, this is normal - try text
+        }
+        Err(e) => {
+            // Other errors might indicate clipboard handle issues
+            eprintln!("[clipboard] Image access error: {}", e);
         }
     }
 
     // Fall back to text
-    if let Ok(text) = clipboard.get_text() {
-        if !text.is_empty() {
-            return ClipboardContent::Text(text);
+    match clipboard.get_text() {
+        Ok(text) => {
+            if !text.is_empty() {
+                return ClipboardResult::Content(ClipboardContent::Text(text));
+            }
+            ClipboardResult::Content(ClipboardContent::Empty)
+        }
+        Err(arboard::Error::ContentNotAvailable) => {
+            // No text content either
+            ClipboardResult::Content(ClipboardContent::Empty)
+        }
+        Err(e) => {
+            // Access error - clipboard handle may be stale
+            ClipboardResult::AccessError(format!("Clipboard text access error: {}", e))
         }
     }
+}
 
-    ClipboardContent::Empty
+/// Try to create a new clipboard handle, with retry logic
+fn create_clipboard() -> Option<Clipboard> {
+    match Clipboard::new() {
+        Ok(cb) => Some(cb),
+        Err(e) => {
+            eprintln!("[clipboard] Failed to create clipboard handle: {}", e);
+            None
+        }
+    }
 }
 
 pub fn start_clipboard_monitor(app: AppHandle) {
@@ -67,30 +105,96 @@ pub fn start_clipboard_monitor(app: AppHandle) {
 
     // Spawn clipboard monitoring task
     std::thread::spawn(move || {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        let mut clipboard = match Clipboard::new() {
-            Ok(cb) => cb,
+        let rt = match tokio::runtime::Runtime::new() {
+            Ok(rt) => rt,
             Err(e) => {
-                eprintln!("Failed to initialize clipboard: {}", e);
+                eprintln!("[clipboard] Failed to create tokio runtime: {}", e);
                 return;
             }
         };
 
-        // Initialize with current clipboard content
-        let initial_content = get_clipboard_content(&mut clipboard);
-        *last_content.lock().unwrap() = initial_content;
+        let mut clipboard: Option<Clipboard> = create_clipboard();
+        let mut consecutive_errors: u32 = 0;
+        const MAX_CONSECUTIVE_ERRORS: u32 = 10;
+        const ERROR_BACKOFF_MS: u64 = 1000;
+
+        // Initialize with current clipboard content if we have a handle
+        if let Some(ref mut cb) = clipboard {
+            if let ClipboardResult::Content(content) = get_clipboard_content(cb) {
+                // Handle potential mutex poisoning gracefully
+                if let Ok(mut guard) = last_content.lock() {
+                    *guard = content;
+                }
+            }
+        }
 
         loop {
-            std::thread::sleep(Duration::from_millis(POLL_INTERVAL_MS));
+            // Use longer sleep if we're experiencing errors
+            let sleep_duration = if consecutive_errors > 0 {
+                Duration::from_millis(ERROR_BACKOFF_MS * consecutive_errors as u64)
+            } else {
+                Duration::from_millis(POLL_INTERVAL_MS)
+            };
+            std::thread::sleep(sleep_duration);
 
-            let current_content = get_clipboard_content(&mut clipboard);
+            // Ensure we have a valid clipboard handle
+            if clipboard.is_none() {
+                eprintln!("[clipboard] Attempting to recreate clipboard handle...");
+                clipboard = create_clipboard();
+                if clipboard.is_some() {
+                    eprintln!("[clipboard] Successfully recreated clipboard handle after error");
+                    consecutive_errors = 0;
+                } else {
+                    consecutive_errors = consecutive_errors.saturating_add(1);
+                    if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
+                        eprintln!(
+                            "[clipboard] Failed to recreate clipboard handle after {} attempts, backing off",
+                            consecutive_errors
+                        );
+                    }
+                    continue;
+                }
+            }
+
+            let cb = clipboard.as_mut().unwrap();
+            let current_content = match get_clipboard_content(cb) {
+                ClipboardResult::Content(content) => {
+                    consecutive_errors = 0;
+                    content
+                }
+                ClipboardResult::AccessError(err) => {
+                    consecutive_errors = consecutive_errors.saturating_add(1);
+                    eprintln!(
+                        "[clipboard] Access error (attempt {}): {}",
+                        consecutive_errors, err
+                    );
+
+                    // Invalidate the clipboard handle so it gets recreated
+                    clipboard = None;
+
+                    if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
+                        eprintln!(
+                            "[clipboard] Access failing repeatedly ({} times), will keep retrying with backoff",
+                            consecutive_errors
+                        );
+                    }
+                    continue;
+                }
+            };
 
             // Skip if clipboard is empty
             if current_content == ClipboardContent::Empty {
                 continue;
             }
 
-            let last = last_content.lock().unwrap().clone();
+            // Handle potential mutex poisoning gracefully
+            let last = match last_content.lock() {
+                Ok(guard) => guard.clone(),
+                Err(poisoned) => {
+                    eprintln!("[clipboard] last_content mutex was poisoned, recovering");
+                    poisoned.into_inner().clone()
+                }
+            };
 
             // Skip if content hasn't changed
             if current_content == last {
@@ -99,15 +203,27 @@ pub fn start_clipboard_monitor(app: AppHandle) {
 
             // For text content, check if it was just synced from server (avoid loop)
             if let ClipboardContent::Text(ref text) = current_content {
-                let synced = last_synced.lock().unwrap().clone();
+                let synced = match last_synced.lock() {
+                    Ok(guard) => guard.clone(),
+                    Err(poisoned) => {
+                        eprintln!("[clipboard] last_synced mutex was poisoned, recovering");
+                        poisoned.into_inner().clone()
+                    }
+                };
                 if *text == synced {
-                    *last_content.lock().unwrap() = current_content;
+                    match last_content.lock() {
+                        Ok(mut guard) => *guard = current_content,
+                        Err(poisoned) => *poisoned.into_inner() = current_content,
+                    }
                     continue;
                 }
             }
 
             // Content changed, update last content
-            *last_content.lock().unwrap() = current_content.clone();
+            match last_content.lock() {
+                Ok(mut guard) => *guard = current_content.clone(),
+                Err(poisoned) => *poisoned.into_inner() = current_content.clone(),
+            }
 
             let client_clone = client.clone();
             let app_handle = app.clone();
@@ -124,7 +240,7 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                                 let _ = app_handle.emit("clip-created", &clip);
                             }
                             Err(e) => {
-                                eprintln!("Failed to create clip from clipboard text: {}", e);
+                                eprintln!("[clipboard] Failed to create clip from text: {}", e);
                             }
                         }
                     });
@@ -147,7 +263,7 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                                 let _ = app_handle.emit("clip-created", &clip);
                             }
                             Err(e) => {
-                                eprintln!("Failed to create clip from clipboard image: {}", e);
+                                eprintln!("[clipboard] Failed to create clip from image: {}", e);
                             }
                         }
                     });
