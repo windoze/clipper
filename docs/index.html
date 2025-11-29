@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clipper - Cross-Platform Clipboard Manager</title>
+  <meta name="description"
+    content="Clipper is a powerful clipboard management system that syncs your clipboard across devices with real-time updates, file attachments, and full-text search.">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <style>
+    /* ============================================
+       Root & Base Styles (Matching Clipper UI)
+       ============================================ */
+    :root {
+      --primary-start: #667eea;
+      --primary-end: #764ba2;
+      --text-primary: #1a1a1a;
+      --text-secondary: #6c757d;
+      --text-muted: #adb5bd;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --border-color: #e9ecef;
+      --success: #28a745;
+      --tag-cyan: #0891b2;
+      --tag-green: #059669;
+      --tag-orange: #ea580c;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text-primary: #e9ecef;
+        --text-secondary: #adb5bd;
+        --text-muted: #6c757d;
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2d2d2d;
+        --border-color: #404040;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+        Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ============================================
+       Header & Navigation
+       ============================================ */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+    }
+
+    .logo-text {
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary-start);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .lang-switch {
+      display: flex;
+      align-items: center;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .lang-btn {
+      padding: 6px 12px;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .lang-btn:hover {
+      background: var(--border-color);
+    }
+
+    .lang-btn.active {
+      background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);
+      color: white;
+    }
+
+    .github-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .github-link:hover {
+      color: var(--text-primary);
+    }
+
+    /* ============================================
+       Hero Section
+       ============================================ */
+    .hero {
+      background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);
+      color: white;
+      padding: 80px 24px;
+      text-align: center;
+    }
+
+    .hero-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero-icon {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 24px;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+    }
+
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+
+    .hero-tagline {
+      font-size: 20px;
+      opacity: 0.9;
+      margin-bottom: 32px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: white;
+      color: var(--primary-start);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* ============================================
+       Main Content
+       ============================================ */
+    .main-content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 24px;
+    }
+
+    section {
+      margin-bottom: 60px;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h2::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);
+      border-radius: 2px;
+    }
+
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    h4 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+    }
+
+    ul,
+    ol {
+      margin-bottom: 16px;
+      padding-left: 24px;
+      color: var(--text-secondary);
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    code {
+      background: var(--bg-secondary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 14px;
+      border: 1px solid var(--border-color);
+    }
+
+    pre {
+      background: var(--bg-secondary);
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-color);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      border: none;
+    }
+
+    /* ============================================
+       Features Grid
+       ============================================ */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
+    }
+
+    .feature-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--primary-start);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .feature-card h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+
+    .feature-card p {
+      margin-bottom: 0;
+      font-size: 14px;
+    }
+
+    /* ============================================
+       Platform Downloads
+       ============================================ */
+    .downloads-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .download-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .download-card:hover {
+      border-color: var(--primary-start);
+      transform: translateY(-2px);
+    }
+
+    .download-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .download-card h4 {
+      font-size: 16px;
+      margin-bottom: 4px;
+      margin-top: 0;
+    }
+
+    .download-card span {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ============================================
+       FAQ / Accordion
+       ============================================ */
+    .faq-item {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .faq-question {
+      width: 100%;
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border: none;
+      text-align: left;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    .faq-question:hover {
+      background: var(--border-color);
+    }
+
+    .faq-question::after {
+      content: "+";
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+
+    .faq-item.open .faq-question::after {
+      transform: rotate(45deg);
+    }
+
+    .faq-answer {
+      display: none;
+      padding: 16px 20px;
+      background: var(--bg-primary);
+    }
+
+    .faq-item.open .faq-answer {
+      display: block;
+    }
+
+    .faq-answer p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* ============================================
+       Tags (Matching app style)
+       ============================================ */
+    .tag {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    .favorite-star {
+      display: inline-block;
+      color: #f5c518;
+      font-size: 1.2em;
+      vertical-align: middle;
+      text-shadow: 0 0 4px rgba(245, 197, 24, 0.5);
+    }
+
+    .tag.cyan {
+      background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+    }
+
+    .tag.green {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+
+    .tag.orange {
+      background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+    }
+
+    /* ============================================
+       Tables
+       ============================================ */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+
+    th,
+    td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background: var(--bg-secondary);
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    td {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* ============================================
+       Footer
+       ============================================ */
+    .site-footer {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .footer-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--primary-start);
+    }
+
+    .footer-copyright {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ============================================
+       Responsive
+       ============================================ */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 36px;
+      }
+
+      .hero-tagline {
+        font-size: 18px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      h2 {
+        font-size: 26px;
+      }
+
+      .main-content {
+        padding: 40px 16px;
+      }
+
+      .header-actions {
+        gap: 8px;
+      }
+
+      .github-link span {
+        display: none;
+      }
+    }
+
+    /* ============================================
+       Anchor offset for sticky header
+       ============================================ */
+    section[id] {
+      scroll-margin-top: 80px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-content">
+      <a href="#" class="logo-group">
+        <svg class="logo-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="boardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#6366F1" />
+              <stop offset="100%" stop-color="#8B5CF6" />
+            </linearGradient>
+            <linearGradient id="clipGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#F1F5F9" />
+              <stop offset="30%" stop-color="#CBD5E1" />
+              <stop offset="70%" stop-color="#94A3B8" />
+              <stop offset="100%" stop-color="#64748B" />
+            </linearGradient>
+            <linearGradient id="paperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#FFFFFF" />
+              <stop offset="100%" stop-color="#F8FAFC" />
+            </linearGradient>
+          </defs>
+          <g>
+            <rect x="96" y="80" width="320" height="400" rx="32" ry="32" fill="url(#boardGrad)" />
+            <rect x="128" y="140" width="256" height="310" rx="16" ry="16" fill="url(#paperGrad)" />
+            <g fill="#C7D2FE">
+              <rect x="160" y="180" width="180" height="14" rx="7" />
+              <rect x="160" y="215" width="140" height="14" rx="7" />
+              <rect x="160" y="250" width="192" height="14" rx="7" />
+              <rect x="160" y="285" width="120" height="14" rx="7" />
+              <rect x="160" y="320" width="160" height="14" rx="7" />
+            </g>
+            <g>
+              <rect x="186" y="48" width="140" height="72" rx="12" ry="12" fill="url(#clipGrad)" />
+              <g stroke="#64748B" stroke-width="3" stroke-linecap="round">
+                <line x1="206" y1="60" x2="206" y2="108" />
+                <line x1="222" y1="60" x2="222" y2="108" />
+                <line x1="290" y1="60" x2="290" y2="108" />
+                <line x1="306" y1="60" x2="306" y2="108" />
+              </g>
+              <path d="M194 120 C194 136, 210 148, 230 148" stroke="#94A3B8" stroke-width="10" stroke-linecap="round"
+                fill="none" />
+              <path d="M318 120 C318 136, 302 148, 282 148" stroke="#94A3B8" stroke-width="10" stroke-linecap="round"
+                fill="none" />
+            </g>
+          </g>
+          <g>
+            <circle cx="368" cy="400" r="44" fill="#10B981" />
+            <path d="M346 400 L360 414 L390 384" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"
+              stroke-linejoin="round" fill="none" />
+          </g>
+        </svg>
+        <span class="logo-text">Clipper</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#features" data-i18n="nav.features">Features</a></li>
+          <li><a href="#download" data-i18n="nav.download">Download</a></li>
+          <li><a href="#manual" data-i18n="nav.manual">User Manual</a></li>
+          <li><a href="#faq" data-i18n="nav.faq">FAQ</a></li>
+        </ul>
+      </nav>
+      <div class="header-actions">
+        <div class="lang-switch">
+          <button class="lang-btn active" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="zh">中文</button>
+        </div>
+        <a href="https://github.com/windoze/clipper" class="github-link" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+          </svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-content">
+      <svg class="hero-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="heroClipGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#F1F5F9" />
+            <stop offset="30%" stop-color="#CBD5E1" />
+            <stop offset="70%" stop-color="#94A3B8" />
+            <stop offset="100%" stop-color="#64748B" />
+          </linearGradient>
+          <linearGradient id="heroPaperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" />
+            <stop offset="100%" stop-color="#F8FAFC" />
+          </linearGradient>
+          <filter id="heroShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#1E1B4B" flood-opacity="0.35" />
+          </filter>
+        </defs>
+        <g filter="url(#heroShadow)">
+          <rect x="96" y="80" width="320" height="400" rx="32" ry="32" fill="white" fill-opacity="0.95" />
+          <rect x="128" y="140" width="256" height="310" rx="16" ry="16" fill="url(#heroPaperGrad)" />
+          <g fill="rgba(102, 126, 234, 0.3)">
+            <rect x="160" y="180" width="180" height="14" rx="7" />
+            <rect x="160" y="215" width="140" height="14" rx="7" />
+            <rect x="160" y="250" width="192" height="14" rx="7" />
+            <rect x="160" y="285" width="120" height="14" rx="7" />
+            <rect x="160" y="320" width="160" height="14" rx="7" />
+          </g>
+          <g>
+            <rect x="186" y="48" width="140" height="72" rx="12" ry="12" fill="url(#heroClipGrad)" />
+            <g stroke="#64748B" stroke-width="3" stroke-linecap="round">
+              <line x1="206" y1="60" x2="206" y2="108" />
+              <line x1="222" y1="60" x2="222" y2="108" />
+              <line x1="290" y1="60" x2="290" y2="108" />
+              <line x1="306" y1="60" x2="306" y2="108" />
+            </g>
+            <path d="M194 120 C194 136, 210 148, 230 148" stroke="#94A3B8" stroke-width="10" stroke-linecap="round"
+              fill="none" />
+            <path d="M318 120 C318 136, 302 148, 282 148" stroke="#94A3B8" stroke-width="10" stroke-linecap="round"
+              fill="none" />
+          </g>
+        </g>
+        <g>
+          <circle cx="368" cy="400" r="44" fill="#10B981" />
+          <path d="M346 400 L360 414 L390 384" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"
+            stroke-linejoin="round" fill="none" />
+        </g>
+      </svg>
+      <h1>Clipper</h1>
+      <p class="hero-tagline" data-i18n="hero.tagline">A powerful clipboard manager that syncs across devices with
+        real-time updates, full-text search, and file attachments.</p>
+      <div class="hero-buttons">
+        <a href="#download" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span data-i18n="hero.download">Download</span>
+        </a>
+        <a href="https://github.com/windoze/clipper" class="btn btn-secondary" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+          </svg>
+          <span data-i18n="hero.github">View on GitHub</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Features -->
+    <section id="features">
+      <h2 data-i18n="features.title">Features</h2>
+      <p data-i18n="features.intro">Clipper provides a complete clipboard management solution with powerful features
+        designed for productivity.</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">&#128203;</div>
+          <h3 data-i18n="features.history.title">Clipboard History</h3>
+          <p data-i18n="features.history.desc">Automatically capture and store everything you copy, including text,
+            images, and files.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128269;</div>
+          <h3 data-i18n="features.search.title">Full-Text Search</h3>
+          <p data-i18n="features.search.desc">Quickly find any clip with powerful BM25 full-text search across all your
+            clipboard history.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128279;</div>
+          <h3 data-i18n="features.sync.title">Real-Time Sync</h3>
+          <p data-i18n="features.sync.desc">WebSocket-powered real-time synchronization keeps all your devices up to
+            date instantly.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#127991;</div>
+          <h3 data-i18n="features.tags.title">Tags & Organization</h3>
+          <p data-i18n="features.tags.desc">Organize clips with custom tags and mark favorites for easy access later.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128206;</div>
+          <h3 data-i18n="features.files.title">File Attachments</h3>
+          <p data-i18n="features.files.desc">Attach files to clips with drag-and-drop upload support for images and
+            documents.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#127760;</div>
+          <h3 data-i18n="features.cross.title">Cross-Platform</h3>
+          <p data-i18n="features.cross.desc">Available as a desktop app (macOS, Windows, Linux) and accessible via web
+            browser.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download -->
+    <section id="download">
+      <h2 data-i18n="download.title">Download</h2>
+      <p data-i18n="download.intro">Download Clipper for your platform or access it through the web interface.</p>
+
+      <div class="downloads-grid">
+        <a href="https://github.com/windoze/clipper/releases/latest" class="download-card" target="_blank"
+          rel="noopener">
+          <div class="download-icon">&#63743;</div>
+          <h4>macOS</h4>
+          <span>.dmg (Universal)</span>
+        </a>
+        <a href="https://github.com/windoze/clipper/releases/latest" class="download-card" target="_blank"
+          rel="noopener">
+          <div class="download-icon">&#128187;</div>
+          <h4>Windows</h4>
+          <span>.msi / .exe</span>
+        </a>
+        <a href="https://github.com/windoze/clipper/releases/latest" class="download-card" target="_blank"
+          rel="noopener">
+          <div class="download-icon">&#128039;</div>
+          <h4>Linux</h4>
+          <span>.deb / .AppImage</span>
+        </a>
+        <a href="https://github.com/windoze/clipper/pkgs/container/clipper-server" class="download-card" target="_blank"
+          rel="noopener">
+          <div class="download-icon">&#128230;</div>
+          <h4>Docker</h4>
+          <span data-i18n="download.docker.desc">Server + Web UI</span>
+        </a>
+      </div>
+
+      <h3 data-i18n="download.requirements">System Requirements</h3>
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="download.table.platform">Platform</th>
+            <th data-i18n="download.table.version">Minimum Version</th>
+            <th data-i18n="download.table.arch">Architecture</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>macOS</td>
+            <td data-i18n="download.macos.version">10.15 (Catalina) or later</td>
+            <td data-i18n="download.macos.arch">Universal (Intel + Apple Silicon)</td>
+          </tr>
+          <tr>
+            <td>Windows</td>
+            <td data-i18n="download.windows.version">Windows 10 (1809) or later</td>
+            <td>x64</td>
+          </tr>
+          <tr>
+            <td>Linux</td>
+            <td data-i18n="download.linux.version">Ubuntu 20.04 or equivalent</td>
+            <td>x64</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- User Manual -->
+    <section id="manual">
+      <h2 data-i18n="manual.title">User Manual</h2>
+
+      <h3 data-i18n="manual.getting_started.title">Getting Started</h3>
+      <ol>
+        <li><strong data-i18n="manual.getting_started.step1.title">Install Clipper</strong> - <span
+            data-i18n="manual.getting_started.step1.desc">Download and install the desktop app for your platform.</span>
+        </li>
+        <li><strong data-i18n="manual.getting_started.step2.title">Launch the app</strong> - <span
+            data-i18n="manual.getting_started.step2.desc">Clipper starts in the system tray and begins monitoring your
+            clipboard automatically.</span></li>
+        <li><strong data-i18n="manual.getting_started.step3.title">Copy anything</strong> - <span
+            data-i18n="manual.getting_started.step3.desc">Text, images, and files you copy are automatically saved to
+            your clipboard history.</span></li>
+        <li><strong data-i18n="manual.getting_started.step4.title">Access your clips</strong> - <span
+            data-i18n="manual.getting_started.step4.desc">Click the tray icon or use the global hotkey to open the
+            Clipper window.</span></li>
+      </ol>
+
+      <h3 data-i18n="manual.desktop.title">Desktop App</h3>
+      <p data-i18n="manual.desktop.intro">The desktop application provides the full Clipper experience with automatic
+        clipboard monitoring.</p>
+
+      <h4 data-i18n="manual.desktop.server_mode.title">Server Mode</h4>
+      <p data-i18n="manual.desktop.server_mode.intro">Clipper can run in two modes. In both modes, you fully own and
+        control the server—no third-party services are involved:</p>
+      <ul>
+        <li><strong data-i18n="manual.desktop.server_mode.bundled.title">Bundled Server</strong> <span
+            data-i18n="manual.desktop.server_mode.bundled.desc">(default) - Runs a local server automatically on your
+            machine. Works completely offline.</span></li>
+        <li><strong data-i18n="manual.desktop.server_mode.external.title">External Server</strong> - <span
+            data-i18n="manual.desktop.server_mode.external.desc">Connect to your own self-hosted Clipper server on
+            another machine for multi-device sync. Requires network connectivity.</span></li>
+      </ul>
+      <p data-i18n="manual.desktop.server_mode.switch">To switch modes, open Settings and choose your preferred server
+        configuration.</p>
+
+      <h4 data-i18n="manual.desktop.network.title">Network Access</h4>
+      <p data-i18n="manual.desktop.network.desc">When using the bundled server, you can enable "Listen on all
+        interfaces" to access Clipper from other devices on your local network. The app will display your local IP
+        addresses for easy connection.</p>
+
+      <h3 data-i18n="manual.web.title">Web Interface</h3>
+      <p data-i18n="manual.web.intro">The web interface provides browser-based access to your clipboard history.</p>
+      <ul>
+        <li><strong data-i18n="manual.web.view.title">View & Search</strong> - <span
+            data-i18n="manual.web.view.desc">Browse all your clips with infinite scroll and full-text search.</span>
+        </li>
+        <li><strong data-i18n="manual.web.edit.title">Edit</strong> - <span data-i18n="manual.web.edit.desc">Modify tags
+            and notes on any clip.</span></li>
+        <li><strong data-i18n="manual.web.upload.title">Upload</strong> - <span data-i18n="manual.web.upload.desc">Drag
+            and drop files to upload, or use the "Send Clipboard" button.</span></li>
+        <li><strong data-i18n="manual.web.realtime.title">Real-time Updates</strong> - <span
+            data-i18n="manual.web.realtime.desc">When connected via HTTPS, receive live notifications of new
+            clips.</span></li>
+      </ul>
+
+      <h3 data-i18n="manual.clips.title">Working with Clips</h3>
+
+      <h4 data-i18n="manual.clips.creating.title">Creating Clips</h4>
+      <ul>
+        <li><strong data-i18n="manual.clips.creating.auto.title">Automatic capture</strong> - <span
+            data-i18n="manual.clips.creating.auto.desc">The desktop app monitors your clipboard and saves new content
+            automatically.</span></li>
+        <li><strong data-i18n="manual.clips.creating.manual.title">Manual upload</strong> - <span
+            data-i18n="manual.clips.creating.manual.desc">Drag and drop files onto the app window or web
+            interface.</span></li>
+        <li><strong data-i18n="manual.clips.creating.send.title">Send clipboard</strong> - <span
+            data-i18n="manual.clips.creating.send.desc">In the web UI, click the clipboard button to manually send your
+            current clipboard.</span></li>
+      </ul>
+
+      <h4 data-i18n="manual.clips.searching.title">Searching</h4>
+      <p data-i18n="manual.clips.searching.intro">Use the search box to find clips by content. The search supports:</p>
+      <ul>
+        <li data-i18n="manual.clips.searching.fulltext">Full-text search across clip content and notes</li>
+        <li data-i18n="manual.clips.searching.date">Filter by date range using the date pickers</li>
+        <li data-i18n="manual.clips.searching.tags">Filter by tags - click a tag to filter clips with that tag</li>
+        <li data-i18n="manual.clips.searching.favorites">Show favorites only using the toggle switch</li>
+      </ul>
+
+      <h4 data-i18n="manual.clips.organizing.title">Organizing with Tags</h4>
+      <p data-i18n="manual.clips.organizing.intro">Tags help you organize and find clips quickly:</p>
+      <ul>
+        <li data-i18n="manual.clips.organizing.edit">Click the edit button on any clip to add or remove tags</li>
+        <li data-i18n="manual.clips.organizing.add">Type a tag name and press Enter to add it</li>
+        <li data-i18n="manual.clips.organizing.filter">Click a tag to filter all clips with that tag</li>
+        <li><span class="favorite-star">★</span> <span data-i18n="manual.clips.organizing.favorite_suffix">tag marks
+            clips as favorites</span></li>
+      </ul>
+
+      <h4 data-i18n="manual.clips.host.title">Host Tags</h4>
+      <p data-i18n="manual.clips.host.desc">When syncing across devices, clips are automatically tagged with the
+        hostname of the device they came from. These tags have a distinct blue color and help you identify the source of
+        each clip.</p>
+
+      <h3 data-i18n="manual.settings.title">Settings</h3>
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="manual.settings.table.setting">Setting</th>
+            <th data-i18n="manual.settings.table.description">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-i18n="manual.settings.theme.name">Theme</td>
+            <td data-i18n="manual.settings.theme.desc">Choose Light, Dark, or Auto (follows system preference)</td>
+          </tr>
+          <tr>
+            <td data-i18n="manual.settings.language.name">Language</td>
+            <td data-i18n="manual.settings.language.desc">English or Chinese (simplified)</td>
+          </tr>
+          <tr>
+            <td data-i18n="manual.settings.startup.name">Start on Login</td>
+            <td data-i18n="manual.settings.startup.desc">Launch Clipper automatically when you log in</td>
+          </tr>
+          <tr>
+            <td data-i18n="manual.settings.notifications.name">Notifications</td>
+            <td data-i18n="manual.settings.notifications.desc">Show toast notifications for new clips</td>
+          </tr>
+          <tr>
+            <td data-i18n="manual.settings.server.name">Server Mode</td>
+            <td data-i18n="manual.settings.server.desc">Use bundled server or connect to your own self-hosted server
+            </td>
+          </tr>
+          <tr>
+            <td data-i18n="manual.settings.network.name">Network Access</td>
+            <td data-i18n="manual.settings.network.desc">Allow connections from other devices on your network</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 data-i18n="manual.selfhost.title">Self-Hosting with Docker</h3>
+      <p data-i18n="manual.selfhost.intro">For multi-device sync, you can run your own Clipper server on a dedicated
+        machine using Docker. This is the same server that the desktop app bundles—just running separately.</p>
+
+      <pre><code># Pull and run the Clipper server
+docker run -d \
+  --name clipper \
+  -p 3000:3000 \
+  -v clipper-data:/data \
+  ghcr.io/windoze/clipper-server:latest</code></pre>
+
+      <p><span data-i18n="manual.selfhost.access">Access the web interface at</span> <code>http://localhost:3000</code>.
+      </p>
+
+      <h4 data-i18n="manual.selfhost.config.title">Configuration</h4>
+      <p data-i18n="manual.selfhost.config.intro">The server can be configured via environment variables:</p>
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="manual.selfhost.config.variable">Variable</th>
+            <th data-i18n="manual.selfhost.config.default">Default</th>
+            <th data-i18n="manual.selfhost.config.description">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>PORT</code></td>
+            <td>3000</td>
+            <td data-i18n="manual.selfhost.config.port">Server port</td>
+          </tr>
+          <tr>
+            <td><code>CLIPPER_DB_PATH</code></td>
+            <td>/data/db</td>
+            <td data-i18n="manual.selfhost.config.db">Database storage path</td>
+          </tr>
+          <tr>
+            <td><code>CLIPPER_STORAGE_PATH</code></td>
+            <td>/data/storage</td>
+            <td data-i18n="manual.selfhost.config.storage">File attachment storage path</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4 data-i18n="manual.selfhost.https.title">HTTPS Configuration</h4>
+      <p data-i18n="manual.selfhost.https.intro">For production use, configure TLS for secure connections:</p>
+      <ul>
+        <li><strong data-i18n="manual.selfhost.https.manual.title">Manual certificates</strong> - <span
+            data-i18n="manual.selfhost.https.manual.desc">Provide your own certificate and key files</span></li>
+        <li><strong data-i18n="manual.selfhost.https.acme.title">ACME (Let's Encrypt)</strong> - <span
+            data-i18n="manual.selfhost.https.acme.desc">Automatic certificate provisioning and renewal</span></li>
+      </ul>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq">
+      <h2 data-i18n="faq.title">FAQ</h2>
+
+      <div class="faq-item">
+        <button class="faq-question" data-i18n="faq.security.q">Is my clipboard data secure?</button>
+        <div class="faq-answer">
+          <p data-i18n="faq.security.a">Yes. Clipper never sends your data to any third-party service. In both bundled
+            and external server modes, you fully own and control the server. The bundled server stores data locally on
+            your machine, while an external server runs on your own infrastructure. For network access, we recommend
+            using HTTPS to encrypt data in transit.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" data-i18n="faq.sync.q">How does cross-device sync work?</button>
+        <div class="faq-answer">
+          <p data-i18n="faq.sync.a">Connect multiple Clipper clients to the same server. When you copy something on one
+            device, it's saved to the server and all connected devices receive a real-time notification via WebSocket.
+            Each clip is tagged with the source device's hostname for easy identification.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" data-i18n="faq.files.q">What file types can I upload?</button>
+        <div class="faq-answer">
+          <p data-i18n="faq.files.a">Clipper accepts any file type. Images (PNG, JPG, GIF, etc.) are displayed with
+            preview thumbnails. Other files are stored as attachments that can be downloaded at any time.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" data-i18n="faq.storage.q">How much storage does Clipper use?</button>
+        <div class="faq-answer">
+          <p data-i18n="faq.storage.a">Text clips use minimal storage (a few KB each). Images and file attachments use
+            more space depending on their size. You can delete old clips at any time to free up storage. There's
+            currently no automatic cleanup - you have full control over your data.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" data-i18n="faq.web_only.q">Can I use Clipper without the desktop app?</button>
+        <div class="faq-answer">
+          <p data-i18n="faq.web_only.a">Yes! You can run the Clipper server (via Docker or the standalone binary) and
+            access it through the web interface. However, the web UI cannot automatically monitor your clipboard -
+            you'll need to manually send content using the "Send Clipboard" button or drag-and-drop files.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" data-i18n="faq.offline.q">Does Clipper work offline?</button>
+        <div class="faq-answer">
+          <p data-i18n="faq.offline.a">When using the bundled server mode, Clipper works entirely offline. Your clips
+            are stored locally and the app doesn't require an internet connection. If you're using a self-hosted
+            external server for sync, you'll need network connectivity to that server.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Troubleshooting -->
+    <section id="troubleshooting">
+      <h2 data-i18n="troubleshooting.title">Troubleshooting</h2>
+
+      <h3 data-i18n="troubleshooting.desktop.title">Desktop App Issues</h3>
+
+      <h4 data-i18n="troubleshooting.desktop.crash.title">App doesn't start / crashes on launch</h4>
+      <ul>
+        <li data-i18n="troubleshooting.desktop.crash.requirements">Check that your system meets the minimum requirements
+        </li>
+        <li data-i18n="troubleshooting.desktop.crash.macos">On macOS, you may need to allow the app in System
+          Preferences > Security & Privacy</li>
+        <li><span data-i18n="troubleshooting.desktop.crash.settings">Try deleting the settings file and
+            restarting:</span>
+          <ul>
+            <li>macOS: <code>~/Library/Application Support/com.0d0a.clipper/settings.json</code></li>
+            <li>Linux: <code>~/.config/com.0d0a.clipper/settings.json</code></li>
+            <li>Windows: <code>%APPDATA%\com.0d0a.clipper\settings.json</code></li>
+          </ul>
+        </li>
+      </ul>
+
+      <h4 data-i18n="troubleshooting.desktop.clipboard.title">Clipboard monitoring not working</h4>
+      <ul>
+        <li data-i18n="troubleshooting.desktop.clipboard.permissions">Ensure the app has accessibility permissions
+          (required on macOS)</li>
+        <li data-i18n="troubleshooting.desktop.clipboard.desktop">Check that you're using the desktop app, not just the
+          web interface</li>
+        <li data-i18n="troubleshooting.desktop.clipboard.restart">Restart the app if clipboard monitoring stops working
+        </li>
+      </ul>
+
+      <h4 data-i18n="troubleshooting.desktop.server.title">Can't connect to bundled server</h4>
+      <ul>
+        <li data-i18n="troubleshooting.desktop.server.port">Check if another application is using port 3000</li>
+        <li data-i18n="troubleshooting.desktop.server.logs">Look for error messages in the app's log files</li>
+        <li data-i18n="troubleshooting.desktop.server.clear">Try using "Clear All Data" in Settings to reset the
+          database</li>
+      </ul>
+
+      <h3 data-i18n="troubleshooting.connection.title">Connection Issues</h3>
+
+      <h4 data-i18n="troubleshooting.connection.ws.title">WebSocket shows "Disconnected"</h4>
+      <ul>
+        <li data-i18n="troubleshooting.connection.ws.url">Verify the server URL is correct in Settings</li>
+        <li data-i18n="troubleshooting.connection.ws.running">Check if the server is running and accessible</li>
+        <li data-i18n="troubleshooting.connection.ws.cert">For HTTPS connections, ensure the certificate is valid</li>
+        <li data-i18n="troubleshooting.connection.ws.firewall">Firewalls may block WebSocket connections - check your
+          network settings</li>
+      </ul>
+
+      <h4 data-i18n="troubleshooting.connection.access.title">Can't access from other devices</h4>
+      <ul>
+        <li data-i18n="troubleshooting.connection.access.enable">Enable "Listen on all interfaces" in Settings</li>
+        <li data-i18n="troubleshooting.connection.access.ip">Use the displayed local IP address (not localhost) to
+          connect</li>
+        <li data-i18n="troubleshooting.connection.access.network">Ensure devices are on the same network</li>
+        <li data-i18n="troubleshooting.connection.access.firewall">Check firewall rules on both the server and client
+          machines</li>
+      </ul>
+
+      <h3 data-i18n="troubleshooting.data.title">Data Issues</h3>
+
+      <h4 data-i18n="troubleshooting.data.sync.title">Clips not syncing between devices</h4>
+      <ul>
+        <li data-i18n="troubleshooting.data.sync.server">Verify all devices are connected to the same server</li>
+        <li data-i18n="troubleshooting.data.sync.status">Check the WebSocket connection status (green dot = connected)
+        </li>
+        <li data-i18n="troubleshooting.data.sync.accessible">Ensure the server is accessible from all devices</li>
+      </ul>
+
+      <h4 data-i18n="troubleshooting.data.search.title">Search not finding expected results</h4>
+      <ul>
+        <li data-i18n="troubleshooting.data.search.case">Search is case-insensitive but matches whole words</li>
+        <li data-i18n="troubleshooting.data.search.filters">Clear any active filters (tags, date range, favorites)</li>
+        <li data-i18n="troubleshooting.data.search.scope">The search covers content and notes, but not tags - use tag
+          filters for that</li>
+      </ul>
+
+      <h4 data-i18n="troubleshooting.data.images.title">Images not displaying</h4>
+      <ul>
+        <li data-i18n="troubleshooting.data.images.exists">Check if the file attachment exists on the server</li>
+        <li data-i18n="troubleshooting.data.images.loading">Large images may take time to load on slow connections</li>
+        <li data-i18n="troubleshooting.data.images.format">Unsupported image formats may not display previews</li>
+      </ul>
+
+      <h3 data-i18n="troubleshooting.help.title">Getting Help</h3>
+      <p data-i18n="troubleshooting.help.intro">If you're still experiencing issues:</p>
+      <ol>
+        <li><span data-i18n="troubleshooting.help.check">Check the</span> <a
+            href="https://github.com/windoze/clipper/issues" target="_blank" rel="noopener">GitHub Issues</a>
+          <span data-i18n="troubleshooting.help.known">for known problems and solutions</span>
+        </li>
+        <li data-i18n="troubleshooting.help.search">Search existing issues before creating a new one</li>
+        <li><span data-i18n="troubleshooting.help.report">When reporting a bug, include:</span>
+          <ul>
+            <li data-i18n="troubleshooting.help.os">Your operating system and version</li>
+            <li data-i18n="troubleshooting.help.version">Clipper version</li>
+            <li data-i18n="troubleshooting.help.steps">Steps to reproduce the issue</li>
+            <li data-i18n="troubleshooting.help.errors">Any error messages or logs</li>
+          </ul>
+        </li>
+      </ol>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-links">
+        <a href="https://github.com/windoze/clipper" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/windoze/clipper/releases" target="_blank" rel="noopener"
+          data-i18n="footer.releases">Releases</a>
+        <a href="https://github.com/windoze/clipper/issues" target="_blank" rel="noopener"
+          data-i18n="footer.issues">Report Issue</a>
+        <a href="https://github.com/windoze/clipper/blob/main/LICENSE" target="_blank" rel="noopener"
+          data-i18n="footer.license">License</a>
+      </div>
+      <p class="footer-copyright" data-i18n="footer.copyright">&copy; 2024 Clipper. Open source under MIT License.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Translations
+    const translations = {
+      en: {
+        "nav.features": "Features",
+        "nav.download": "Get It",
+        "nav.manual": "How-To",
+        "nav.faq": "FAQ",
+        "hero.tagline": ">be me, copy paste stuff all day\n>forget what I copied 5 mins ago\n>not anymore. This thing syncs your clipboard across all your devices. Real-time. Full-text search. Based.",
+        "hero.download": "Get It",
+        "hero.github": "Sauce on GitHub",
+        "features.title": "What This Bad Boy Can Do",
+        "features.intro": "Anon, let me tell you about these features. They're actually useful, not bloatware.",
+        "features.history.title": "Clipboard History",
+        "features.history.desc": "Grabs everything you copy automatically. Text, images, files - it catches them all. Never lose a copypasta again.",
+        "features.search.title": "Full-Text Search",
+        "features.search.desc": "BM25 search algorithm. Sounds fancy because it is. Find that thing you copied 3 weeks ago in milliseconds.",
+        "features.sync.title": "Real-Time Sync",
+        "features.sync.desc": "WebSocket magic. Copy on your PC, paste on your laptop. It just works. No cloud BS from big tech.",
+        "features.tags.title": "Tags & Organization",
+        "features.tags.desc": "Tag your clips like a civilized person. Mark favorites. Actually find stuff when you need it.",
+        "features.files.title": "File Attachments",
+        "features.files.desc": "Drag, drop, done. Images, documents, whatever. Your clips can have files attached.",
+        "features.cross.title": "Cross-Platform",
+        "features.cross.desc": "Mac, Windows, Linux - we don't discriminate. Web UI too if you're into that.",
+        "download.title": "Get It",
+        "download.intro": "Grab the version for your OS. Or just use Docker if you're not a casual.",
+        "download.docker.desc": "Server + Web UI",
+        "download.requirements": "System Requirements",
+        "download.table.platform": "Platform",
+        "download.table.version": "Min Version",
+        "download.table.arch": "Architecture",
+        "download.macos.version": "10.15 (Catalina)+",
+        "download.macos.arch": "Universal (Intel + Apple Silicon)",
+        "download.windows.version": "Win 10 (1809)+",
+        "download.linux.version": "Ubuntu 20.04 or whatever",
+        "manual.title": "How-To Guide",
+        "manual.getting_started.title": "Getting Started",
+        "manual.getting_started.step1.title": "Install It",
+        "manual.getting_started.step1.desc": "Download the app. Install it. You know the drill.",
+        "manual.getting_started.step2.title": "Launch It",
+        "manual.getting_started.step2.desc": "It chills in your system tray. Starts watching your clipboard automatically. Comfy.",
+        "manual.getting_started.step3.title": "Copy Stuff",
+        "manual.getting_started.step3.desc": "Text, images, files - copy anything. It gets saved. That's literally it.",
+        "manual.getting_started.step4.title": "Access Your Clips",
+        "manual.getting_started.step4.desc": "Click the tray icon. Your clips are right there. Not rocket science.",
+        "manual.desktop.title": "Desktop App",
+        "manual.desktop.intro": "The desktop app is where the magic happens. Auto clipboard monitoring, the whole deal.",
+        "manual.desktop.server_mode.title": "Server Mode",
+        "manual.desktop.server_mode.intro": "Two modes, both self-hosted. Your data stays yours. No glowies involved:",
+        "manual.desktop.server_mode.bundled.title": "Bundled Server",
+        "manual.desktop.server_mode.bundled.desc": "(default) - Local server runs on your machine. Works offline. Maximum comfy.",
+        "manual.desktop.server_mode.external.title": "External Server",
+        "manual.desktop.server_mode.external.desc": "Point it to your own server on another machine. Multi-device sync. You still own everything.",
+        "manual.desktop.server_mode.switch": "Switch modes in Settings. It's not complicated.",
+        "manual.desktop.network.title": "Network Access",
+        "manual.desktop.network.desc": "Enable \"Listen on all interfaces\" and other devices on your LAN can connect. The app shows your local IPs.",
+        "manual.web.title": "Web Interface",
+        "manual.web.intro": "Browser-based access. For when you're not at your main machine.",
+        "manual.web.view.title": "View & Search",
+        "manual.web.view.desc": "Infinite scroll. Full-text search. Find your stuff.",
+        "manual.web.edit.title": "Edit",
+        "manual.web.edit.desc": "Change tags and notes. Pretty straightforward.",
+        "manual.web.upload.title": "Upload",
+        "manual.web.upload.desc": "Drag and drop files, or hit the \"Send Clipboard\" button.",
+        "manual.web.realtime.title": "Real-time Updates",
+        "manual.web.realtime.desc": "HTTPS connection = live notifications when new clips come in.",
+        "manual.clips.title": "Working with Clips",
+        "manual.clips.creating.title": "Creating Clips",
+        "manual.clips.creating.auto.title": "Auto capture",
+        "manual.clips.creating.auto.desc": "Desktop app watches your clipboard. Saves everything. You don't have to do anything.",
+        "manual.clips.creating.manual.title": "Manual upload",
+        "manual.clips.creating.manual.desc": "Drag and drop files into the window. Works on web too.",
+        "manual.clips.creating.send.title": "Send clipboard",
+        "manual.clips.creating.send.desc": "Web UI has a clipboard button. Click it to send what you've got copied.",
+        "manual.clips.searching.title": "Searching",
+        "manual.clips.searching.intro": "Search box finds clips. Here's what it can do:",
+        "manual.clips.searching.fulltext": "Full-text search through content and notes",
+        "manual.clips.searching.date": "Date range filters with the date pickers",
+        "manual.clips.searching.tags": "Tag filtering - click a tag to see all clips with it",
+        "manual.clips.searching.favorites": "Favorites only toggle",
+        "manual.clips.organizing.title": "Tags",
+        "manual.clips.organizing.intro": "Tags = organization. Here's the deal:",
+        "manual.clips.organizing.edit": "Edit button on any clip to add/remove tags",
+        "manual.clips.organizing.add": "Type tag name, hit Enter. Done.",
+        "manual.clips.organizing.filter": "Click any tag to filter by it",
+        "manual.clips.organizing.favorite_prefix": "",
+        "manual.clips.organizing.favorite_suffix": "tag = favorites. You get it.",
+        "manual.clips.host.title": "Host Tags",
+        "manual.clips.host.desc": "Multi-device sync adds hostname tags automatically. Blue colored. Shows where each clip came from. Neat.",
+        "manual.settings.title": "Settings",
+        "manual.settings.table.setting": "Setting",
+        "manual.settings.table.description": "What it does",
+        "manual.settings.theme.name": "Theme",
+        "manual.settings.theme.desc": "Light, Dark, or Auto. Pick one.",
+        "manual.settings.language.name": "Language",
+        "manual.settings.language.desc": "English or Chinese",
+        "manual.settings.startup.name": "Start on Login",
+        "manual.settings.startup.desc": "Auto-launch when you log in",
+        "manual.settings.notifications.name": "Notifications",
+        "manual.settings.notifications.desc": "Toast popups for new clips",
+        "manual.settings.server.name": "Server Mode",
+        "manual.settings.server.desc": "Bundled or your own server. Both self-hosted.",
+        "manual.settings.network.name": "Network Access",
+        "manual.settings.network.desc": "Let other devices on your network connect",
+        "manual.selfhost.title": "Docker Setup",
+        "manual.selfhost.intro": "Want multi-device? Run the server on a dedicated box with Docker. Same server the app bundles, just running standalone.",
+        "manual.selfhost.access": "Web UI at",
+        "manual.selfhost.config.title": "Config",
+        "manual.selfhost.config.intro": "Environment variables for the server:",
+        "manual.selfhost.config.variable": "Variable",
+        "manual.selfhost.config.default": "Default",
+        "manual.selfhost.config.description": "What it does",
+        "manual.selfhost.config.port": "Server port",
+        "manual.selfhost.config.db": "Database path",
+        "manual.selfhost.config.storage": "File storage path",
+        "manual.selfhost.https.title": "HTTPS Setup",
+        "manual.selfhost.https.intro": "Production = TLS. Do it right:",
+        "manual.selfhost.https.manual.title": "Manual certs",
+        "manual.selfhost.https.manual.desc": "Bring your own cert and key files",
+        "manual.selfhost.https.acme.title": "ACME (Let's Encrypt)",
+        "manual.selfhost.https.acme.desc": "Auto cert provisioning. Set it and forget it.",
+        "faq.title": "FAQ",
+        "faq.security.q": "Is my data safe? Any botnet stuff?",
+        "faq.security.a": "Your data never leaves your control. Zero third-party services. Bundled mode = everything on your machine. External mode = your own server. Either way, you own it all. Use HTTPS if you're accessing over network. Don't be dumb about security.",
+        "faq.sync.q": "How does multi-device sync work?",
+        "faq.sync.a": "Point multiple clients at the same server. Copy on one device, it hits the server, WebSocket pushes to all connected devices instantly. Hostname tags show where each clip came from. It's pretty slick actually.",
+        "faq.files.q": "What files can I upload?",
+        "faq.files.a": "Anything. Images get thumbnails. Other files are attachments you can download whenever. No restrictions.",
+        "faq.storage.q": "How much disk space does this eat?",
+        "faq.storage.a": "Text clips = basically nothing. Images and files = depends on size, obviously. Delete old stuff anytime. No auto-cleanup, you're in control.",
+        "faq.web_only.q": "Can I skip the desktop app?",
+        "faq.web_only.a": "Yeah. Run the server (Docker or binary) and use the web UI. Catch: web can't auto-monitor clipboard (browser security). You'll need to manually send stuff with the clipboard button or drag-drop.",
+        "faq.offline.q": "Works offline?",
+        "faq.offline.a": "Bundled server = 100% offline, no internet needed. External server = need network to reach it. Pretty obvious when you think about it.",
+        "troubleshooting.title": "It's Not Working",
+        "troubleshooting.desktop.title": "Desktop App Being Difficult",
+        "troubleshooting.desktop.crash.title": "Won't start / crashes",
+        "troubleshooting.desktop.crash.requirements": "Check system requirements. Is your OS ancient?",
+        "troubleshooting.desktop.crash.macos": "macOS users: allow it in System Preferences > Security & Privacy. Apple being Apple.",
+        "troubleshooting.desktop.crash.settings": "Nuclear option - delete settings file and restart:",
+        "troubleshooting.desktop.clipboard.title": "Clipboard monitoring broke",
+        "troubleshooting.desktop.clipboard.permissions": "Give it accessibility permissions (macOS requires this)",
+        "troubleshooting.desktop.clipboard.desktop": "You ARE using the desktop app right? Not just the web UI?",
+        "troubleshooting.desktop.clipboard.restart": "Have you tried turning it off and on again?",
+        "troubleshooting.desktop.server.title": "Can't connect to bundled server",
+        "troubleshooting.desktop.server.port": "Something else hogging port 3000?",
+        "troubleshooting.desktop.server.logs": "Check the log files for errors",
+        "troubleshooting.desktop.server.clear": "\"Clear All Data\" in Settings nukes the database. Last resort.",
+        "troubleshooting.connection.title": "Connection Problems",
+        "troubleshooting.connection.ws.title": "WebSocket says \"Disconnected\"",
+        "troubleshooting.connection.ws.url": "Server URL correct in Settings?",
+        "troubleshooting.connection.ws.running": "Is the server actually running?",
+        "troubleshooting.connection.ws.cert": "HTTPS? Make sure cert is valid",
+        "troubleshooting.connection.ws.firewall": "Firewall blocking WebSocket? Check it.",
+        "troubleshooting.connection.access.title": "Other devices can't connect",
+        "troubleshooting.connection.access.enable": "\"Listen on all interfaces\" enabled in Settings?",
+        "troubleshooting.connection.access.ip": "Use the local IP address, not localhost",
+        "troubleshooting.connection.access.network": "Same network? Same subnet?",
+        "troubleshooting.connection.access.firewall": "Check firewall on both machines",
+        "troubleshooting.data.title": "Data Problems",
+        "troubleshooting.data.sync.title": "Sync not working",
+        "troubleshooting.data.sync.server": "All devices pointing to the same server?",
+        "troubleshooting.data.sync.status": "Green dot = connected. No green dot = problem.",
+        "troubleshooting.data.sync.accessible": "Can all devices actually reach the server?",
+        "troubleshooting.data.search.title": "Search not finding stuff",
+        "troubleshooting.data.search.case": "Case-insensitive, but matches whole words",
+        "troubleshooting.data.search.filters": "Clear your filters first (tags, dates, favorites toggle)",
+        "troubleshooting.data.search.scope": "Search does content and notes, not tags. Use tag filters for tags.",
+        "troubleshooting.data.images.title": "Images not showing",
+        "troubleshooting.data.images.exists": "Does the file actually exist on the server?",
+        "troubleshooting.data.images.loading": "Big images + slow connection = patience required",
+        "troubleshooting.data.images.format": "Weird format? Might not preview.",
+        "troubleshooting.help.title": "Still Stuck?",
+        "troubleshooting.help.intro": "If nothing works:",
+        "troubleshooting.help.check": "Check the",
+        "troubleshooting.help.known": "for known issues",
+        "troubleshooting.help.search": "Search before posting. Don't be that guy.",
+        "troubleshooting.help.report": "Bug report needs:",
+        "troubleshooting.help.os": "OS and version",
+        "troubleshooting.help.version": "Clipper version",
+        "troubleshooting.help.steps": "How to reproduce",
+        "troubleshooting.help.errors": "Error messages/logs",
+        "footer.releases": "Releases",
+        "footer.issues": "Report Bug",
+        "footer.license": "License",
+        "footer.copyright": "\u00a9 2024 Clipper. MIT License. Do whatever."
+      },
+      zh: {
+        "nav.features": "会干啥",
+        "nav.download": "领养一个",
+        "nav.manual": "驯养指南",
+        "nav.faq": "杠精俱乐部",
+        "hero.tagline": "我昨天复制的那个会转圈的土豆呢？？？明明塞在右鼻孔里的怎么跑到左耳朵里了？？？是不是被沙发吃了气死我了！！！——如果你也经常和家具玩捉迷藏，那么这个会说话的垃圾桶就是为你准备的。跨房间传送，气味搜索，还能存屁。你那些忘记呼吸的想法，终于有地方打盹了。",
+        "hero.download": "领养一个",
+        "hero.github": "偷看源代码的内裤",
+        "features.title": "这玩意儿能吃吗",
+        "features.intro": "警告：以下功能可能会让你的拖鞋学会唱歌，请扶稳坐好。",
+        "features.history.title": "记忆棉花糖",
+        "features.history.desc": "你打过的每一个哈欠它都记着，包括上周二早上8点13分那个没吃完的煎饼。从此告别'我刚刚放屁了没'这种人生难题。",
+        "features.search.title": "气味搜索",
+        "features.search.desc": "隔壁老王算法，你问我啥是老王？就是那个会借你酱油不还的邻居。",
+        "features.sync.title": "跨房间传送",
+        "features.sync.desc": "利用 WiFi 打喷嚏，在卧室复制的东西会出现在厨房的冰箱里。不用电，用土豆发电。",
+        "features.tags.title": "情绪便利贴",
+        "features.tags.desc": "给你的想法贴上便利贴，比如'会跳舞的紫色'或者'爱吃披萨的蓝色'。以后找东西靠闻味道。",
+        "features.files.title": "灵魂蘸料",
+        "features.files.desc": "把梦往屏幕上一泼就完事了，什么会说话的胡萝卜都行。一条记录还能附带一包辣酱，奢华。",
+        "features.cross.title": "跨家具兼容",
+        "features.cross.desc": "冰箱、微波炉、会说话的马桶都能用。你用什么我变成什么，够意思吧？",
+        "download.title": "领养中心",
+        "download.intro": "选一个和你拖鞋匹配的版本。会做饭的直接炒菜也行，显得你很香。",
+        "download.docker.desc": "会说话的茶壶+隐形拖鞋套餐",
+        "download.requirements": "系统要求（别问你的收音机行不行）",
+        "download.table.platform": "蹦蹦床",
+        "download.table.version": "最低饭量",
+        "download.table.arch": "建筑风格",
+        "download.macos.version": "10.15 (会跳舞的猫) 往上，别拿算盘来",
+        "download.macos.arch": "彩虹版（左脑和右脑都伺候）",
+        "download.windows.version": "Win 10 (会飞的窗户) 往上",
+        "download.linux.version": "Ubuntu 20.04 或者会打酱油的",
+        "manual.title": "驯养手册",
+        "manual.getting_started.title": "新手村迷惑行为",
+        "manual.getting_started.step1.title": "喂它吃饭",
+        "manual.getting_started.step1.desc": "下载安装，这玩意儿不会还要用筷子喂吧？不会吧不会吧？",
+        "manual.getting_started.step2.title": "挠它痒痒",
+        "manual.getting_started.step2.desc": "打开之后它躲在系统托盘里学猫叫，自动监视你的脑洞，全自动的，躺着别动。",
+        "manual.getting_started.step3.title": "想点吃的",
+        "manual.getting_started.step3.desc": "想法、屁、会转圈的土豆，你想啥它存啥，就这么香。",
+        "manual.getting_started.step4.title": "去冰箱看看",
+        "manual.getting_started.step4.desc": "点托盘图标，你忘记的想法全在里面开派对呢，一目十行。",
+        "manual.desktop.title": "桌面炒菜",
+        "manual.desktop.intro": "桌面版是主厨，自动偷看你的饭量，功能最香。想用得饱就用这个。",
+        "manual.desktop.server_mode.title": "服务器人格分裂",
+        "manual.desktop.server_mode.intro": "两种人格随你选，但不管哪种数据都在你冰箱里，没有任何第三方邻居偷看你的剩饭：",
+        "manual.desktop.server_mode.bundled.title": "内置微波炉",
+        "manual.desktop.server_mode.bundled.desc": "（默认就是这个）本地放个微波炉，完全离线可加热，停电照样香。",
+        "manual.desktop.server_mode.external.title": "外部冰箱",
+        "manual.desktop.server_mode.external.desc": "连到你自己买的另一个冰箱上，跨房间同步就靠它了。得有剩饭。",
+        "manual.desktop.server_mode.switch": "在设置里放个屁就能切换，蚂蚁都会。",
+        "manual.desktop.network.title": "剩饭共享",
+        "manual.desktop.network.desc": "打开「接收邻居信号」，同一个楼道里的其他冰箱就能连接了。会显示你的剩饭菜谱，直接用就完事。",
+        "manual.web.title": "网页煮面",
+        "manual.web.intro": "浏览器里用的版本，在别人家蹭饭的时候也能访问你的剩饭历史。",
+        "manual.web.view.title": "看 + 闻",
+        "manual.web.view.desc": "往左滚自动上菜，全文搜索找东西靠鼻子。",
+        "manual.web.edit.title": "加料",
+        "manual.web.edit.desc": "改味道改颜色，戳戳戳就完了。",
+        "manual.web.upload.title": "倒剩饭",
+        "manual.web.upload.desc": "把梦往页面里一倒，或者点那个「发送脑洞」按钮。",
+        "manual.web.realtime.title": "实时煮饭",
+        "manual.web.realtime.desc": "用煤气连的话，有新想法会实时冒泡。",
+        "manual.clips.title": "玩转剩饭",
+        "manual.clips.creating.title": "怎么倒进去",
+        "manual.clips.creating.auto.title": "自动偷吃",
+        "manual.clips.creating.auto.desc": "桌面应用偷看你的饭盒呢，吃啥自动就记了，你都不用嚼。",
+        "manual.clips.creating.manual.title": "手动倒饭",
+        "manual.clips.creating.manual.desc": "把剩饭往窗口里一倒就行，网页版也是这个操作。",
+        "manual.clips.creating.send.title": "发送饭盒",
+        "manual.clips.creating.send.desc": "网页版有个饭盒图标，点一下就把你当前的剩饭发射过去了。",
+        "manual.clips.searching.title": "搜索菜谱",
+        "manual.clips.searching.intro": "搜索框里做梦就能找，支持这些厨房操作：",
+        "manual.clips.searching.fulltext": "全文闻味，想法和剩饭都搜",
+        "manual.clips.searching.date": "按保质期筛，想找哪天的剩饭就哪天的",
+        "manual.clips.searching.tags": "按颜色筛，闻一下颜色就只显示带这个颜色的",
+        "manual.clips.searching.favorites": "只看会跳舞的菜，开个抽油烟机的事",
+        "manual.clips.organizing.title": "调料玩法",
+        "manual.clips.organizing.intro": "调料就是帮你调味的，会用调料的都是会做饭的：",
+        "manual.clips.organizing.edit": "点炒菜按钮加调料删调料",
+        "manual.clips.organizing.add": "撒调料名，翻炒，搞定",
+        "manual.clips.organizing.filter": "闻调料就能炒出所有带这个调料的",
+        "manual.clips.organizing.favorite_prefix": "",
+        "manual.clips.organizing.favorite_suffix": "这个调料就是会跳舞，加上它就是你的拿手菜",
+        "manual.clips.host.title": "厨房气味",
+        "manual.clips.host.desc": "跨房间同步的时候，每条记录会自动染上来源厨房的味道，蓝色的那个气味，一闻就能知道是从哪个冰箱复制来的。",
+        "manual.settings.title": "调料菜单",
+        "manual.settings.table.setting": "调料项",
+        "manual.settings.table.description": "这能炒出啥",
+        "manual.settings.theme.name": "盘子颜色",
+        "manual.settings.theme.desc": "白盘、黑盘、随心情换，选一个你喜欢的",
+        "manual.settings.language.name": "说话口音",
+        "manual.settings.language.desc": "普通话或方言，你在看普通话说明你已经选对了",
+        "manual.settings.startup.name": "自动开火",
+        "manual.settings.startup.desc": "开机就炒菜，不用你手动点火",
+        "manual.settings.notifications.name": "锅盖提醒",
+        "manual.settings.notifications.desc": "有新菜在你锅里蹦迪",
+        "manual.settings.server.name": "炉灶人格",
+        "manual.settings.server.desc": "用自带的还是连你自己买的，剩饭都是你的",
+        "manual.settings.network.name": "剩饭共享",
+        "manual.settings.network.desc": "让同一个楼道里的其他锅也能连上来",
+        "manual.selfhost.title": "炒菜锅使用教程",
+        "manual.selfhost.intro": "想搞跨房间同步？在另一个厨房里用炒菜锅煮个服务器就行。和应用内置的微波炉一模一样，只是单独煮而已。",
+        "manual.selfhost.access": "厨房入口：",
+        "manual.selfhost.config.title": "炒菜配方",
+        "manual.selfhost.config.intro": "调料变量，懂的都懂：",
+        "manual.selfhost.config.variable": "调料名",
+        "manual.selfhost.config.default": "默认口味",
+        "manual.selfhost.config.description": "啥味道",
+        "manual.selfhost.config.port": "炉灶号码",
+        "manual.selfhost.config.db": "菜谱存哪",
+        "manual.selfhost.config.storage": "剩饭存放处",
+        "manual.selfhost.https.title": "锅盖配置",
+        "manual.selfhost.https.intro": "正式用就盖个锅盖，安心：",
+        "manual.selfhost.https.manual.title": "手工锅盖",
+        "manual.selfhost.https.manual.desc": "自己找锅盖和密封条放上去",
+        "manual.selfhost.https.acme.title": "自动锅盖机",
+        "manual.selfhost.https.acme.desc": "自动盖锅盖自动排气，懒人福音",
+        "faq.title": "一亿个为什么",
+        "faq.security.q": "我的剩饭安全吗？你们不会偷吃吧？",
+        "faq.security.a": "想啥呢？这是本地炒菜，剩饭压根就不送给任何第三方。内置微波炉模式剩饭就在你自己冰箱里，外部冰箱模式剩饭在你自己买的冰箱上。总之你的剩饭你自己吃，我们连闻都闻不到，想偷都没门。联网炒菜记得盖锅盖就行。",
+        "faq.sync.q": "跨房间同步是怎么回事？",
+        "faq.sync.a": "很简单，多个厨房都连同一个炉灶就完事了。一个厨房里炒菜，炉灶记着，油烟机实时推送给其他厨房，基本是瞬间同步。还会自动标记这道菜是从哪个厨房来的，清清楚楚。",
+        "faq.files.q": "能存啥剩饭？有限制吗？",
+        "faq.files.a": "没限制，你存啥都行。会转圈的土豆会显示缩略图，其他剩饭当配菜存着，想吃就吃。不挑食。",
+        "faq.storage.q": "这玩意儿占多少冰箱空间？",
+        "faq.storage.a": "纯想法基本不占地方（几个蒜头的事）。会跳舞的胡萝卜占多少看你买多大的，这不是废话嘛。旧的可以倒掉，存多少你自己说了算。",
+        "faq.web_only.q": "不买炒菜锅光用网页煮面行吗？",
+        "faq.web_only.a": "行啊，开个炉灶然后用网页煮面就行。但有个事得说清楚：网页煮面没法自动偷看饭盒（浏览器安全限制，不是我不想偷），你得手动点「发送饭盒」或者倒剩饭进去。",
+        "faq.offline.q": "没煤气能用吗？",
+        "faq.offline.a": "内置微波炉模式完全离线可加热，没电也能香。外部冰箱模式得能连上那个冰箱......这不是废话吗？",
+        "troubleshooting.title": "炒糊了？",
+        "troubleshooting.desktop.title": "桌面炒菜失败",
+        "troubleshooting.desktop.crash.title": "打不开 / 变荷包蛋了",
+        "troubleshooting.desktop.crash.requirements": "先检查煤气够不够，别拿石头来难为我",
+        "troubleshooting.desktop.crash.macos": "猫用户去「系统偏好设置 > 安全性与猫粮」里允许一下，猫就爱搞这套",
+        "troubleshooting.desktop.crash.settings": "还不行？删菜谱重来，失忆按钮：",
+        "troubleshooting.desktop.clipboard.title": "饭盒偷窥罢工了",
+        "troubleshooting.desktop.clipboard.permissions": "猫用户给爬树权限了没？必须给",
+        "troubleshooting.desktop.clipboard.desktop": "你确定你用的是桌面炒菜？不会光开了个网页煮面吧？",
+        "troubleshooting.desktop.clipboard.restart": "重新炒菜试试，万能解决方案",
+        "troubleshooting.desktop.server.title": "连不上内置微波炉",
+        "troubleshooting.desktop.server.port": "是不是有别的菜占着 3000 炉灶？",
+        "troubleshooting.desktop.server.logs": "看看菜谱日记有没有报错",
+        "troubleshooting.desktop.server.clear": "实在没辙就「倒掉所有剩饭」，从头再来",
+        "troubleshooting.connection.title": "连接断火",
+        "troubleshooting.connection.ws.title": "油烟机说停就停",
+        "troubleshooting.connection.ws.url": "炉灶地址写对了没？",
+        "troubleshooting.connection.ws.running": "炉灶在冒烟吗？确定？",
+        "troubleshooting.connection.ws.cert": "用煤气的话气罐过期没？",
+        "troubleshooting.connection.ws.firewall": "抽油烟机是不是作妖了？查一下",
+        "troubleshooting.connection.access.title": "其他厨房连不上",
+        "troubleshooting.connection.access.enable": "「接收邻居信号」开了没？",
+        "troubleshooting.connection.access.ip": "用剩饭菜谱连，别用本地人，那是给本厨房用的",
+        "troubleshooting.connection.access.network": "你确定俩厨房在同一个楼道下？",
+        "troubleshooting.connection.access.firewall": "两边的抽油烟机都查一遍",
+        "troubleshooting.data.title": "菜谱出错",
+        "troubleshooting.data.sync.title": "同步夹生",
+        "troubleshooting.data.sync.server": "所有厨房连的都是同一个炉灶吧？",
+        "troubleshooting.data.sync.status": "绿光 = 连上了，没绿光 = 糊了",
+        "troubleshooting.data.sync.accessible": "每个厨房都能访问到炉灶吗？",
+        "troubleshooting.data.search.title": "搜不到想吃的菜",
+        "troubleshooting.data.search.case": "大小火不敏感，但得是完整的菜名",
+        "troubleshooting.data.search.filters": "先把所有调料条件清掉试试",
+        "troubleshooting.data.search.scope": "搜索只搜菜名和味道，颜色要用颜色筛选器",
+        "troubleshooting.data.images.title": "会转圈的土豆出不来",
+        "troubleshooting.data.images.exists": "这土豆在炉灶上烤着呢吗？",
+        "troubleshooting.data.images.loading": "土豆太大火太小就得等等，急也没用",
+        "troubleshooting.data.images.format": "转圈太冷门可能预览不了",
+        "troubleshooting.help.title": "还是炒糊？",
+        "troubleshooting.help.intro": "那只能这样了：",
+        "troubleshooting.help.check": "去",
+        "troubleshooting.help.known": "翻翻有没有人炒过一样的菜",
+        "troubleshooting.help.search": "先尝再问，别当伸手党",
+        "troubleshooting.help.report": "要报炒菜 bug 的话把这些带上：",
+        "troubleshooting.help.os": "你的厨房和版本",
+        "troubleshooting.help.version": "炒菜机版本号",
+        "troubleshooting.help.steps": "怎么复炒的",
+        "troubleshooting.help.errors": "报错信息或者菜谱日记",
+        "footer.releases": "版本上菜",
+        "footer.issues": "来报炒菜 Bug",
+        "footer.license": "开源菜谱",
+        "footer.copyright": "© 2024 炒菜机。厨房协议，爱咋炒咋炒。"
+      }
+    };
+
+    // Language switching
+    let currentLang = localStorage.getItem('clipper-doc-lang') || 'en';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('clipper-doc-lang', lang);
+      document.documentElement.lang = lang;
+
+      // Update button states
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+
+      // Update all translatable elements
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (translations[lang] && translations[lang][key]) {
+          el.textContent = translations[lang][key];
+        }
+      });
+    }
+
+    // Initialize language
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set up language buttons
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setLanguage(btn.dataset.lang);
+        });
+      });
+
+      // Apply saved or detected language
+      const browserLang = navigator.language.startsWith('zh') ? 'zh' : 'en';
+      const savedLang = localStorage.getItem('clipper-doc-lang');
+      setLanguage(savedLang || browserLang);
+    });
+
+    // FAQ Accordion
+    document.querySelectorAll('.faq-question').forEach(button => {
+      button.addEventListener('click', () => {
+        const item = button.parentElement;
+        item.classList.toggle('open');
+      });
+    });
+  </script>
+</body>
+
+</html>
