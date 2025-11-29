@@ -354,6 +354,185 @@ body {
   -webkit-app-region: no-drag;
 }
 
+/* ============================================
+   macOS Unified Title Bar (Composited)
+   ============================================ */
+
+.app-header-unified {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px 0 78px; /* Left padding for traffic lights */
+  height: 52px;
+  min-height: 52px;
+  background: #f5f5f7;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+}
+
+/* Left section: Icon and title */
+.app-header-unified .header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.app-header-unified .app-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.app-header-unified .app-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d1d1f;
+  white-space: nowrap;
+}
+
+/* Center section: Search and filters */
+.app-header-unified .header-center {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+  overflow: hidden;
+  justify-content: flex-start;
+}
+
+/* Compact search box for unified header */
+.app-header-unified .search-box {
+  flex: 1;
+  min-width: 120px;
+  max-width: 280px;
+}
+
+.app-header-unified .search-box-inner {
+  min-height: 28px;
+  padding: 2px 28px 2px 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+}
+
+.app-header-unified .search-box-inner:focus-within {
+  background: #ffffff;
+  border-color: rgba(0, 122, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+.app-header-unified .search-input {
+  font-size: 12px;
+}
+
+/* Compact date filter */
+.app-header-unified .date-filter {
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.app-header-unified .date-input-group {
+  gap: 4px;
+}
+
+.app-header-unified .date-input-group label {
+  font-size: 11px;
+  color: #86868b;
+}
+
+.app-header-unified .date-input {
+  padding: 4px 6px;
+  font-size: 11px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.app-header-unified .date-input:focus {
+  background: #ffffff;
+  border-color: rgba(0, 122, 255, 0.5);
+}
+
+/* Compact favorite toggle */
+.app-header-unified .favorite-toggle {
+  flex-shrink: 0;
+}
+
+.app-header-unified .favorite-toggle .toggle-switch {
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+}
+
+.app-header-unified .favorite-toggle .toggle-switch::after {
+  width: 14px;
+  height: 14px;
+  top: 2px;
+  left: 2px;
+}
+
+.app-header-unified .favorite-toggle .toggle-input:checked + .toggle-switch::after {
+  transform: translateX(14px);
+}
+
+.app-header-unified .toggle-text {
+  font-size: 11px;
+  color: #86868b;
+}
+
+/* Right section: Action buttons */
+.app-header-unified .header-right {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  -webkit-app-region: no-drag;
+  margin-left: 8px;
+}
+
+/* macOS segmented button group in unified header */
+.app-header-unified .header-button-group {
+  display: flex;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 1px;
+  flex: 0 0 auto;
+}
+
+.app-header-unified .header-button-group-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: #1d1d1f;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: 4px;
+  padding: 0;
+}
+
+.app-header-unified .header-button-group-item:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.app-header-unified .header-button-group-item:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.app-header-unified .header-button-group-item svg {
+  opacity: 0.8;
+}
+
+.app-header-unified .header-button-group-item:hover svg {
+  opacity: 1;
+}
+
 /* Windows: Compact header with integrated window controls */
 .app.windows .app-header {
   padding: 0 0 0 8px;
@@ -2122,6 +2301,66 @@ body {
   background: rgba(255, 255, 255, 0.18);
 }
 
+/* macOS Unified Title Bar - Dark Theme */
+:root[data-theme="dark"] .app-header-unified {
+  background: #2d2d2d;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .app-header-unified .app-title {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .app-header-unified .search-box-inner {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .app-header-unified .search-box-inner:focus-within {
+  background: #3d3d3d;
+  border-color: rgba(0, 122, 255, 0.6);
+}
+
+:root[data-theme="dark"] .app-header-unified .search-input {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .app-header-unified .date-input-group label {
+  color: #98989d;
+}
+
+:root[data-theme="dark"] .app-header-unified .date-input {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .app-header-unified .date-input:focus {
+  background: #3d3d3d;
+  border-color: rgba(0, 122, 255, 0.6);
+}
+
+:root[data-theme="dark"] .app-header-unified .toggle-text {
+  color: #98989d;
+}
+
+
+:root[data-theme="dark"] .app-header-unified .header-button-group {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .app-header-unified .header-button-group-item {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .app-header-unified .header-button-group-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme="dark"] .app-header-unified .header-button-group-item:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 :root[data-theme="dark"] .filters-bar,
 :root[data-theme="dark"] .status-bar {
   background: #2d2d2d;
@@ -2635,6 +2874,65 @@ body {
   :root:not([data-theme="light"]) .settings-button:hover {
     background: #4a4a4a;
     color: #ffffff;
+  }
+
+  /* macOS Unified Title Bar - Auto Theme Fallback */
+  :root:not([data-theme="light"]) .app-header-unified {
+    background: #2d2d2d;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .app-title {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .search-box-inner {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .search-box-inner:focus-within {
+    background: #3d3d3d;
+    border-color: rgba(0, 122, 255, 0.6);
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .search-input {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .date-input-group label {
+    color: #98989d;
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .date-input {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .date-input:focus {
+    background: #3d3d3d;
+    border-color: rgba(0, 122, 255, 0.6);
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .toggle-text {
+    color: #98989d;
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .header-button-group {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .header-button-group-item {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .header-button-group-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  :root:not([data-theme="light"]) .app-header-unified .header-button-group-item:active {
+    background: rgba(255, 255, 255, 0.18);
   }
 
   :root:not([data-theme="light"]) .filters-bar,

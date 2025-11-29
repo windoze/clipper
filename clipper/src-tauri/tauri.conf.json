@@ -13,9 +13,9 @@
     "windows": [
       {
         "title": "Clipper",
-        "width": 900,
+        "width": 1100,
         "height": 700,
-        "minWidth": 600,
+        "minWidth": 900,
         "minHeight": 400,
         "visible": true,
         "shadow": true

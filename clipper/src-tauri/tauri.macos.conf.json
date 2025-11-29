@@ -3,7 +3,11 @@
     "windows": [
       {
         "hiddenTitle": true,
-        "titleBarStyle": "Overlay"
+        "titleBarStyle": "Overlay",
+        "trafficLightPosition": {
+          "x": 12,
+          "y": 28
+        }
       }
     ]
   }
