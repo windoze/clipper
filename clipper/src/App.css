@@ -221,22 +221,10 @@ body {
   user-select: none;         /* Standard syntax */
 }
 
-/* Linux: Match the app background color to avoid visible edges */
+/* Linux: Transparent background for rounded corners */
 :root[data-platform="linux"],
 :root[data-platform="linux"] body {
-  background: #ffffff;
-}
-
-:root[data-platform="linux"][data-theme="dark"],
-:root[data-platform="linux"][data-theme="dark"] body {
-  background: #1a1a1a;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root[data-platform="linux"]:not([data-theme="light"]),
-  :root[data-platform="linux"]:not([data-theme="light"]) body {
-    background: #1a1a1a;
-  }
+  background: transparent !important;
 }
 
 * {
@@ -252,18 +240,23 @@ body {
   overflow: hidden;
 }
 
-/* Linux: Native style without custom rounded corners (window manager provides shadow) */
+/* Linux: Custom rounded corners and shadow for non-decorated window */
 .app.linux {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   background: #ffffff;
 }
 
 :root[data-theme="dark"] .app.linux {
   background: #1a1a1a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .app.linux {
     background: #1a1a1a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   }
 }
 

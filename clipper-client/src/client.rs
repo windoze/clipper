@@ -2,14 +2,19 @@ use crate::error::{ClientError, Result};
 use crate::models::{
     Clip, ClipNotification, CreateClipRequest, PagedResult, SearchFilters, UpdateClipRequest,
 };
-use futures_util::StreamExt;
+use futures_util::{SinkExt, StreamExt};
 use reqwest::StatusCode;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::io::AsyncRead;
 use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_util::io::ReaderStream;
 use url::Url;
+
+/// Connection timeout - if no message received within this time, consider connection dead
+/// Server sends ping every 30s, so we wait 60s (2x interval) before timing out
+const CONNECTION_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// Client for interacting with the Clipper server
 #[derive(Clone)]
@@ -347,12 +352,16 @@ impl ClipperClient {
 
         let (ws_stream, _) = Self::connect_websocket(&ws_url).await?;
 
-        let (mut _write, mut read) = ws_stream.split();
+        let (mut write, mut read) = ws_stream.split();
 
         let handle = tokio::spawn(async move {
-            while let Some(msg) = read.next().await {
+            loop {
+                // Use timeout to detect stale connections
+                // Server sends ping every 30s, so we should receive something within 60s
+                let msg = tokio::time::timeout(CONNECTION_TIMEOUT, read.next()).await;
+
                 match msg {
-                    Ok(Message::Text(text)) => {
+                    Ok(Some(Ok(Message::Text(text)))) => {
                         match serde_json::from_str::<ClipNotification>(&text) {
                             Ok(notification) => {
                                 if channel.send(notification).is_err() {
@@ -365,11 +374,31 @@ impl ClipperClient {
                             }
                         }
                     }
-                    Ok(Message::Close(_)) => {
+                    Ok(Some(Ok(Message::Ping(data)))) => {
+                        // Respond to ping with pong to keep connection alive
+                        if write.send(Message::Pong(data)).await.is_err() {
+                            break;
+                        }
+                    }
+                    Ok(Some(Ok(Message::Pong(_)))) => {
+                        // Server responded to our ping (if we sent one), connection is alive
+                    }
+                    Ok(Some(Ok(Message::Close(_)))) => {
                         break;
                     }
-                    Err(e) => {
+                    Ok(Some(Err(e))) => {
                         return Err(ClientError::WebSocket(e.to_string()));
+                    }
+                    Ok(None) => {
+                        // Stream ended
+                        break;
+                    }
+                    Err(_) => {
+                        // Timeout - no message received within CONNECTION_TIMEOUT
+                        eprintln!("WebSocket connection timeout - no messages received");
+                        return Err(ClientError::WebSocket(
+                            "Connection timeout - no heartbeat received".to_string(),
+                        ));
                     }
                     _ => {}
                 }
