@@ -47,6 +47,15 @@ function buildForTarget(targetTriple) {
   const isWindows = targetTriple.includes("windows");
   const binaryName = isWindows ? "clipper-server.exe" : "clipper-server";
 
+  // Binary is always in target/{triple}/release/ when using --target
+  const sourceBinary = path.join(projectRoot, "target", targetTriple, "release", binaryName);
+
+  // Skip building if binary already exists
+  if (fs.existsSync(sourceBinary)) {
+    console.log(`Binary already exists: ${sourceBinary}, skipping build`);
+    return sourceBinary;
+  }
+
   // Build clipper-server with explicit target
   const cargoArgs = ["build", "--release", "-p", "clipper-server", "--target", targetTriple];
 
@@ -55,9 +64,6 @@ function buildForTarget(targetTriple) {
     cwd: projectRoot,
     stdio: "inherit",
   });
-
-  // Binary is always in target/{triple}/release/ when using --target
-  const sourceBinary = path.join(projectRoot, "target", targetTriple, "release", binaryName);
 
   return sourceBinary;
 }

@@ -8,7 +8,10 @@ use tokio::sync::mpsc;
 fn emit_ws_status(app: &AppHandle, connected: bool) {
     let state = app.state::<AppState>();
     state.set_websocket_connected(connected);
-    let _ = app.emit("websocket-status", serde_json::json!({ "connected": connected }));
+    let _ = app.emit(
+        "websocket-status",
+        serde_json::json!({ "connected": connected }),
+    );
 }
 
 pub async fn start_websocket_listener(app: AppHandle) {
@@ -70,7 +73,10 @@ pub async fn start_websocket_listener(app: AppHandle) {
         }
 
         // Exponential backoff with max delay of 30 seconds
-        eprintln!("Reconnecting to WebSocket in {} seconds...", reconnect_delay);
+        eprintln!(
+            "Reconnecting to WebSocket in {} seconds...",
+            reconnect_delay
+        );
         tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay)).await;
         reconnect_delay = (reconnect_delay * 2).min(30);
     }

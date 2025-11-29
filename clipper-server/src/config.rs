@@ -319,18 +319,14 @@ impl ServerConfig {
             #[cfg(feature = "tls")]
             if !self.acme.enabled {
                 if self.tls.cert_path.is_none() {
-                    return Err(
-                        "TLS enabled but no certificate path provided. \
+                    return Err("TLS enabled but no certificate path provided. \
                          Set tls.cert_path or enable ACME."
-                            .to_string(),
-                    );
+                        .to_string());
                 }
                 if self.tls.key_path.is_none() {
-                    return Err(
-                        "TLS enabled but no key path provided. \
+                    return Err("TLS enabled but no key path provided. \
                          Set tls.key_path or enable ACME."
-                            .to_string(),
-                    );
+                        .to_string());
                 }
             }
         }
@@ -350,9 +346,7 @@ impl ServerConfig {
             #[cfg(feature = "acme")]
             {
                 if self.acme.domain.is_none() {
-                    return Err(
-                        "ACME enabled but no domain provided. Set acme.domain.".to_string(),
-                    );
+                    return Err("ACME enabled but no domain provided. Set acme.domain.".to_string());
                 }
                 if self.acme.contact_email.is_none() {
                     return Err(

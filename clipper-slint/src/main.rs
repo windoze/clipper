@@ -190,7 +190,10 @@ fn main() -> Result<()> {
         eprintln!("[clipper-slint] Stopping bundled server...");
         runtime.block_on(async {
             if let Err(e) = server_manager.stop().await {
-                eprintln!("[clipper-slint] Warning: Failed to stop server cleanly: {}", e);
+                eprintln!(
+                    "[clipper-slint] Warning: Failed to stop server cleanly: {}",
+                    e
+                );
             }
         });
         eprintln!("[clipper-slint] Server stopped");

@@ -12,11 +12,7 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[cfg(not(feature = "embed-web"))]
-use {
-    axum::http::Request,
-    std::convert::Infallible,
-    tower_http::services::ServeDir,
-};
+use {axum::http::Request, std::convert::Infallible, tower_http::services::ServeDir};
 
 #[cfg(feature = "tls")]
 use clipper_server::TlsManager;
@@ -241,7 +237,9 @@ where
 
     // Start periodic certificate reload task for manually managed certificates
     if let Some(interval) = config.tls.reload_interval() {
-        if let (Some(cert_path), Some(key_path)) = (config.tls.cert_path.clone(), config.tls.key_path.clone()) {
+        if let (Some(cert_path), Some(key_path)) =
+            (config.tls.cert_path.clone(), config.tls.key_path.clone())
+        {
             let tls_config_clone = rustls_config.clone();
             tracing::info!(
                 "Certificate reload enabled: checking every {} seconds",
@@ -263,7 +261,10 @@ where
 
 /// Get certificate from ACME or manual configuration.
 #[cfg(feature = "tls")]
-async fn get_certificate<T>(config: &ServerConfig, #[allow(unused)] acme_manager: &Option<T>) -> (String, String)
+async fn get_certificate<T>(
+    config: &ServerConfig,
+    #[allow(unused)] acme_manager: &Option<T>,
+) -> (String, String)
 where
     T: std::any::Any + Send + Sync + 'static,
 {
@@ -302,11 +303,7 @@ where
     // Generate self-signed certificate for development
     #[cfg(feature = "acme")]
     {
-        let domain = config
-            .acme
-            .domain
-            .as_deref()
-            .unwrap_or("localhost");
+        let domain = config.acme.domain.as_deref().unwrap_or("localhost");
         tracing::warn!(
             "No certificate available, generating self-signed certificate for {}",
             domain
@@ -398,10 +395,7 @@ async fn run_http_redirect_server(http_addr: std::net::SocketAddr, https_port: u
 
     let redirect_app = Router::new().fallback(move |uri: Uri| async move {
         let host = uri.host().unwrap_or("localhost");
-        let path_and_query = uri
-            .path_and_query()
-            .map(|pq| pq.as_str())
-            .unwrap_or("/");
+        let path_and_query = uri.path_and_query().map(|pq| pq.as_str()).unwrap_or("/");
 
         let https_uri = if https_port == 443 {
             format!("https://{}{}", host, path_and_query)
@@ -415,7 +409,11 @@ async fn run_http_redirect_server(http_addr: std::net::SocketAddr, https_port: u
     let listener = match tokio::net::TcpListener::bind(&http_addr).await {
         Ok(l) => l,
         Err(err) => {
-            tracing::warn!("Failed to bind HTTP redirect server to {}: {}", http_addr, err);
+            tracing::warn!(
+                "Failed to bind HTTP redirect server to {}: {}",
+                http_addr,
+                err
+            );
             return;
         }
     };

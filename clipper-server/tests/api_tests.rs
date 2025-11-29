@@ -523,7 +523,11 @@ async fn test_search_no_filters() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // Should find all clips containing "programming" (clips 1, 2, 4)
-    assert!(items.len() >= 3, "Expected at least 3 clips, got {}", items.len());
+    assert!(
+        items.len() >= 3,
+        "Expected at least 3 clips, got {}",
+        items.len()
+    );
 }
 
 #[tokio::test]
@@ -548,7 +552,11 @@ async fn test_search_with_empty_tags_parameter() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // Should find all clips containing "programming" (same as no tags filter)
-    assert!(items.len() >= 3, "Expected at least 3 clips, got {}", items.len());
+    assert!(
+        items.len() >= 3,
+        "Expected at least 3 clips, got {}",
+        items.len()
+    );
 }
 
 #[tokio::test]
@@ -573,10 +581,19 @@ async fn test_search_with_single_tag() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // Should find clips 1 and 3 (both have "rust" tag and contain "Rust")
-    assert_eq!(items.len(), 2, "Expected 2 clips with rust tag, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        2,
+        "Expected 2 clips with rust tag, got {}",
+        items.len()
+    );
     for item in items {
         let tags = item["tags"].as_array().unwrap();
-        assert!(tags.iter().any(|t| t == "rust"), "Expected rust tag in {:?}", tags);
+        assert!(
+            tags.iter().any(|t| t == "rust"),
+            "Expected rust tag in {:?}",
+            tags
+        );
     }
 }
 
@@ -602,7 +619,12 @@ async fn test_search_with_multiple_tags() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // With AND logic: only clip 1 (rust, programming) matches "Rust" and has BOTH tags
-    assert_eq!(items.len(), 1, "Expected 1 clip with rust AND programming tags, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        1,
+        "Expected 1 clip with rust AND programming tags, got {}",
+        items.len()
+    );
     for item in items {
         let tags = item["tags"].as_array().unwrap();
         assert!(
@@ -635,7 +657,12 @@ async fn test_search_with_nonexistent_tag() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // Should find no clips
-    assert_eq!(items.len(), 0, "Expected 0 clips with nonexistent tag, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        0,
+        "Expected 0 clips with nonexistent tag, got {}",
+        items.len()
+    );
 }
 
 #[tokio::test]
@@ -685,7 +712,12 @@ async fn test_list_with_empty_tags_parameter() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // Should return all 5 clips (empty tags = no filter)
-    assert_eq!(items.len(), 5, "Expected 5 clips with empty tags filter, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        5,
+        "Expected 5 clips with empty tags filter, got {}",
+        items.len()
+    );
 }
 
 #[tokio::test]
@@ -710,10 +742,19 @@ async fn test_list_with_single_tag() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // Should find clips 1 and 2 (both have "programming" tag)
-    assert_eq!(items.len(), 2, "Expected 2 clips with programming tag, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        2,
+        "Expected 2 clips with programming tag, got {}",
+        items.len()
+    );
     for item in items {
         let tags = item["tags"].as_array().unwrap();
-        assert!(tags.iter().any(|t| t == "programming"), "Expected programming tag in {:?}", tags);
+        assert!(
+            tags.iter().any(|t| t == "programming"),
+            "Expected programming tag in {:?}",
+            tags
+        );
     }
 }
 
@@ -739,7 +780,12 @@ async fn test_list_with_multiple_tags() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // With AND logic: only clip 3 (rust, webdev) has BOTH tags
-    assert_eq!(items.len(), 1, "Expected 1 clip with rust AND webdev tags, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        1,
+        "Expected 1 clip with rust AND webdev tags, got {}",
+        items.len()
+    );
     for item in items {
         let tags = item["tags"].as_array().unwrap();
         assert!(
@@ -772,7 +818,12 @@ async fn test_list_with_nonexistent_tag() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // Should find no clips
-    assert_eq!(items.len(), 0, "Expected 0 clips with nonexistent tag, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        0,
+        "Expected 0 clips with nonexistent tag, got {}",
+        items.len()
+    );
 }
 
 #[tokio::test]
@@ -800,7 +851,11 @@ async fn test_search_empty_query_with_tags() {
     // Clips 1, 3, and 5 have "rust" tag
     for item in items {
         let tags = item["tags"].as_array().unwrap();
-        assert!(tags.iter().any(|t| t == "rust"), "Expected rust tag in {:?}", tags);
+        assert!(
+            tags.iter().any(|t| t == "rust"),
+            "Expected rust tag in {:?}",
+            tags
+        );
     }
 }
 
@@ -826,7 +881,12 @@ async fn test_search_with_whitespace_in_tags() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // With AND logic and trimmed tags: only clip 1 (rust, programming) has BOTH tags
-    assert_eq!(items.len(), 1, "Expected 1 clip with whitespace-trimmed tags, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        1,
+        "Expected 1 clip with whitespace-trimmed tags, got {}",
+        items.len()
+    );
 }
 
 #[tokio::test]
@@ -851,7 +911,12 @@ async fn test_list_with_whitespace_only_tags() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // After trimming whitespace and filtering empty strings, should return all 5 clips
-    assert_eq!(items.len(), 5, "Expected 5 clips with whitespace-only tags filter, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        5,
+        "Expected 5 clips with whitespace-only tags filter, got {}",
+        items.len()
+    );
 }
 
 #[tokio::test]
@@ -876,7 +941,12 @@ async fn test_list_with_comma_only_tags() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // After splitting by comma and filtering empty strings, should return all 5 clips
-    assert_eq!(items.len(), 5, "Expected 5 clips with comma-only tags filter, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        5,
+        "Expected 5 clips with comma-only tags filter, got {}",
+        items.len()
+    );
 }
 
 #[tokio::test]
@@ -901,7 +971,11 @@ async fn test_search_with_comma_only_tags() {
     let body = response_json(response).await;
     let items = body["items"].as_array().unwrap();
     // Should find all clips containing "programming" (same as no tags filter)
-    assert!(items.len() >= 3, "Expected at least 3 clips with comma-only tags filter, got {}", items.len());
+    assert!(
+        items.len() >= 3,
+        "Expected at least 3 clips with comma-only tags filter, got {}",
+        items.len()
+    );
 }
 
 #[tokio::test]
@@ -952,7 +1026,12 @@ async fn test_list_with_mixed_valid_and_empty_tags() {
     let items = body["items"].as_array().unwrap();
     // Empty strings should be filtered out, leaving [rust, programming]
     // With AND logic: only clip 1 (rust, programming) has BOTH tags
-    assert_eq!(items.len(), 1, "Expected 1 clip with mixed tags filter, got {}", items.len());
+    assert_eq!(
+        items.len(),
+        1,
+        "Expected 1 clip with mixed tags filter, got {}",
+        items.len()
+    );
 }
 
 #[tokio::test]
@@ -980,7 +1059,11 @@ async fn test_search_pagination_with_tags() {
     assert_eq!(body["page"].as_u64().unwrap(), 1);
     assert_eq!(body["page_size"].as_u64().unwrap(), 1);
     // Total should be 2 (clips 1 and 3 have rust tag)
-    assert_eq!(body["total"].as_u64().unwrap(), 2, "Expected total of 2 clips with rust tag");
+    assert_eq!(
+        body["total"].as_u64().unwrap(),
+        2,
+        "Expected total of 2 clips with rust tag"
+    );
     assert_eq!(body["total_pages"].as_u64().unwrap(), 2);
 }
 
@@ -1008,7 +1091,11 @@ async fn test_list_pagination_with_tags() {
     assert_eq!(items.len(), 1, "Expected 1 clip per page");
     assert_eq!(body["page"].as_u64().unwrap(), 1);
     // Total should be 2 (clips 1 and 2 have programming tag)
-    assert_eq!(body["total"].as_u64().unwrap(), 2, "Expected total of 2 clips with programming tag");
+    assert_eq!(
+        body["total"].as_u64().unwrap(),
+        2,
+        "Expected total of 2 clips with programming tag"
+    );
 }
 
 #[tokio::test]

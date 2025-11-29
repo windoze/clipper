@@ -135,13 +135,7 @@ pub fn run() {
                 let _ = app.set_activation_policy(ActivationPolicy::Regular);
             }
             // Emit event to frontend with the args from the second instance
-            let _ = app.emit(
-                "single-instance",
-                SingleInstancePayload {
-                    args: argv,
-                    cwd,
-                },
-            );
+            let _ = app.emit("single-instance", SingleInstancePayload { args: argv, cwd });
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -264,12 +258,14 @@ pub fn run() {
                                 if window.is_visible().unwrap_or(false) {
                                     let _ = window.hide();
                                     #[cfg(target_os = "macos")]
-                                    let _ = app_handle.set_activation_policy(ActivationPolicy::Accessory);
+                                    let _ = app_handle
+                                        .set_activation_policy(ActivationPolicy::Accessory);
                                 } else {
                                     let _ = window.show();
                                     let _ = window.set_focus();
                                     #[cfg(target_os = "macos")]
-                                    let _ = app_handle.set_activation_policy(ActivationPolicy::Regular);
+                                    let _ =
+                                        app_handle.set_activation_policy(ActivationPolicy::Regular);
                                 }
                             }
                         }
@@ -279,7 +275,10 @@ pub fn run() {
 
             // Register the shortcut
             if let Err(e) = app.global_shortcut().register(shortcut) {
-                eprintln!("Failed to register global shortcut '{}': {}", shortcut_str, e);
+                eprintln!(
+                    "Failed to register global shortcut '{}': {}",
+                    shortcut_str, e
+                );
             }
 
             Ok(())

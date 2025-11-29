@@ -447,10 +447,7 @@ pub fn get_websocket_status(state: State<'_, AppState>) -> bool {
 
 /// Update the global shortcut
 #[tauri::command]
-pub fn update_global_shortcut(
-    app: tauri::AppHandle,
-    shortcut: String,
-) -> Result<(), String> {
+pub fn update_global_shortcut(app: tauri::AppHandle, shortcut: String) -> Result<(), String> {
     use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
     // Parse the new shortcut

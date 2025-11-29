@@ -28,7 +28,6 @@ use crate::cert_storage::{CertStorage, StorageError};
 #[cfg(feature = "acme")]
 use crate::config::AcmeConfig;
 
-
 /// Errors that can occur during ACME operations.
 #[cfg(feature = "acme")]
 #[derive(Error, Debug)]
@@ -115,10 +114,8 @@ impl AcmeManager {
 
         // Try to load existing account from storage
         if let Some(credentials_json) = self.storage.load_account_key()? {
-            let credentials: AccountCredentials =
-                serde_json::from_str(&credentials_json).map_err(|e| {
-                    AcmeError::Storage(StorageError::Serialization(e.to_string()))
-                })?;
+            let credentials: AccountCredentials = serde_json::from_str(&credentials_json)
+                .map_err(|e| AcmeError::Storage(StorageError::Serialization(e.to_string())))?;
 
             let account = Account::builder()
                 .map_err(|e| AcmeError::Protocol(e.to_string()))?
@@ -225,9 +222,9 @@ impl AcmeManager {
                 }
             }
 
-            let mut challenge = authz
-                .challenge(ChallengeType::Http01)
-                .ok_or_else(|| AcmeError::ChallengeFailed("No HTTP-01 challenge found".to_string()))?;
+            let mut challenge = authz.challenge(ChallengeType::Http01).ok_or_else(|| {
+                AcmeError::ChallengeFailed("No HTTP-01 challenge found".to_string())
+            })?;
 
             let token = challenge.identifier().to_string();
             let key_auth = challenge.key_authorization().as_str().to_string();
@@ -288,10 +285,7 @@ impl AcmeManager {
     }
 
     /// Load cached certificate from storage.
-    async fn load_cached_certificate(
-        &self,
-        domain: &str,
-    ) -> AcmeResult<Option<(String, String)>> {
+    async fn load_cached_certificate(&self, domain: &str) -> AcmeResult<Option<(String, String)>> {
         if !self.storage.has_certificate(domain)? {
             return Ok(None);
         }

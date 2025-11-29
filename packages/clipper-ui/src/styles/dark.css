@@ -23,6 +23,14 @@
   color: #e9ecef;
 }
 
+:root[data-theme="dark"] .github-link {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .github-link:hover {
+  color: #e9ecef;
+}
+
 :root[data-theme="dark"] .refresh-button,
 :root[data-theme="dark"] .settings-button,
 :root[data-theme="dark"] .send-clipboard-button {
@@ -487,6 +495,14 @@
   }
 
   :root:not([data-theme="light"]) .app-title {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .github-link {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .github-link:hover {
     color: #e9ecef;
   }
 
