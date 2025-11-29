@@ -10,7 +10,10 @@
     "./api": "./src/api/index.ts",
     "./i18n": "./src/i18n/index.ts",
     "./components": "./src/components/index.ts",
-    "./hooks": "./src/hooks/index.ts"
+    "./hooks": "./src/hooks/index.ts",
+    "./styles/index.css": "./src/styles/index.css",
+    "./styles/base.css": "./src/styles/base.css",
+    "./styles/dark.css": "./src/styles/dark.css"
   },
   "peerDependencies": {
     "react": "^19.0.0",

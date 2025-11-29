@@ -1,0 +1,7 @@
+/* ============================================
+   Clipper UI - Main Styles Entry Point
+   Import this file to get all shared styles
+   ============================================ */
+
+@import "./base.css";
+@import "./dark.css";

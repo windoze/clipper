@@ -1,0 +1,893 @@
+/* ============================================
+   Clipper UI - Dark Theme Styles
+   Applied via data-theme="dark" attribute or media query fallback
+   ============================================ */
+
+/* ============================================
+   Root & Base - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] {
+  color: #e9ecef;
+  background-color: #1a1a1a;
+}
+
+/* ============================================
+   Header & Navigation - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .app-header {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .app-title {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .refresh-button,
+:root[data-theme="dark"] .settings-button,
+:root[data-theme="dark"] .send-clipboard-button {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .refresh-button:hover,
+:root[data-theme="dark"] .settings-button:hover,
+:root[data-theme="dark"] .send-clipboard-button:hover {
+  background: #4a4a4a;
+  color: #ffffff;
+}
+
+/* ============================================
+   Filters Bar & Search - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .filters-bar,
+:root[data-theme="dark"] .status-bar {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .search-box-label {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .search-box-inner {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .search-box-inner:focus-within {
+  border-color: #667eea;
+}
+
+:root[data-theme="dark"] .search-input,
+:root[data-theme="dark"] .date-input {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .search-box-inner .search-input {
+  background: transparent;
+}
+
+:root[data-theme="dark"] .search-input:focus,
+:root[data-theme="dark"] .date-input:focus {
+  border-color: #667eea;
+}
+
+/* ============================================
+   Toggle & Controls - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .toggle-switch {
+  background: #404040;
+}
+
+:root[data-theme="dark"] .toggle-text,
+:root[data-theme="dark"] .date-input-group label {
+  color: #adb5bd;
+}
+
+/* ============================================
+   Scrollbar - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .app-main::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+:root[data-theme="dark"] .app-main::-webkit-scrollbar-thumb {
+  background: #555555;
+}
+
+:root[data-theme="dark"] .app-main::-webkit-scrollbar-thumb:hover {
+  background: #666666;
+}
+
+/* ============================================
+   Clip Entry - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .clip-entry {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .clip-entry:hover {
+  border-color: #667eea;
+}
+
+:root[data-theme="dark"] .clip-content {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .expand-button {
+  color: #6ea8fe;
+}
+
+:root[data-theme="dark"] .expand-button:hover {
+  color: #9ec5fe;
+}
+
+:root[data-theme="dark"] .clip-date,
+:root[data-theme="dark"] .status-bar,
+:root[data-theme="dark"] .clip-attachment {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .clip-attachment {
+  background: #363636;
+}
+
+:root[data-theme="dark"] .favorite-button {
+  color: #404040;
+}
+
+:root[data-theme="dark"] .favorite-button.active {
+  color: #ffc107;
+}
+
+/* ============================================
+   Tags - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .tag {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .clip-tags .tag:nth-child(5n+1) {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+:root[data-theme="dark"] .clip-tags .tag:nth-child(5n+2) {
+  background: linear-gradient(135deg, #d53f8c 0%, #e53e3e 100%);
+}
+
+:root[data-theme="dark"] .clip-tags .tag:nth-child(5n+3) {
+  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+}
+
+:root[data-theme="dark"] .clip-tags .tag:nth-child(5n+4) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+:root[data-theme="dark"] .clip-tags .tag:nth-child(5n+5) {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+}
+
+:root[data-theme="dark"] .tag.tag-host {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
+  color: white !important;
+  border-color: #0d47a1 !important;
+  box-shadow: 0 2px 4px rgba(13, 71, 161, 0.4) !important;
+}
+
+:root[data-theme="dark"] .tag.tag-host:hover {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+  color: white !important;
+}
+
+:root[data-theme="dark"] .tag.tag-clickable:hover {
+  background: #7b93f5;
+}
+
+/* ============================================
+   Attachment & Buttons - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .attachment-name-button {
+  color: #7b93f5;
+}
+
+:root[data-theme="dark"] .attachment-name-button:hover {
+  color: #99aaf7;
+}
+
+:root[data-theme="dark"] .clear-button,
+:root[data-theme="dark"] .clear-button.small {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .clear-button:hover,
+:root[data-theme="dark"] .clear-button.small:hover {
+  color: #e9ecef;
+}
+
+/* ============================================
+   Image Styles - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .clip-image-container {
+  background: #363636;
+}
+
+:root[data-theme="dark"] .image-popup-container {
+  background: #2d2d2d;
+}
+
+:root[data-theme="dark"] .image-popup-header {
+  background: #363636;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .image-popup-filename {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .image-popup-close {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .image-popup-close:hover {
+  background: #404040;
+  color: #e9ecef;
+}
+
+/* ============================================
+   Settings Dialog - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .settings-dialog {
+  background: #2d2d2d;
+}
+
+:root[data-theme="dark"] .settings-header {
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .settings-header h2 {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-close {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-close:hover {
+  background: #404040;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-error {
+  background: #4a2020;
+  color: #f8a0a0;
+}
+
+:root[data-theme="dark"] .settings-section h3 {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-field label {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-select {
+  background-color: #363636;
+  border-color: #404040;
+  color: #e9ecef;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23e9ecef' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"] .settings-select:focus {
+  border-color: #667eea;
+}
+
+:root[data-theme="dark"] .theme-option {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .theme-option:hover {
+  background: #4a4a4a;
+  border-color: #5a5a5a;
+}
+
+:root[data-theme="dark"] .theme-option.active {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.2);
+  color: #99aaf7;
+}
+
+:root[data-theme="dark"] .settings-hint {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-footer {
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .settings-btn.secondary {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-btn.secondary:hover:not(:disabled) {
+  background: #4a4a4a;
+}
+
+/* ============================================
+   Edit Clip Dialog - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .edit-button {
+  color: #6c757d;
+}
+
+:root[data-theme="dark"] .edit-button:hover {
+  color: #99aaf7;
+  background: rgba(102, 126, 234, 0.2);
+}
+
+:root[data-theme="dark"] .delete-button {
+  background: #dc3545;
+  color: white;
+}
+
+:root[data-theme="dark"] .delete-button:hover {
+  background: #c82333;
+}
+
+:root[data-theme="dark"] .delete-confirm-dialog {
+  background: #2d2d2d;
+}
+
+:root[data-theme="dark"] .delete-confirm-dialog p {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .delete-confirm-btn.cancel {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .delete-confirm-btn.cancel:hover:not(:disabled) {
+  background: #4a4a4a;
+}
+
+:root[data-theme="dark"] .edit-clip-dialog {
+  background: #2d2d2d;
+}
+
+:root[data-theme="dark"] .edit-clip-header {
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .edit-clip-header h2 {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .edit-clip-close {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .edit-clip-close:hover {
+  background: #404040;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .edit-clip-error {
+  background: #4a2020;
+  color: #f8a0a0;
+}
+
+:root[data-theme="dark"] .edit-clip-field label {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .edit-clip-hint {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .tag-editor {
+  background: #363636;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .tag.editable {
+  background: #404040;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .tag-remove {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .tag-remove:hover {
+  color: #f8a0a0;
+}
+
+:root[data-theme="dark"] .tag-input {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .tag-input::placeholder {
+  color: #6c757d;
+}
+
+:root[data-theme="dark"] .notes-input {
+  background: #363636;
+  border-color: #404040;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .notes-input:focus {
+  border-color: #667eea;
+}
+
+:root[data-theme="dark"] .notes-input::placeholder {
+  color: #6c757d;
+}
+
+:root[data-theme="dark"] .edit-clip-footer {
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .edit-clip-btn.secondary {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .edit-clip-btn.secondary:hover:not(:disabled) {
+  background: #4a4a4a;
+}
+
+/* ============================================
+   Toast - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .toast {
+  background: #2d2d2d;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .toast-message {
+  color: #e9ecef;
+}
+
+/* ============================================
+   WebSocket Status - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .ws-connected .ws-status-text {
+  color: #5cb85c;
+}
+
+:root[data-theme="dark"] .ws-disconnected .ws-status-text {
+  color: #f8a0a0;
+}
+
+/* ============================================
+   Media Query Fallback for Auto Theme
+   Used when no explicit data-theme is set
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color: #e9ecef;
+    background-color: #1a1a1a;
+  }
+
+  :root:not([data-theme="light"]) .app-header {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .app-title {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .refresh-button,
+  :root:not([data-theme="light"]) .settings-button,
+  :root:not([data-theme="light"]) .send-clipboard-button {
+    background: #404040;
+    border-color: #4a4a4a;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .refresh-button:hover,
+  :root:not([data-theme="light"]) .settings-button:hover,
+  :root:not([data-theme="light"]) .send-clipboard-button:hover {
+    background: #4a4a4a;
+    color: #ffffff;
+  }
+
+  :root:not([data-theme="light"]) .filters-bar,
+  :root:not([data-theme="light"]) .status-bar {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .search-box-label {
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .search-box-inner {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .search-box-inner:focus-within {
+    border-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .search-input,
+  :root:not([data-theme="light"]) .date-input {
+    background: #2d2d2d;
+    border-color: #404040;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .search-box-inner .search-input {
+    background: transparent;
+  }
+
+  :root:not([data-theme="light"]) .search-input:focus,
+  :root:not([data-theme="light"]) .date-input:focus {
+    border-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .toggle-switch {
+    background: #404040;
+  }
+
+  :root:not([data-theme="light"]) .toggle-text,
+  :root:not([data-theme="light"]) .date-input-group label {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .clip-entry {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .clip-entry:hover {
+    border-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .clip-content {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .expand-button {
+    color: #6ea8fe;
+  }
+
+  :root:not([data-theme="light"]) .expand-button:hover {
+    color: #9ec5fe;
+  }
+
+  :root:not([data-theme="light"]) .clip-date,
+  :root:not([data-theme="light"]) .status-bar,
+  :root:not([data-theme="light"]) .clip-attachment {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .tag {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+1) {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  }
+
+  :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+2) {
+    background: linear-gradient(135deg, #d53f8c 0%, #e53e3e 100%);
+  }
+
+  :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+3) {
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+  }
+
+  :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+4) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  }
+
+  :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+5) {
+    background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  }
+
+  :root:not([data-theme="light"]) .tag.tag-host {
+    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
+    color: white !important;
+    border-color: #0d47a1 !important;
+    box-shadow: 0 2px 4px rgba(13, 71, 161, 0.4) !important;
+  }
+
+  :root:not([data-theme="light"]) .tag.tag-host:hover {
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+    color: white !important;
+  }
+
+  :root:not([data-theme="light"]) .clip-attachment {
+    background: #363636;
+  }
+
+  :root:not([data-theme="light"]) .favorite-button {
+    color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .favorite-button.active {
+    color: #ffc107;
+  }
+
+  :root:not([data-theme="light"]) .clear-button,
+  :root:not([data-theme="light"]) .clear-button.small {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .clear-button:hover,
+  :root:not([data-theme="light"]) .clear-button.small:hover {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .clip-image-container {
+    background: #363636;
+  }
+
+  :root:not([data-theme="light"]) .image-popup-container {
+    background: #2d2d2d;
+  }
+
+  :root:not([data-theme="light"]) .image-popup-header {
+    background: #363636;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .image-popup-filename {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .image-popup-close {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .image-popup-close:hover {
+    background: #404040;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .attachment-name-button {
+    color: #7b93f5;
+  }
+
+  :root:not([data-theme="light"]) .attachment-name-button:hover {
+    color: #99aaf7;
+  }
+
+  :root:not([data-theme="light"]) .settings-dialog {
+    background: #2d2d2d;
+  }
+
+  :root:not([data-theme="light"]) .settings-header {
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .settings-header h2 {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .settings-close {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .settings-close:hover {
+    background: #404040;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .settings-section h3 {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .settings-field label {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .settings-select {
+    background-color: #363636;
+    border-color: #404040;
+    color: #e9ecef;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23e9ecef' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  }
+
+  :root:not([data-theme="light"]) .settings-select:focus {
+    border-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .theme-option {
+    background: #404040;
+    border-color: #4a4a4a;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .theme-option:hover {
+    background: #4a4a4a;
+    border-color: #5a5a5a;
+  }
+
+  :root:not([data-theme="light"]) .theme-option.active {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.2);
+    color: #99aaf7;
+  }
+
+  :root:not([data-theme="light"]) .settings-hint {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .settings-footer {
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .settings-btn.secondary {
+    background: #404040;
+    border-color: #4a4a4a;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .settings-btn.secondary:hover:not(:disabled) {
+    background: #4a4a4a;
+  }
+
+  /* Edit clip dialog dark mode fallback */
+  :root:not([data-theme="light"]) .edit-button {
+    color: #6c757d;
+  }
+
+  :root:not([data-theme="light"]) .edit-button:hover {
+    color: #99aaf7;
+    background: rgba(102, 126, 234, 0.2);
+  }
+
+  :root:not([data-theme="light"]) .delete-confirm-dialog {
+    background: #2d2d2d;
+  }
+
+  :root:not([data-theme="light"]) .delete-confirm-dialog p {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .delete-confirm-btn.cancel {
+    background: #404040;
+    border-color: #4a4a4a;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .delete-confirm-btn.cancel:hover:not(:disabled) {
+    background: #4a4a4a;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-dialog {
+    background: #2d2d2d;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-header {
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-header h2 {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-close {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-close:hover {
+    background: #404040;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-error {
+    background: #4a2020;
+    color: #f8a0a0;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-field label {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-hint {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .tag-editor {
+    background: #363636;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .tag.editable {
+    background: #404040;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .tag-remove {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .tag-remove:hover {
+    color: #f8a0a0;
+  }
+
+  :root:not([data-theme="light"]) .tag-input {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .tag-input::placeholder {
+    color: #6c757d;
+  }
+
+  :root:not([data-theme="light"]) .notes-input {
+    background: #363636;
+    border-color: #404040;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .notes-input:focus {
+    border-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .notes-input::placeholder {
+    color: #6c757d;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-footer {
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-btn.secondary {
+    background: #404040;
+    border-color: #4a4a4a;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .edit-clip-btn.secondary:hover:not(:disabled) {
+    background: #4a4a4a;
+  }
+
+  /* Toast dark mode fallback */
+  :root:not([data-theme="light"]) .toast {
+    background: #2d2d2d;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  :root:not([data-theme="light"]) .toast-message {
+    color: #e9ecef;
+  }
+
+  /* Scrollbar dark mode fallback */
+  :root:not([data-theme="light"]) .app-main::-webkit-scrollbar-track {
+    background: #2d2d2d;
+  }
+
+  :root:not([data-theme="light"]) .app-main::-webkit-scrollbar-thumb {
+    background: #555555;
+  }
+
+  :root:not([data-theme="light"]) .app-main::-webkit-scrollbar-thumb:hover {
+    background: #666666;
+  }
+
+  /* WebSocket status dark mode fallback */
+  :root:not([data-theme="light"]) .ws-connected .ws-status-text {
+    color: #5cb85c;
+  }
+
+  :root:not([data-theme="light"]) .ws-disconnected .ws-status-text {
+    color: #f8a0a0;
+  }
+}
