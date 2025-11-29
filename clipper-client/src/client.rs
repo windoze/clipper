@@ -30,7 +30,7 @@ impl ClipperClient {
     /// * `base_url` - Base URL of the Clipper server (e.g., "http://localhost:3000")
     pub fn new(base_url: impl Into<String>) -> Self {
         Self {
-            base_url: base_url.into(),
+            base_url: base_url.into().trim_end_matches('/').to_string(),
             client: reqwest::Client::new(),
         }
     }
@@ -413,7 +413,9 @@ impl ClipperClient {
     async fn connect_websocket(
         url: &str,
     ) -> Result<(
-        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
+        tokio_tungstenite::WebSocketStream<
+            tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        >,
         tokio_tungstenite::tungstenite::http::Response<Option<Vec<u8>>>,
     )> {
         let parsed_url = url
