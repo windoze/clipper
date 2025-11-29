@@ -17,13 +17,16 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+            rust_targets: aarch64-apple-darwin x86_64-apple-darwin
+            build_server_targets: aarch64-apple-darwin,x86_64-apple-darwin
             tauri_args: --target universal-apple-darwin
           - platform: ubuntu-22.04
             rust_targets: x86_64-unknown-linux-gnu
+            build_server_targets: x86_64-unknown-linux-gnu
             tauri_args: ''
           - platform: windows-latest
             rust_targets: x86_64-pc-windows-msvc
+            build_server_targets: x86_64-pc-windows-msvc
             tauri_args: ''
 
     runs-on: ${{ matrix.platform }}
@@ -65,7 +68,7 @@ jobs:
       # Build clipper-server for all targets (handles universal binary on macOS)
       - name: Build clipper-server
         working-directory: clipper
-        run: node scripts/build-server.js ${{ matrix.rust_targets }}
+        run: node scripts/build-server.js ${{ matrix.build_server_targets }}
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
