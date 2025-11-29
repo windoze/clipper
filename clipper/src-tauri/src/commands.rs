@@ -439,6 +439,12 @@ pub fn update_tray_language(app: tauri::AppHandle, language: String) -> Result<(
     crate::tray::update_tray_language(&app, &language).map_err(|e| e.to_string())
 }
 
+/// Get the current WebSocket connection status
+#[tauri::command]
+pub fn get_websocket_status(state: State<'_, AppState>) -> bool {
+    state.is_websocket_connected()
+}
+
 /// Update the global shortcut
 #[tauri::command]
 pub fn update_global_shortcut(

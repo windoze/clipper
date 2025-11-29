@@ -366,6 +366,7 @@ pub fn run() {
             commands::toggle_listen_on_all_interfaces,
             commands::update_tray_language,
             commands::update_global_shortcut,
+            commands::get_websocket_status,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

@@ -737,11 +737,53 @@ body {
 
 /* Status Bar */
 .status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 8px 16px;
   background: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
   font-size: 12px;
   color: #6c757d;
+}
+
+/* WebSocket Status Indicator */
+.ws-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.ws-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ws-connected .ws-status-dot {
+  background: #28a745;
+  box-shadow: 0 0 4px rgba(40, 167, 69, 0.5);
+}
+
+.ws-disconnected .ws-status-dot {
+  background: #dc3545;
+  box-shadow: 0 0 4px rgba(220, 53, 69, 0.5);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.ws-connected .ws-status-text {
+  color: #28a745;
+}
+
+.ws-disconnected .ws-status-text {
+  color: #dc3545;
 }
 
 /* Main Content */
@@ -2102,6 +2144,14 @@ body {
   color: #adb5bd;
 }
 
+:root[data-theme="dark"] .ws-connected .ws-status-text {
+  color: #5cb85c;
+}
+
+:root[data-theme="dark"] .ws-disconnected .ws-status-text {
+  color: #f8a0a0;
+}
+
 :root[data-theme="dark"] .tag {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
@@ -2594,6 +2644,14 @@ body {
   :root:not([data-theme="light"]) .status-bar,
   :root:not([data-theme="light"]) .clip-attachment {
     color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .ws-connected .ws-status-text {
+    color: #5cb85c;
+  }
+
+  :root:not([data-theme="light"]) .ws-disconnected .ws-status-text {
+    color: #f8a0a0;
   }
 
   :root:not([data-theme="light"]) .tag {

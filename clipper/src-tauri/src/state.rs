@@ -1,9 +1,11 @@
 use clipper_client::ClipperClient;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 
 pub struct AppState {
     client: RwLock<ClipperClient>,
     pub last_synced_content: Arc<Mutex<String>>,
+    pub websocket_connected: Arc<AtomicBool>,
 }
 
 impl AppState {
@@ -11,6 +13,7 @@ impl AppState {
         Self {
             client: RwLock::new(ClipperClient::new(base_url)),
             last_synced_content: Arc::new(Mutex::new(String::new())),
+            websocket_connected: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -30,5 +33,13 @@ impl AppState {
 
     pub fn set_last_synced_content(&self, content: String) {
         *self.last_synced_content.lock().unwrap() = content;
+    }
+
+    pub fn set_websocket_connected(&self, connected: bool) {
+        self.websocket_connected.store(connected, Ordering::SeqCst);
+    }
+
+    pub fn is_websocket_connected(&self) -> bool {
+        self.websocket_connected.load(Ordering::SeqCst)
     }
 }

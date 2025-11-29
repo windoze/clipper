@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   useClips,
@@ -28,6 +29,7 @@ function App() {
   const { t } = useI18n();
   const [os] = useState(() => detectPlatform());
   const [isMaximized, setIsMaximized] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
   const {
     clips,
     loading,
@@ -71,6 +73,21 @@ function App() {
       unlisten.then((fn) => fn());
     };
   }, [os]);
+
+  // Get initial WebSocket status and listen for changes
+  useEffect(() => {
+    // Get initial status
+    invoke<boolean>("get_websocket_status").then(setWsConnected).catch(() => {});
+
+    // Listen for status changes
+    const unlistenWsStatus = listen<{ connected: boolean }>("websocket-status", (event) => {
+      setWsConnected(event.payload.connected);
+    });
+
+    return () => {
+      unlistenWsStatus.then((fn) => fn());
+    };
+  }, []);
 
   // Listen for data-cleared and server-switched events to refresh clips
   useEffect(() => {
@@ -293,6 +310,15 @@ function App() {
 
         <div className="status-bar">
           <span className="clip-count">{t("app.clips_count", { count: total })}</span>
+          <span
+            className={`ws-status ${wsConnected ? "ws-connected" : "ws-disconnected"}`}
+            title={wsConnected ? t("status.wsConnected") : t("status.wsDisconnected")}
+          >
+            <span className="ws-status-dot"></span>
+            <span className="ws-status-text">
+              {wsConnected ? t("status.wsConnected") : t("status.wsDisconnected")}
+            </span>
+          </span>
         </div>
 
         <main className="app-main">
