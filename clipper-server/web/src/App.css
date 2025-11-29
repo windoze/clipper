@@ -239,6 +239,18 @@
   color: white;
 }
 
+/* Host tag styling in search box */
+.search-filter-tag-host {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+}
+
+.search-filter-tag-host-icon {
+  flex-shrink: 0;
+}
+
 .search-box-inner .search-input {
   flex: 1;
   min-width: 100px;

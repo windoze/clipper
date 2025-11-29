@@ -221,14 +221,22 @@ body {
   user-select: none;         /* Standard syntax */
 }
 
-/* Linux: Transparent background for rounded corners */
+/* Linux: Match the app background color to avoid visible edges */
 :root[data-platform="linux"],
-:root[data-platform="linux"] body,
+:root[data-platform="linux"] body {
+  background: #ffffff;
+}
+
 :root[data-platform="linux"][data-theme="dark"],
-:root[data-platform="linux"][data-theme="dark"] body,
-:root[data-platform="linux"][data-theme="light"],
-:root[data-platform="linux"][data-theme="light"] body {
-  background: transparent !important;
+:root[data-platform="linux"][data-theme="dark"] body {
+  background: #1a1a1a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-platform="linux"]:not([data-theme="light"]),
+  :root[data-platform="linux"]:not([data-theme="light"]) body {
+    background: #1a1a1a;
+  }
 }
 
 * {
@@ -244,11 +252,8 @@ body {
   overflow: hidden;
 }
 
-/* Linux: Rounded corners to match native GNOME/KDE style */
+/* Linux: Native style without custom rounded corners (window manager provides shadow) */
 .app.linux {
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   background: #ffffff;
 }
 
@@ -581,6 +586,18 @@ body {
 .search-filter-tag-remove:hover {
   background: rgba(255, 255, 255, 0.2);
   color: white;
+}
+
+/* Host tag styling in search box */
+.search-filter-tag-host {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+}
+
+.search-filter-tag-host-icon {
+  flex-shrink: 0;
 }
 
 .search-box-inner .search-input {
