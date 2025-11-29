@@ -30,19 +30,32 @@ export function ClipList({
 }: ClipListProps) {
   const { t } = useI18n();
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
 
-  // Set up intersection observer for infinite scroll
-  const setupObserver = useCallback(() => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
+  // Use refs to track current values so the observer callback always has fresh values
+  const hasMoreRef = useRef(hasMore);
+  const loadingMoreRef = useRef(loadingMore);
+  const onLoadMoreRef = useRef(onLoadMore);
 
+  // Keep refs in sync with props
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+
+  useEffect(() => {
+    loadingMoreRef.current = loadingMore;
+  }, [loadingMore]);
+
+  useEffect(() => {
+    onLoadMoreRef.current = onLoadMore;
+  }, [onLoadMore]);
+
+  // Create the observer once
+  useEffect(() => {
     observerRef.current = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting && hasMore && !loadingMore) {
-          onLoadMore();
+        if (entry.isIntersecting && hasMoreRef.current && !loadingMoreRef.current) {
+          onLoadMoreRef.current();
         }
       },
       {
@@ -52,19 +65,22 @@ export function ClipList({
       }
     );
 
-    if (loadMoreTriggerRef.current) {
-      observerRef.current.observe(loadMoreTriggerRef.current);
-    }
-  }, [hasMore, loadingMore, onLoadMore]);
-
-  useEffect(() => {
-    setupObserver();
     return () => {
       if (observerRef.current) {
         observerRef.current.disconnect();
       }
     };
-  }, [setupObserver]);
+  }, []);
+
+  // Callback ref to observe the trigger element when it mounts
+  const loadMoreTriggerRef = useCallback((node: HTMLDivElement | null) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+    if (node && observerRef.current) {
+      observerRef.current.observe(node);
+    }
+  }, []);
 
   if (loading) {
     return (

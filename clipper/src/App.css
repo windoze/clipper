@@ -304,27 +304,47 @@ body {
   font-weight: 500;
 }
 
-/* Position header buttons on the right for macOS */
-.app.macos .header-buttons {
+/* macOS segmented button group (HIG style) */
+.app.macos .header-button-group {
   position: absolute;
   right: 12px;
+  display: flex;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 1px;
 }
 
-/* Smaller round buttons for macOS title bar */
-.app.macos .header-buttons button {
-  width: 24px;
-  height: 24px;
-  font-size: 15px;
-  border-radius: 50%;
+.app.macos .header-button-group-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: #1d1d1f;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: 4px;
   padding: 0;
-  line-height: 1;
+  -webkit-app-region: no-drag;
 }
 
-/* Adjust gear glyph in settings button to match refresh button */
-.app.macos .header-buttons .settings-button {
-  font-size: 17px;
-  position: relative;
-  top: -1px;
+.app.macos .header-button-group-item:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.app.macos .header-button-group-item:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.app.macos .header-button-group-item svg {
+  opacity: 0.8;
+}
+
+.app.macos .header-button-group-item:hover svg {
+  opacity: 1;
 }
 
 /* Make interactive elements clickable within macOS drag area */
@@ -2083,6 +2103,23 @@ body {
 :root[data-theme="dark"] .settings-button:hover {
   background: #4a4a4a;
   color: #ffffff;
+}
+
+/* macOS segmented button group - dark theme */
+:root[data-theme="dark"] .app.macos .header-button-group {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .app.macos .header-button-group-item {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .app.macos .header-button-group-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme="dark"] .app.macos .header-button-group-item:active {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 :root[data-theme="dark"] .filters-bar,
