@@ -409,11 +409,11 @@ body {
   -webkit-app-region: no-drag;
 }
 
-/* Compact search box for unified header */
+/* Compact search box for unified header - auto stretch to fill available space */
 .app-header-unified .search-box {
-  flex: 1;
-  min-width: 120px;
-  max-width: 280px;
+  flex: 1 1 auto;
+  min-width: 100px;
+  max-width: 400px;
 }
 
 .app-header-unified .search-box-inner {
@@ -603,23 +603,29 @@ body {
 }
 
 /* Responsive header adjustments */
-/* Level 1+: Search box expands when status hidden */
-.app-header-unified.responsive-level-1 .search-box,
-.app-header-unified.responsive-level-2 .search-box,
+/* Level 1+: Search box expands more when elements are hidden */
+.app-header-unified.responsive-level-1 .search-box {
+  max-width: 500px;
+}
+
+.app-header-unified.responsive-level-2 .search-box {
+  max-width: 600px;
+}
+
 .app-header-unified.responsive-level-3 .search-box,
 .app-header-unified.responsive-level-4 .search-box,
 .app-header-unified.responsive-level-5 .search-box {
   max-width: none;
-  min-width: 100px;
+  min-width: 80px;
 }
 
-/* Level 4+: Reduce left padding when buttons hidden */
+/* Level 4+: Reduce right padding when buttons hidden */
 .app-header-unified.responsive-level-4,
 .app-header-unified.responsive-level-5 {
   padding-right: 8px;
 }
 
-/* Level 5: Icon only mode - reduce left padding further */
+/* Level 5: Icon only mode */
 .app-header-unified.responsive-level-5 {
   padding-left: 70px;
 }
