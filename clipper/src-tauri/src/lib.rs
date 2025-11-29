@@ -16,6 +16,13 @@ use tauri::ActivationPolicy;
 use tauri::{DragDropEvent, Emitter, Manager, RunEvent};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
+/// Payload for single-instance events
+#[derive(Clone, serde::Serialize)]
+struct SingleInstancePayload {
+    args: Vec<String>,
+    cwd: String,
+}
+
 /// Parse a shortcut string like "Command+Shift+V" or "Ctrl+Alt+C" into a Shortcut
 pub fn parse_shortcut(shortcut_str: &str) -> Option<Shortcut> {
     let parts: Vec<&str> = shortcut_str.split('+').map(|s| s.trim()).collect();
@@ -118,6 +125,24 @@ pub fn parse_shortcut(shortcut_str: &str) -> Option<Shortcut> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        // Single instance plugin must be registered FIRST
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            // When a second instance is launched, show the existing window
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+                #[cfg(target_os = "macos")]
+                let _ = app.set_activation_policy(ActivationPolicy::Regular);
+            }
+            // Emit event to frontend with the args from the second instance
+            let _ = app.emit(
+                "single-instance",
+                SingleInstancePayload {
+                    args: argv,
+                    cwd,
+                },
+            );
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())

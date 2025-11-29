@@ -43,5 +43,8 @@ reqwest = { version = "0.12", default-features = false, features = [
 local-ip-address = "0.6"
 gethostname = "0.5"
 
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-single-instance = "2"
+
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
