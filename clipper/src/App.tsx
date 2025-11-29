@@ -30,8 +30,6 @@ function App() {
   const [os] = useState(() => detectPlatform());
   const [isMaximized, setIsMaximized] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
-  // Responsive level: 0 = full, 1 = hide status, 2 = hide date, 3 = hide fav, 4 = hide buttons, 5 = hide title
-  const [responsiveLevel, setResponsiveLevel] = useState(0);
   const {
     clips,
     loading,
@@ -73,35 +71,6 @@ function App() {
 
     return () => {
       unlisten.then((fn) => fn());
-    };
-  }, [os]);
-
-  // Track window width for responsive header (macOS only)
-  useEffect(() => {
-    if (os !== "macos") return;
-
-    const calculateResponsiveLevel = () => {
-      const width = window.innerWidth;
-      // Breakpoints for progressive hiding:
-      // Level 0: >= 720px - show all
-      // Level 1: < 720px - hide clip count & ws status
-      // Level 2: < 620px - hide date filters
-      // Level 3: < 520px - hide favorite toggle
-      // Level 4: < 420px - hide settings/refresh buttons
-      // Level 5: < 320px - hide title (show only icon)
-      if (width >= 720) setResponsiveLevel(0);
-      else if (width >= 620) setResponsiveLevel(1);
-      else if (width >= 520) setResponsiveLevel(2);
-      else if (width >= 420) setResponsiveLevel(3);
-      else if (width >= 320) setResponsiveLevel(4);
-      else setResponsiveLevel(5);
-    };
-
-    calculateResponsiveLevel();
-    window.addEventListener("resize", calculateResponsiveLevel);
-
-    return () => {
-      window.removeEventListener("resize", calculateResponsiveLevel);
     };
   }, [os]);
 
@@ -200,96 +169,79 @@ function App() {
       <div className={`app ${os}`}>
         {/* Only render TitleBar on macOS, for Windows and Linux we integrate controls into header */}
         {os === "macos" && <TitleBar />}
-        {/* Composited title bar for macOS with all controls in one row */}
+        {/* macOS: Simplified title bar with status and buttons on the right */}
         {os === "macos" ? (
-          <header className={`app-header-unified responsive-level-${responsiveLevel}`} data-tauri-drag-region>
-            {/* Left section: Icon and title */}
-            <div className="header-left" data-tauri-drag-region>
-              <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" data-tauri-drag-region>
-                <defs>
-                  <linearGradient id="boardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#6366F1" />
-                    <stop offset="100%" stopColor="#8B5CF6" />
-                  </linearGradient>
-                  <linearGradient id="clipGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#F1F5F9" />
-                    <stop offset="30%" stopColor="#CBD5E1" />
-                    <stop offset="70%" stopColor="#94A3B8" />
-                    <stop offset="100%" stopColor="#64748B" />
-                  </linearGradient>
-                  <linearGradient id="paperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#FFFFFF" />
-                    <stop offset="100%" stopColor="#F8FAFC" />
-                  </linearGradient>
-                  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="8" stdDeviation="16" floodColor="#1E1B4B" floodOpacity="0.35" />
-                  </filter>
-                  <filter id="innerDepth">
-                    <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#4338CA" floodOpacity="0.3" />
-                  </filter>
-                </defs>
-                <g filter="url(#shadow)">
-                  <rect x="96" y="80" width="320" height="400" rx="32" ry="32" fill="url(#boardGrad)" />
-                  <rect x="128" y="140" width="256" height="310" rx="16" ry="16" fill="url(#paperGrad)" />
-                  <g fill="#C7D2FE">
-                    <rect x="160" y="180" width="180" height="14" rx="7" />
-                    <rect x="160" y="215" width="140" height="14" rx="7" />
-                    <rect x="160" y="250" width="192" height="14" rx="7" />
-                    <rect x="160" y="285" width="120" height="14" rx="7" />
-                    <rect x="160" y="320" width="160" height="14" rx="7" />
-                  </g>
-                  <g>
-                    <rect x="186" y="48" width="140" height="72" rx="12" ry="12" fill="url(#clipGrad)" />
-                    <g stroke="#64748B" strokeWidth="3" strokeLinecap="round">
-                      <line x1="206" y1="60" x2="206" y2="108" />
-                      <line x1="222" y1="60" x2="222" y2="108" />
-                      <line x1="290" y1="60" x2="290" y2="108" />
-                      <line x1="306" y1="60" x2="306" y2="108" />
+          <>
+            <header className="app-header-unified" data-tauri-drag-region>
+              {/* Left section: Icon and title */}
+              <div className="header-left" data-tauri-drag-region>
+                <svg className="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" data-tauri-drag-region>
+                  <defs>
+                    <linearGradient id="boardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#6366F1" />
+                      <stop offset="100%" stopColor="#8B5CF6" />
+                    </linearGradient>
+                    <linearGradient id="clipGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#F1F5F9" />
+                      <stop offset="30%" stopColor="#CBD5E1" />
+                      <stop offset="70%" stopColor="#94A3B8" />
+                      <stop offset="100%" stopColor="#64748B" />
+                    </linearGradient>
+                    <linearGradient id="paperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#FFFFFF" />
+                      <stop offset="100%" stopColor="#F8FAFC" />
+                    </linearGradient>
+                    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="8" stdDeviation="16" floodColor="#1E1B4B" floodOpacity="0.35" />
+                    </filter>
+                    <filter id="innerDepth">
+                      <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#4338CA" floodOpacity="0.3" />
+                    </filter>
+                  </defs>
+                  <g filter="url(#shadow)">
+                    <rect x="96" y="80" width="320" height="400" rx="32" ry="32" fill="url(#boardGrad)" />
+                    <rect x="128" y="140" width="256" height="310" rx="16" ry="16" fill="url(#paperGrad)" />
+                    <g fill="#C7D2FE">
+                      <rect x="160" y="180" width="180" height="14" rx="7" />
+                      <rect x="160" y="215" width="140" height="14" rx="7" />
+                      <rect x="160" y="250" width="192" height="14" rx="7" />
+                      <rect x="160" y="285" width="120" height="14" rx="7" />
+                      <rect x="160" y="320" width="160" height="14" rx="7" />
                     </g>
-                    <path d="M194 120 C194 136, 210 148, 230 148" stroke="#94A3B8" strokeWidth="10" strokeLinecap="round" fill="none" />
-                    <path d="M318 120 C318 136, 302 148, 282 148" stroke="#94A3B8" strokeWidth="10" strokeLinecap="round" fill="none" />
+                    <g>
+                      <rect x="186" y="48" width="140" height="72" rx="12" ry="12" fill="url(#clipGrad)" />
+                      <g stroke="#64748B" strokeWidth="3" strokeLinecap="round">
+                        <line x1="206" y1="60" x2="206" y2="108" />
+                        <line x1="222" y1="60" x2="222" y2="108" />
+                        <line x1="290" y1="60" x2="290" y2="108" />
+                        <line x1="306" y1="60" x2="306" y2="108" />
+                      </g>
+                      <path d="M194 120 C194 136, 210 148, 230 148" stroke="#94A3B8" strokeWidth="10" strokeLinecap="round" fill="none" />
+                      <path d="M318 120 C318 136, 302 148, 282 148" stroke="#94A3B8" strokeWidth="10" strokeLinecap="round" fill="none" />
+                    </g>
                   </g>
-                </g>
-                <g filter="url(#innerDepth)">
-                  <circle cx="368" cy="400" r="44" fill="#10B981" />
-                  <path d="M346 400 L360 414 L390 384" stroke="#FFFFFF" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </g>
-              </svg>
-              {responsiveLevel < 5 && <h1 className="app-title" data-tauri-drag-region>{t("app.title")}</h1>}
-            </div>
+                  <g filter="url(#innerDepth)">
+                    <circle cx="368" cy="400" r="44" fill="#10B981" />
+                    <path d="M346 400 L360 414 L390 384" stroke="#FFFFFF" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  </g>
+                </svg>
+                <h1 className="app-title" data-tauri-drag-region>{t("app.title")}</h1>
+              </div>
 
-            {/* Center section: Search and filters */}
-            <div className="header-center">
-              <SearchBox
-                value={searchQuery}
-                onChange={setSearchQuery}
-                filterTags={filterTags}
-                onRemoveTag={handleRemoveTagFilter}
-                onClearAllTags={handleClearAllTags}
-              />
-              {responsiveLevel < 2 && <DateFilter filters={filters} onChange={setFilters} />}
-              {responsiveLevel < 3 && <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />}
-            </div>
-
-            {/* Right section: Action buttons */}
-            <div className="header-right">
-              {responsiveLevel < 4 && (
+              {/* Right section: Status and action buttons */}
+              <div className="header-right">
                 <div className="header-button-group">
-                  {responsiveLevel < 1 && (
-                    <>
-                      <span className="header-clip-count">
-                        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-                          <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
-                          <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
-                        </svg>
-                        {total}
-                      </span>
-                      <span
-                        className={`header-ws-dot ${wsConnected ? "ws-connected" : "ws-disconnected"}`}
-                        title={wsConnected ? t("status.wsConnected") : t("status.wsDisconnected")}
-                      />
-                    </>
-                  )}
+                  <span className="header-clip-count">
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
+                      <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
+                    </svg>
+                    {total}
+                  </span>
+                  <span
+                    className={`header-ws-dot ${wsConnected ? "ws-connected" : "ws-disconnected"}`}
+                    title={wsConnected ? t("status.wsConnected") : t("status.wsDisconnected")}
+                  />
                   <button className="header-button-group-item" onClick={openSettings} title={t("tooltip.settings")}>
                     <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
                       <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z" />
@@ -303,15 +255,23 @@ function App() {
                     </svg>
                   </button>
                 </div>
-              )}
-              {/* Overflow indicator when elements are hidden */}
-              {responsiveLevel > 0 && (
-                <span className="header-overflow-indicator" title={t("tooltip.moreOptions") || "More options hidden"}>
-                  •••
-                </span>
-              )}
+              </div>
+            </header>
+
+            {/* Filters bar below title bar */}
+            <div className="filters-bar macos">
+              <SearchBox
+                value={searchQuery}
+                onChange={setSearchQuery}
+                filterTags={filterTags}
+                onRemoveTag={handleRemoveTagFilter}
+                onClearAllTags={handleClearAllTags}
+                label={t("search.label")}
+              />
+              <DateFilter filters={filters} onChange={setFilters} />
+              <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
             </div>
-          </header>
+          </>
         ) : (
           <>
             <header className="app-header" data-tauri-drag-region>
@@ -435,6 +395,7 @@ function App() {
                 filterTags={filterTags}
                 onRemoveTag={handleRemoveTagFilter}
                 onClearAllTags={handleClearAllTags}
+                label={t("search.label")}
               />
               <DateFilter filters={filters} onChange={setFilters} />
               <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
