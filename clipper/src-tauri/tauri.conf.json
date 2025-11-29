@@ -15,7 +15,7 @@
         "title": "Clipper",
         "width": 1100,
         "height": 700,
-        "minWidth": 320,
+        "minWidth": 360,
         "minHeight": 400,
         "visible": true,
         "shadow": true

@@ -3491,3 +3491,34 @@ body {
     color: #e9ecef;
   }
 }
+
+/* Responsive filters bar */
+/* Level 1: Hide labels when width < 720px */
+@media (max-width: 720px) {
+  .filters-bar .search-box-label,
+  .filters-bar .date-input-group label {
+    display: none;
+  }
+
+  .filters-bar .search-box {
+    min-width: 120px;
+  }
+}
+
+/* Level 2: Hide date filters when width < 560px */
+@media (max-width: 560px) {
+  .filters-bar .date-filter {
+    display: none;
+  }
+
+  .filters-bar .search-box {
+    min-width: 100px;
+  }
+}
+
+/* Level 3: Hide favorite toggle when width < 420px */
+@media (max-width: 420px) {
+  .filters-bar .favorite-toggle {
+    display: none;
+  }
+}
