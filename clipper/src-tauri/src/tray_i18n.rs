@@ -24,11 +24,13 @@ pub fn get_translations(lang: Language) -> HashMap<&'static str, &'static str> {
         Language::En => {
             translations.insert("tray.showHide", "Show/Hide Main Window");
             translations.insert("tray.settings", "Settings...");
+            translations.insert("tray.about", "About");
             translations.insert("tray.quit", "Quit Application");
         }
         Language::Zh => {
             translations.insert("tray.showHide", "显示/隐藏主窗口");
             translations.insert("tray.settings", "设置...");
+            translations.insert("tray.about", "关于");
             translations.insert("tray.quit", "退出应用");
         }
     }

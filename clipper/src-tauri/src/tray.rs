@@ -26,12 +26,19 @@ pub fn setup_tray(app: &AppHandle, language: &str) -> Result<(), Box<dyn std::er
         true,
         None::<&str>,
     )?;
+    let about_item = MenuItem::with_id(
+        app,
+        "about",
+        t(lang, "tray.about"),
+        true,
+        None::<&str>,
+    )?;
     let separator = PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, "quit", t(lang, "tray.quit"), true, None::<&str>)?;
 
     let menu = Menu::with_items(
         app,
-        &[&show_hide_item, &settings_item, &separator, &quit_item],
+        &[&show_hide_item, &settings_item, &about_item, &separator, &quit_item],
     )?;
 
     // Use the tray icon embedded at compile time via include_image! macro
@@ -71,6 +78,10 @@ pub fn setup_tray(app: &AppHandle, language: &str) -> Result<(), Box<dyn std::er
                 }
                 // Emit event to open settings dialog in the frontend
                 let _ = app.emit("open-settings", ());
+            }
+            "about" => {
+                // Open the about page in the default browser
+                let _ = tauri_plugin_opener::open_url("https://clipper.unwritten.codes/", None::<&str>);
             }
             "quit" => {
                 app.exit(0);
@@ -130,12 +141,19 @@ pub fn update_tray_language(
             true,
             None::<&str>,
         )?;
+        let about_item = MenuItem::with_id(
+            app,
+            "about",
+            t(lang, "tray.about"),
+            true,
+            None::<&str>,
+        )?;
         let separator = PredefinedMenuItem::separator(app)?;
         let quit_item = MenuItem::with_id(app, "quit", t(lang, "tray.quit"), true, None::<&str>)?;
 
         let menu = Menu::with_items(
             app,
-            &[&show_hide_item, &settings_item, &separator, &quit_item],
+            &[&show_hide_item, &settings_item, &about_item, &separator, &quit_item],
         )?;
 
         tray.set_menu(Some(menu))?;
