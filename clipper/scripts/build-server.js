@@ -12,42 +12,43 @@ const scriptDir = __dirname;
 const clipperDir = path.dirname(scriptDir);
 const projectRoot = path.dirname(clipperDir);
 
-// Get target triple from environment or argument
-function getTargetTriple() {
+// Get target triple(s) from environment or argument
+// Can be comma-separated for universal builds (e.g., "aarch64-apple-darwin,x86_64-apple-darwin")
+function getTargetTriples() {
+  let targets = null;
+
   // Check Tauri environment variable first
   if (process.env.TAURI_ENV_TARGET_TRIPLE) {
-    return process.env.TAURI_ENV_TARGET_TRIPLE;
+    targets = process.env.TAURI_ENV_TARGET_TRIPLE.split(",").map(t => t.trim());
   }
-
   // Check command line argument
-  if (process.argv[2]) {
-    return process.argv[2];
+  else if (process.argv[2]) {
+    targets = process.argv[2].split(",").map(t => t.trim());
   }
 
-  // Detect current host
+  // Handle universal-apple-darwin by expanding to both architectures
+  if (targets && targets.length === 1 && targets[0] === "universal-apple-darwin") {
+    return ["aarch64-apple-darwin", "x86_64-apple-darwin"];
+  }
+
+  // Return targets if specified, otherwise detect current host
+  if (targets) {
+    return targets;
+  }
+
   const hostTuple = execSync("rustc --print host-tuple", { encoding: "utf8" }).trim();
-  return hostTuple;
+  return [hostTuple];
 }
 
-// Get host tuple for comparison
-function getHostTuple() {
-  return execSync("rustc --print host-tuple", { encoding: "utf8" }).trim();
-}
-
-function main() {
-  const targetTriple = getTargetTriple();
-  const hostTuple = getHostTuple();
-
+// Build for a single target and return the path to the binary
+function buildForTarget(targetTriple) {
   console.log(`Building clipper-server for target: ${targetTriple}`);
 
-  // Determine if this is a cross-compile
-  const isNativeBuild = targetTriple === hostTuple;
+  const isWindows = targetTriple.includes("windows");
+  const binaryName = isWindows ? "clipper-server.exe" : "clipper-server";
 
-  // Build clipper-server
-  const cargoArgs = ["build", "--release", "-p", "clipper-server"];
-  if (!isNativeBuild) {
-    cargoArgs.push("--target", targetTriple);
-  }
+  // Build clipper-server with explicit target
+  const cargoArgs = ["build", "--release", "-p", "clipper-server", "--target", targetTriple];
 
   console.log(`Running: cargo ${cargoArgs.join(" ")}`);
   execSync(`cargo ${cargoArgs.join(" ")}`, {
@@ -55,30 +56,65 @@ function main() {
     stdio: "inherit",
   });
 
-  // Determine source and destination paths
-  const isWindows = targetTriple.includes("windows");
-  const binaryName = isWindows ? "clipper-server.exe" : "clipper-server";
+  // Binary is always in target/{triple}/release/ when using --target
+  const sourceBinary = path.join(projectRoot, "target", targetTriple, "release", binaryName);
 
-  let sourceBinary;
-  if (isNativeBuild) {
-    sourceBinary = path.join(projectRoot, "target", "release", binaryName);
-  } else {
-    sourceBinary = path.join(projectRoot, "target", targetTriple, "release", binaryName);
-  }
+  return sourceBinary;
+}
 
-  const destBinaryName = isWindows
-    ? `clipper-server-${targetTriple}.exe`
-    : `clipper-server-${targetTriple}`;
+// Create a universal binary using lipo (macOS only)
+function createUniversalBinary(binaries, outputPath) {
+  console.log(`Creating universal binary from: ${binaries.join(", ")}`);
+  const lipoArgs = ["-create", "-output", outputPath, ...binaries];
+  console.log(`Running: lipo ${lipoArgs.join(" ")}`);
+  execSync(`lipo ${lipoArgs.join(" ")}`, { stdio: "inherit" });
+  console.log(`Created universal binary: ${outputPath}`);
+}
+
+function main() {
+  const targetTriples = getTargetTriples();
   const binariesDir = path.join(clipperDir, "src-tauri", "binaries");
-  const destBinary = path.join(binariesDir, destBinaryName);
 
   // Ensure binaries directory exists
   fs.mkdirSync(binariesDir, { recursive: true });
 
-  // Copy binary
-  fs.copyFileSync(sourceBinary, destBinary);
+  // Check if this is a macOS universal build
+  const isMacOSUniversal = targetTriples.length === 2 &&
+    targetTriples.includes("aarch64-apple-darwin") &&
+    targetTriples.includes("x86_64-apple-darwin");
 
-  console.log(`Copied clipper-server to: ${destBinary}`);
+  if (isMacOSUniversal) {
+    // Build both architectures separately
+    const builtBinaries = [];
+    for (const target of targetTriples) {
+      const sourceBinary = buildForTarget(target);
+      builtBinaries.push(sourceBinary);
+
+      // Also copy individual arch binaries (needed during Tauri's cargo build phase)
+      const destBinaryName = `clipper-server-${target}`;
+      const destBinary = path.join(binariesDir, destBinaryName);
+      fs.copyFileSync(sourceBinary, destBinary);
+      console.log(`Copied clipper-server to: ${destBinary}`);
+    }
+
+    // Create universal binary with lipo (needed during Tauri's bundle phase)
+    const universalBinaryPath = path.join(binariesDir, "clipper-server-universal-apple-darwin");
+    createUniversalBinary(builtBinaries, universalBinaryPath);
+  } else {
+    // Single target build (Linux, Windows, or single macOS arch)
+    const targetTriple = targetTriples[0];
+    const isWindows = targetTriple.includes("windows");
+    const sourceBinary = buildForTarget(targetTriple);
+
+    const destBinaryName = isWindows
+      ? `clipper-server-${targetTriple}.exe`
+      : `clipper-server-${targetTriple}`;
+    const destBinary = path.join(binariesDir, destBinaryName);
+
+    // Copy binary
+    fs.copyFileSync(sourceBinary, destBinary);
+    console.log(`Copied clipper-server to: ${destBinary}`);
+  }
 }
 
 main();
