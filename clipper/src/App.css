@@ -793,6 +793,25 @@ body {
   padding: 16px;
 }
 
+/* Custom Scrollbar Styles (for Windows/Linux where system scrollbar may not match theme) */
+.app-main::-webkit-scrollbar {
+  width: 10px;
+}
+
+.app-main::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 5px;
+}
+
+.app-main::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 5px;
+}
+
+.app-main::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
 /* Clip List */
 .clip-list {
   display: flex;
@@ -2152,6 +2171,19 @@ body {
   color: #f8a0a0;
 }
 
+/* Dark theme scrollbar */
+:root[data-theme="dark"] .app-main::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+:root[data-theme="dark"] .app-main::-webkit-scrollbar-thumb {
+  background: #555555;
+}
+
+:root[data-theme="dark"] .app-main::-webkit-scrollbar-thumb:hover {
+  background: #666666;
+}
+
 :root[data-theme="dark"] .tag {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
@@ -2652,6 +2684,19 @@ body {
 
   :root:not([data-theme="light"]) .ws-disconnected .ws-status-text {
     color: #f8a0a0;
+  }
+
+  /* Dark theme scrollbar (media query fallback) */
+  :root:not([data-theme="light"]) .app-main::-webkit-scrollbar-track {
+    background: #2d2d2d;
+  }
+
+  :root:not([data-theme="light"]) .app-main::-webkit-scrollbar-thumb {
+    background: #555555;
+  }
+
+  :root:not([data-theme="light"]) .app-main::-webkit-scrollbar-thumb:hover {
+    background: #666666;
   }
 
   :root:not([data-theme="light"]) .tag {
