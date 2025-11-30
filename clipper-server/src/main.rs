@@ -7,7 +7,7 @@ use axum::{
 };
 use clap::Parser;
 use clipper_indexer::ClipperIndexer;
-use clipper_server::{api, websocket, AppState, Cli, ServerConfig};
+use clipper_server::{api, run_cleanup_task, websocket, AppState, Cli, ServerConfig};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -95,6 +95,20 @@ async fn main() {
 
     // Create application state
     let state = AppState::new(indexer);
+
+    // Start cleanup task if enabled
+    if config.cleanup.is_active() {
+        tracing::info!(
+            "Auto-cleanup enabled: retention={} days, interval={} hours",
+            config.cleanup.retention_days,
+            config.cleanup.interval_hours
+        );
+        let cleanup_state = state.clone();
+        let cleanup_config = config.cleanup.clone();
+        tokio::spawn(async move {
+            run_cleanup_task(cleanup_state, cleanup_config).await;
+        });
+    }
 
     // Build the application with routes
     #[allow(unused_mut)]

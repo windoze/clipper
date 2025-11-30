@@ -73,6 +73,19 @@ pub struct Cli {
     /// Directory for certificate cache
     #[arg(long, env = "CLIPPER_CERTS_DIR")]
     pub certs_dir: Option<PathBuf>,
+
+    // Cleanup options
+    /// Enable automatic cleanup of old clips
+    #[arg(long, env = "CLIPPER_CLEANUP_ENABLED")]
+    pub cleanup_enabled: Option<bool>,
+
+    /// Delete clips older than this many days (only clips without meaningful tags)
+    #[arg(long, env = "CLIPPER_CLEANUP_RETENTION_DAYS")]
+    pub cleanup_retention_days: Option<u32>,
+
+    /// Interval in hours between cleanup runs
+    #[arg(long, env = "CLIPPER_CLEANUP_INTERVAL_HOURS")]
+    pub cleanup_interval_hours: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -84,6 +97,8 @@ pub struct ServerConfig {
     pub tls: TlsConfig,
     #[serde(default)]
     pub acme: AcmeConfig,
+    #[serde(default)]
+    pub cleanup: CleanupConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -177,6 +192,39 @@ impl AcmeConfig {
     }
 }
 
+/// Auto-cleanup configuration for old clips
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CleanupConfig {
+    /// Enable automatic cleanup of old clips
+    pub enabled: bool,
+    /// Delete clips older than this many days (only clips without meaningful tags)
+    pub retention_days: u32,
+    /// Interval in hours between cleanup runs (default: 24)
+    pub interval_hours: u32,
+}
+
+impl Default for CleanupConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            retention_days: 30,
+            interval_hours: 24,
+        }
+    }
+}
+
+impl CleanupConfig {
+    /// Check if cleanup is enabled and properly configured
+    pub fn is_active(&self) -> bool {
+        self.enabled && self.retention_days > 0 && self.interval_hours > 0
+    }
+
+    /// Get the cleanup interval as Duration
+    pub fn interval(&self) -> std::time::Duration {
+        std::time::Duration::from_secs(self.interval_hours as u64 * 3600)
+    }
+}
+
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
@@ -192,6 +240,7 @@ impl Default for ServerConfig {
             },
             tls: TlsConfig::default(),
             acme: AcmeConfig::default(),
+            cleanup: CleanupConfig::default(),
         }
     }
 }
@@ -286,6 +335,19 @@ impl ServerConfig {
         // If ACME is enabled, TLS should also be enabled
         if cfg.acme.enabled {
             cfg.tls.enabled = true;
+        }
+
+        // Cleanup configuration overrides
+        if let Some(cleanup_enabled) = cli.cleanup_enabled {
+            cfg.cleanup.enabled = cleanup_enabled;
+        }
+
+        if let Some(retention_days) = cli.cleanup_retention_days {
+            cfg.cleanup.retention_days = retention_days;
+        }
+
+        if let Some(interval_hours) = cli.cleanup_interval_hours {
+            cfg.cleanup.interval_hours = interval_hours;
         }
 
         Ok(cfg)
@@ -493,5 +555,45 @@ mod tests {
         let mut config = ServerConfig::default();
         config.acme.enabled = true;
         assert!(config.acme_available());
+    }
+
+    #[test]
+    fn test_cleanup_default() {
+        let config = CleanupConfig::default();
+        assert!(!config.enabled);
+        assert_eq!(config.retention_days, 30);
+        assert_eq!(config.interval_hours, 24);
+        assert!(!config.is_active());
+    }
+
+    #[test]
+    fn test_cleanup_is_active() {
+        let mut config = CleanupConfig::default();
+        assert!(!config.is_active());
+
+        config.enabled = true;
+        assert!(config.is_active());
+
+        config.retention_days = 0;
+        assert!(!config.is_active());
+
+        config.retention_days = 30;
+        config.interval_hours = 0;
+        assert!(!config.is_active());
+    }
+
+    #[test]
+    fn test_cleanup_interval() {
+        let mut config = CleanupConfig::default();
+        config.interval_hours = 12;
+        assert_eq!(config.interval(), std::time::Duration::from_secs(12 * 3600));
+    }
+
+    #[test]
+    fn test_default_config_includes_cleanup() {
+        let config = ServerConfig::default();
+        assert!(!config.cleanup.enabled);
+        assert_eq!(config.cleanup.retention_days, 30);
+        assert_eq!(config.cleanup.interval_hours, 24);
     }
 }
