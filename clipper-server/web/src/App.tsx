@@ -13,7 +13,12 @@ import {
 import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
 import { useWebSocket, isSecureContext } from "./hooks/useWebSocket";
 
-function App() {
+interface AppProps {
+  /** Auth token for WebSocket authentication (when server requires auth) */
+  authToken?: string;
+}
+
+function App({ authToken }: AppProps) {
   const { t } = useI18n();
   const {
     clips,
@@ -68,7 +73,11 @@ function App() {
     onError: useCallback((_error: string) => {
       showToast(t("toast.serverError"), "error");
     }, [showToast, t]),
+    onAuthError: useCallback((_error: string) => {
+      showToast(t("toast.wsAuthFailed"), "error");
+    }, [showToast, t]),
     enabled: isSecureContext(),
+    token: authToken,
   });
 
   // Show connection status toast (only on first connect)

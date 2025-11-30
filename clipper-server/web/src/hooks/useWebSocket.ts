@@ -15,7 +15,10 @@ interface UseWebSocketOptions {
   onDeletedClip?: (id: string) => void;
   onClipsCleanedUp?: (ids: string[], count: number) => void;
   onError?: (error: string) => void;
+  onAuthError?: (error: string) => void;
   enabled?: boolean;
+  /** Auth token to send after connection (if server requires auth) */
+  token?: string;
 }
 
 // Connection timeout - if no message received within this time, consider connection dead
@@ -45,6 +48,7 @@ function getWebSocketUrl(): string {
 /**
  * Hook to manage WebSocket connection to the clipper server.
  * Only connects when running on HTTPS for security.
+ * Supports message-based authentication when a token is provided.
  */
 export function useWebSocket({
   onNewClip,
@@ -52,7 +56,9 @@ export function useWebSocket({
   onDeletedClip,
   onClipsCleanedUp,
   onError,
+  onAuthError,
   enabled = true,
+  token,
 }: UseWebSocketOptions = {}) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,10 +66,16 @@ export function useWebSocket({
   const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY_MS);
   const [isConnected, setIsConnected] = useState(false);
   const [isSecure] = useState(isSecureContext);
+  // Track if we're waiting for auth response
+  const isAuthenticatingRef = useRef(false);
 
   // Store callbacks in refs to avoid reconnecting when they change
-  const callbacksRef = useRef({ onNewClip, onUpdatedClip, onDeletedClip, onClipsCleanedUp, onError });
-  callbacksRef.current = { onNewClip, onUpdatedClip, onDeletedClip, onClipsCleanedUp, onError };
+  const callbacksRef = useRef({ onNewClip, onUpdatedClip, onDeletedClip, onClipsCleanedUp, onError, onAuthError });
+  callbacksRef.current = { onNewClip, onUpdatedClip, onDeletedClip, onClipsCleanedUp, onError, onAuthError };
+
+  // Store token in ref to use in callbacks
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
 
   // Reset activity timeout - called whenever we receive any message from server
   const resetActivityTimeout = useCallback(() => {
@@ -98,11 +110,21 @@ export function useWebSocket({
 
       ws.onopen = () => {
         console.log("WebSocket connected");
-        setIsConnected(true);
         // Reset reconnect delay on successful connection
         reconnectDelayRef.current = INITIAL_RECONNECT_DELAY_MS;
         // Start activity timeout
         resetActivityTimeout();
+
+        // If we have a token, send auth message and wait for response
+        if (tokenRef.current) {
+          console.log("WebSocket: sending auth message");
+          isAuthenticatingRef.current = true;
+          ws.send(JSON.stringify({ type: "auth", token: tokenRef.current }));
+          // Don't set isConnected yet - wait for auth_success
+        } else {
+          // No auth required, mark as connected immediately
+          setIsConnected(true);
+        }
       };
 
       ws.onmessage = (event) => {
@@ -110,7 +132,27 @@ export function useWebSocket({
         resetActivityTimeout();
 
         try {
-          const notification: ClipNotification = JSON.parse(event.data);
+          const data = JSON.parse(event.data);
+
+          // Handle auth responses first
+          if (data.type === "auth_success") {
+            console.log("WebSocket: auth successful");
+            isAuthenticatingRef.current = false;
+            setIsConnected(true);
+            return;
+          }
+
+          if (data.type === "auth_error") {
+            console.error("WebSocket: auth failed:", data.message);
+            isAuthenticatingRef.current = false;
+            callbacksRef.current.onAuthError?.(data.message || "Authentication failed");
+            // Close the connection - server will close it anyway
+            ws.close(4001, "Auth failed");
+            return;
+          }
+
+          // Handle clip notifications (only after authenticated)
+          const notification = data as ClipNotification;
 
           switch (notification.type) {
             case "new_clip":
@@ -147,6 +189,7 @@ export function useWebSocket({
         console.log("WebSocket closed:", event.code, event.reason);
         setIsConnected(false);
         wsRef.current = null;
+        isAuthenticatingRef.current = false;
 
         // Clear activity timeout
         if (activityTimeoutRef.current) {
@@ -155,7 +198,10 @@ export function useWebSocket({
         }
 
         // Reconnect with exponential backoff if not intentionally closed
-        if (enabled && event.code !== 1000) {
+        // Don't reconnect on:
+        // - 1000: Normal closure
+        // - 4001: Auth failed (no point retrying with same token)
+        if (enabled && event.code !== 1000 && event.code !== 4001) {
           const delay = reconnectDelayRef.current;
           // Add jitter (±20%) to prevent thundering herd
           const jitter = delay * 0.2 * (Math.random() * 2 - 1);

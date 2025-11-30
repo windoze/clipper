@@ -134,9 +134,12 @@ function AuthWrapper() {
     return <LoginScreen onLogin={handleLogin} error={authError} />;
   }
 
+  // Get the current token for WebSocket authentication
+  const currentToken = authRequired ? localStorage.getItem(AUTH_TOKEN_KEY) || undefined : undefined;
+
   return (
     <CleanupConfigWrapper>
-      <App />
+      <App authToken={currentToken} />
     </CleanupConfigWrapper>
   );
 }
