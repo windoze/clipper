@@ -17,6 +17,10 @@ struct Cli {
     )]
     url: String,
 
+    /// Bearer token for authentication
+    #[arg(short, long, env = "CLIPPER_TOKEN")]
+    token: Option<String>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -114,7 +118,10 @@ async fn main() -> Result<()> {
         .expect("Failed to install rustls crypto provider");
 
     let cli = Cli::parse();
-    let client = ClipperClient::new(cli.url);
+    let client = match cli.token {
+        Some(token) => ClipperClient::new_with_token(cli.url, token),
+        None => ClipperClient::new(cli.url),
+    };
 
     match cli.command {
         Commands::Create {
