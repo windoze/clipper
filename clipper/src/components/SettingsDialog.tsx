@@ -79,6 +79,23 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     }
   }, [isOpen]);
 
+  // Handle ESC key to close dialog
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isRecordingShortcut) {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, isRecordingShortcut]);
+
   const loadSettings = async () => {
     setLoading(true);
     setError(null);

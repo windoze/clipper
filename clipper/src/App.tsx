@@ -89,6 +89,24 @@ function App() {
     };
   }, []);
 
+  // In-app keyboard shortcut for settings (Cmd+, on macOS, Ctrl+, on Windows/Linux)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = os === "macos";
+      const modifierPressed = isMac ? e.metaKey : e.ctrlKey;
+
+      if (modifierPressed && e.key === ",") {
+        e.preventDefault();
+        openSettings();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [os, openSettings]);
+
   // Listen for data-cleared and server-switched events to refresh clips
   useEffect(() => {
     const unlistenDataCleared = listen("data-cleared", () => {
