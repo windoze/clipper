@@ -92,6 +92,7 @@ export const zh = {
   "toast.serverError": "服务器连接错误",
   "toast.newClip": "新剪贴已添加",
   "toast.clipUpdated": "剪贴已更新",
+  "toast.clipsCleanedUp": "已清理 {count} 条旧剪贴",
   "toast.wsConnected": "实时同步已连接",
   "toast.wsDisconnected": "实时同步已断开",
   "toast.fileUploaded": "文件已上传",

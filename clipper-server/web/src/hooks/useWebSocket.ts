@@ -1,16 +1,19 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 
 export interface ClipNotification {
-  type: "new_clip" | "updated_clip" | "deleted_clip";
-  id: string;
+  type: "new_clip" | "updated_clip" | "deleted_clip" | "clips_cleaned_up";
+  id?: string;
   content?: string;
   tags?: string[];
+  ids?: string[];
+  count?: number;
 }
 
 interface UseWebSocketOptions {
   onNewClip?: (id: string, content: string, tags: string[]) => void;
   onUpdatedClip?: (id: string) => void;
   onDeletedClip?: (id: string) => void;
+  onClipsCleanedUp?: (ids: string[], count: number) => void;
   onError?: (error: string) => void;
   enabled?: boolean;
 }
@@ -47,6 +50,7 @@ export function useWebSocket({
   onNewClip,
   onUpdatedClip,
   onDeletedClip,
+  onClipsCleanedUp,
   onError,
   enabled = true,
 }: UseWebSocketOptions = {}) {
@@ -58,8 +62,8 @@ export function useWebSocket({
   const [isSecure] = useState(isSecureContext);
 
   // Store callbacks in refs to avoid reconnecting when they change
-  const callbacksRef = useRef({ onNewClip, onUpdatedClip, onDeletedClip, onError });
-  callbacksRef.current = { onNewClip, onUpdatedClip, onDeletedClip, onError };
+  const callbacksRef = useRef({ onNewClip, onUpdatedClip, onDeletedClip, onClipsCleanedUp, onError });
+  callbacksRef.current = { onNewClip, onUpdatedClip, onDeletedClip, onClipsCleanedUp, onError };
 
   // Reset activity timeout - called whenever we receive any message from server
   const resetActivityTimeout = useCallback(() => {
@@ -111,16 +115,22 @@ export function useWebSocket({
           switch (notification.type) {
             case "new_clip":
               callbacksRef.current.onNewClip?.(
-                notification.id,
+                notification.id || "",
                 notification.content || "",
                 notification.tags || []
               );
               break;
             case "updated_clip":
-              callbacksRef.current.onUpdatedClip?.(notification.id);
+              callbacksRef.current.onUpdatedClip?.(notification.id || "");
               break;
             case "deleted_clip":
-              callbacksRef.current.onDeletedClip?.(notification.id);
+              callbacksRef.current.onDeletedClip?.(notification.id || "");
+              break;
+            case "clips_cleaned_up":
+              callbacksRef.current.onClipsCleanedUp?.(
+                notification.ids || [],
+                notification.count || 0
+              );
               break;
           }
         } catch (e) {

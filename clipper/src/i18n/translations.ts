@@ -64,6 +64,7 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
 
     // Extra Toast Messages
     "toast.clipReceived": "New clip received",
+    "toast.clipsCleanedUp": "{count} old clips cleaned up",
     "toast.dataCleared": "All data cleared",
     "toast.serverStarted": "Server started",
     "toast.serverStopped": "Server stopped",
@@ -131,6 +132,7 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
 
     // Extra Toast Messages
     "toast.clipReceived": "收到新剪贴",
+    "toast.clipsCleanedUp": "已清理 {count} 条旧剪贴",
     "toast.dataCleared": "所有数据已清除",
     "toast.serverStarted": "服务器已启动",
     "toast.serverStopped": "服务器已停止",

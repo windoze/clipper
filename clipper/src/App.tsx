@@ -113,12 +113,18 @@ function App() {
       refetch();
     });
 
+    const unlistenClipsCleanedUp = listen<{ ids: string[]; count: number }>("clips-cleaned-up", (event) => {
+      showToast(t("toast.clipsCleanedUp").replace("{count}", String(event.payload.count)));
+      refetch();
+    });
+
     return () => {
       unlistenDataCleared.then((fn) => fn());
       unlistenServerSwitched.then((fn) => fn());
       unlistenNewClip.then((fn) => fn());
       unlistenClipUpdated.then((fn) => fn());
       unlistenClipDeleted.then((fn) => fn());
+      unlistenClipsCleanedUp.then((fn) => fn());
     };
   }, [refetch, showToast, t]);
 

@@ -76,6 +76,10 @@ pub enum ClipNotification {
     DeletedClip {
         id: String,
     },
+    ClipsCleanedUp {
+        ids: Vec<String>,
+        count: usize,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

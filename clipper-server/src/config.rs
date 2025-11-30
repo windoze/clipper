@@ -584,8 +584,10 @@ mod tests {
 
     #[test]
     fn test_cleanup_interval() {
-        let mut config = CleanupConfig::default();
-        config.interval_hours = 12;
+        let config = CleanupConfig {
+            interval_hours: 12,
+            ..Default::default()
+        };
         assert_eq!(config.interval(), std::time::Duration::from_secs(12 * 3600));
     }
 

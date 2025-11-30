@@ -56,6 +56,15 @@ pub async fn start_websocket_listener(app: AppHandle) {
                         ClipNotification::DeletedClip { id } => {
                             let _ = app.emit("clip-deleted", serde_json::json!({ "id": id }));
                         }
+                        ClipNotification::ClipsCleanedUp { ids, count } => {
+                            let _ = app.emit(
+                                "clips-cleaned-up",
+                                serde_json::json!({
+                                    "ids": ids,
+                                    "count": count
+                                }),
+                            );
+                        }
                     }
                 }
 

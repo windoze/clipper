@@ -61,6 +61,10 @@ function App() {
     onDeletedClip: useCallback((_id: string) => {
       refetch();
     }, [refetch]),
+    onClipsCleanedUp: useCallback((_ids: string[], count: number) => {
+      showToast(t("toast.clipsCleanedUp").replace("{count}", String(count)), "info");
+      refetch();
+    }, [showToast, t, refetch]),
     onError: useCallback((_error: string) => {
       showToast(t("toast.serverError"), "error");
     }, [showToast, t]),

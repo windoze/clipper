@@ -93,6 +93,7 @@ export const en = {
   "toast.serverError": "Server connection error",
   "toast.newClip": "New clip added",
   "toast.clipUpdated": "Clip updated",
+  "toast.clipsCleanedUp": "{count} old clips cleaned up",
   "toast.wsConnected": "Real-time sync connected",
   "toast.wsDisconnected": "Real-time sync disconnected",
   "toast.fileUploaded": "File uploaded",
