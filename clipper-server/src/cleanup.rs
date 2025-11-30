@@ -1,4 +1,4 @@
-use crate::{AppState, CleanupConfig, ClipUpdate};
+use crate::{AppState, CleanupConfig};
 use chrono::{Duration, Utc};
 
 /// Run the cleanup task periodically based on configuration.
@@ -37,10 +37,8 @@ pub async fn run_cleanup_task(state: AppState, config: CleanupConfig) {
                 } else {
                     tracing::info!("Cleanup completed: deleted {} clips", deleted_ids.len());
 
-                    // Notify connected clients about deleted clips
-                    for id in deleted_ids {
-                        let _ = state.clip_updates.send(ClipUpdate::DeletedClip { id });
-                    }
+                    // Notify connected clients about cleaned up clips
+                    state.notify_clips_cleaned_up(deleted_ids);
                 }
             }
             Err(e) => {

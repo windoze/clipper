@@ -22,6 +22,10 @@ pub enum ClipUpdate {
     DeletedClip {
         id: String,
     },
+    ClipsCleanedUp {
+        ids: Vec<String>,
+        count: usize,
+    },
 }
 
 impl AppState {
@@ -45,5 +49,12 @@ impl AppState {
 
     pub fn notify_deleted_clip(&self, id: String) {
         let _ = self.clip_updates.send(ClipUpdate::DeletedClip { id });
+    }
+
+    pub fn notify_clips_cleaned_up(&self, ids: Vec<String>) {
+        let count = ids.len();
+        let _ = self
+            .clip_updates
+            .send(ClipUpdate::ClipsCleanedUp { ids, count });
     }
 }
