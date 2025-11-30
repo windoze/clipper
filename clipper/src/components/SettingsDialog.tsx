@@ -22,6 +22,8 @@ export interface Settings {
   language: string | null;
   notificationsEnabled: boolean;
   globalShortcut: string;
+  cleanupEnabled: boolean;
+  cleanupRetentionDays: number;
 }
 
 interface SettingsDialogProps {
@@ -48,6 +50,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     language: null,
     notificationsEnabled: true,
     globalShortcut: defaultShortcut,
+    cleanupEnabled: false,
+    cleanupRetentionDays: 30,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +62,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   const [togglingNetworkAccess, setTogglingNetworkAccess] = useState(false);
   // Track the original server address to detect changes on close
   const [originalServerAddress, setOriginalServerAddress] = useState<string>("");
+  // Track original cleanup settings to detect changes (requires server restart)
+  const [originalCleanupEnabled, setOriginalCleanupEnabled] = useState(false);
+  const [originalCleanupRetentionDays, setOriginalCleanupRetentionDays] = useState(30);
   // Shortcut recording state
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
   const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
@@ -80,6 +87,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
       setSettings(loadedSettings);
       // Store the original server address to detect changes on close
       setOriginalServerAddress(loadedSettings.serverAddress);
+      // Store original cleanup settings to detect changes
+      setOriginalCleanupEnabled(loadedSettings.cleanupEnabled);
+      setOriginalCleanupRetentionDays(loadedSettings.cleanupRetentionDays);
     } catch (e) {
       setError(`Failed to load settings: ${e}`);
     } finally {
@@ -129,7 +139,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
 
   const handleChange = async (
     field: keyof Settings,
-    value: string | boolean | null
+    value: string | boolean | number | null
   ) => {
     const newSettings = { ...settings, [field]: value };
     setSettings(newSettings);
@@ -144,6 +154,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   };
 
   // Handle close - reconnect if server URL changed while using external server
+  // or restart bundled server if cleanup settings changed
   const handleClose = async () => {
     setShowClearConfirm(false);
 
@@ -155,6 +166,20 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
         showToast(t("toast.serverConnected"));
       } catch (e) {
         console.error("Failed to reconnect to server:", e);
+      }
+    }
+
+    // If using bundled server and cleanup settings changed, restart the server
+    if (settings.useBundledServer &&
+        (settings.cleanupEnabled !== originalCleanupEnabled ||
+         settings.cleanupRetentionDays !== originalCleanupRetentionDays)) {
+      try {
+        // Restart by switching to bundled server again
+        const newUrl = await invoke<string>("switch_to_bundled_server");
+        setServerUrl(newUrl);
+        showToast(t("toast.serverRestarted"));
+      } catch (e) {
+        console.error("Failed to restart server with new cleanup settings:", e);
       }
     }
 
@@ -643,6 +668,56 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                       {t("settings.defaultSaveLocation.hint")}
                     </p>
                   </div>
+
+                  <div className="settings-field settings-checkbox">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={settings.cleanupEnabled}
+                        onChange={(e) =>
+                          handleChange("cleanupEnabled", e.target.checked)
+                        }
+                      />
+                      <span className="checkbox-text">
+                        {t("settings.cleanup")}
+                      </span>
+                    </label>
+                    <p className="settings-hint">
+                      {t("settings.cleanup.hint")}
+                    </p>
+                  </div>
+
+                  {settings.cleanupEnabled && (
+                    <div className="settings-field">
+                      <label htmlFor="cleanupRetentionDays">
+                        {t("settings.cleanup.retentionDays")}
+                      </label>
+                      <input
+                        id="cleanupRetentionDays"
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={settings.cleanupRetentionDays}
+                        onChange={(e) =>
+                          handleChange(
+                            "cleanupRetentionDays",
+                            Math.max(1, Math.min(365, parseInt(e.target.value) || 30))
+                          )
+                        }
+                        className="settings-number-input"
+                      />
+                      <p className="settings-hint">
+                        {t("settings.cleanup.retentionDays.hint")}
+                      </p>
+                    </div>
+                  )}
+
+                  {(settings.cleanupEnabled !== originalCleanupEnabled ||
+                    settings.cleanupRetentionDays !== originalCleanupRetentionDays) && (
+                    <div className="settings-notice">
+                      {t("settings.cleanup.restartNotice")}
+                    </div>
+                  )}
                 </div>
               )}
 

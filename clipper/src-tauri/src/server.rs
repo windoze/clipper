@@ -116,21 +116,39 @@ impl ServerManager {
             listen_addr, listen_on_all
         );
 
+        // Get cleanup settings
+        let cleanup_enabled = settings_manager.get_cleanup_enabled();
+        let cleanup_retention_days = settings_manager.get_cleanup_retention_days();
+        eprintln!(
+            "[clipper-server] Cleanup enabled: {}, retention days: {}",
+            cleanup_enabled, cleanup_retention_days
+        );
+
+        // Build args list
+        let mut args = vec![
+            "--db-path".to_string(),
+            db_path_str,
+            "--storage-path".to_string(),
+            storage_path_str,
+            "--listen-addr".to_string(),
+            listen_addr.to_string(),
+            "--port".to_string(),
+            port.to_string(),
+        ];
+
+        // Add cleanup args if enabled
+        if cleanup_enabled {
+            args.push("--cleanup-enabled".to_string());
+            args.push("--cleanup-retention-days".to_string());
+            args.push(cleanup_retention_days.to_string());
+        }
+
         // Spawn the sidecar process
         let sidecar_command = app
             .shell()
             .sidecar("clipper-server")
             .map_err(|e| format!("Failed to create sidecar command: {}", e))?
-            .args([
-                "--db-path",
-                &db_path_str,
-                "--storage-path",
-                &storage_path_str,
-                "--listen-addr",
-                listen_addr,
-                "--port",
-                &port.to_string(),
-            ]);
+            .args(&args);
 
         let (mut rx, child) = sidecar_command
             .spawn()

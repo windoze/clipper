@@ -48,6 +48,16 @@ pub struct Settings {
     /// Global shortcut to toggle window visibility (e.g., "CmdOrCtrl+Shift+V")
     #[serde(default = "default_global_shortcut")]
     pub global_shortcut: String,
+    /// Whether to enable automatic cleanup of old clips (bundled server only)
+    #[serde(default)]
+    pub cleanup_enabled: bool,
+    /// Retention period in days for automatic cleanup (bundled server only)
+    #[serde(default = "default_cleanup_retention_days")]
+    pub cleanup_retention_days: u32,
+}
+
+fn default_cleanup_retention_days() -> u32 {
+    30
 }
 
 fn default_global_shortcut() -> String {
@@ -83,6 +93,8 @@ impl Default for Settings {
             language: None,
             notifications_enabled: true,
             global_shortcut: default_global_shortcut(),
+            cleanup_enabled: false,
+            cleanup_retention_days: default_cleanup_retention_days(),
         }
     }
 }
@@ -170,6 +182,16 @@ impl SettingsManager {
     /// Get whether the server should listen on all interfaces
     pub fn get_listen_on_all_interfaces(&self) -> bool {
         self.settings.read().unwrap().listen_on_all_interfaces
+    }
+
+    /// Get whether cleanup is enabled
+    pub fn get_cleanup_enabled(&self) -> bool {
+        self.settings.read().unwrap().cleanup_enabled
+    }
+
+    /// Get the cleanup retention days
+    pub fn get_cleanup_retention_days(&self) -> u32 {
+        self.settings.read().unwrap().cleanup_retention_days
     }
 }
 

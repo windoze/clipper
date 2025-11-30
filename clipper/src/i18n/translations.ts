@@ -34,6 +34,13 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.defaultSaveLocation.hint": "Default folder for saving downloaded attachments.",
     "settings.browse": "Browse...",
 
+    // Auto-cleanup
+    "settings.cleanup": "Auto-cleanup old clips",
+    "settings.cleanup.hint": "Automatically delete old clips based on retention period. Clips marked as favorites or with user-defined tags are never deleted.",
+    "settings.cleanup.retentionDays": "Retention Period (days)",
+    "settings.cleanup.retentionDays.hint": "Clips older than this will be automatically deleted. Range: 1-365 days.",
+    "settings.cleanup.restartNotice": "Server will restart when you close settings to apply cleanup changes.",
+
     // Data Management
     "settings.dataManagement": "Data Management",
     "settings.clearAllData": "Clear All Data",
@@ -69,6 +76,7 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "toast.serverStarted": "Server started",
     "toast.serverStopped": "Server stopped",
     "toast.serverConnected": "Connected to server",
+    "toast.serverRestarted": "Server restarted with new settings",
   },
   zh: {
     // Startup
@@ -101,6 +109,13 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.defaultSaveLocation.placeholder": "系统默认",
     "settings.defaultSaveLocation.hint": "保存下载附件的默认文件夹。",
     "settings.browse": "浏览...",
+
+    // Auto-cleanup
+    "settings.cleanup": "自动清理旧剪贴",
+    "settings.cleanup.hint": "根据保留期限自动删除旧剪贴。标记为收藏或带有用户定义标签的剪贴永不删除。",
+    "settings.cleanup.retentionDays": "保留期限（天）",
+    "settings.cleanup.retentionDays.hint": "超过此天数的剪贴将被自动删除。范围：1-365 天。",
+    "settings.cleanup.restartNotice": "关闭设置后将重启服务器以应用清理设置更改。",
 
     // Data Management
     "settings.dataManagement": "数据管理",
@@ -137,5 +152,6 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "toast.serverStarted": "服务器已启动",
     "toast.serverStopped": "服务器已停止",
     "toast.serverConnected": "已连接到服务器",
+    "toast.serverRestarted": "服务器已重启以应用新设置",
   },
 };
