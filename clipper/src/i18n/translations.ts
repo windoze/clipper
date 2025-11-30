@@ -112,7 +112,7 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
 
     // Auto-cleanup
     "settings.cleanup": "自动清理旧剪贴",
-    "settings.cleanup.hint": "根据保留期限自动删除旧剪贴。标记为收藏或带有用户定义标签的剪贴永不删除。",
+    "settings.cleanup.hint": "根据保留期限自动删除旧剪贴。标记为收藏或带有用户定义标签的剪贴不会被自动删除。",
     "settings.cleanup.retentionDays": "保留期限（天）",
     "settings.cleanup.retentionDays.hint": "超过此天数的剪贴将被自动删除。范围：1-365 天。",
     "settings.cleanup.restartNotice": "关闭设置后将重启服务器以应用清理设置更改。",
