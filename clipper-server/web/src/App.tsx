@@ -301,23 +301,40 @@ function App({ authToken }: AppProps) {
           </svg>
           <h1 className="app-title">{t("app.title")}</h1>
         </div>
-        <div className="header-buttons">
-          <button
-            className="send-clipboard-button"
-            onClick={handleSendClipboard}
-            title={t("tooltip.sendClipboard")}
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-7-2l4-4h-3V7h-2v6H8l4 4z" />
-            </svg>
-          </button>
-          <button
-            className="settings-button"
-            onClick={openSettings}
-            title={t("tooltip.settings")}
-          >
-            &#9881;
-          </button>
+        <div className="header-right">
+          <div className="header-button-group">
+            <span className="header-clip-count">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z" />
+                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z" />
+              </svg>
+              {total}
+            </span>
+            <span
+              className={`header-ws-dot ${isConnected ? "ws-connected" : isSecure ? "ws-disconnected" : "ws-unavailable"}`}
+              title={isConnected ? t("status.wsConnected") : isSecure ? t("status.wsDisconnected") : t("status.wsUnavailable")}
+            />
+            <button
+              className="header-button-group-item"
+              onClick={handleSendClipboard}
+              title={t("tooltip.sendClipboard")}
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+              </svg>
+            </button>
+            <button
+              className="header-button-group-item"
+              onClick={openSettings}
+              title={t("tooltip.settings")}
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z" />
+                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z" />
+              </svg>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -331,18 +348,6 @@ function App({ authToken }: AppProps) {
         />
         <DateFilter filters={filters} onChange={setFilters} />
         <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
-      </div>
-
-      <div className="status-bar">
-        <span className="clip-count">{t("app.clips_count", { count: total })}</span>
-        <span className={`ws-status ${isConnected ? "connected" : isSecure ? "disconnected" : "unavailable"}`} title={
-          isConnected ? t("status.wsConnected") : isSecure ? t("status.wsDisconnected") : t("status.wsUnavailable")
-        }>
-          <span className="ws-status-dot" />
-          <span className="ws-status-text">
-            {isConnected ? t("status.wsConnected") : isSecure ? t("status.wsDisconnected") : t("status.wsUnavailable")}
-          </span>
-        </span>
       </div>
 
       <main className="app-main">
