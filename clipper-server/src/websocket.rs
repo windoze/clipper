@@ -8,14 +8,36 @@ use axum::{
     Router,
 };
 use futures::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tokio::sync::mpsc;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::state::AppState;
 
 /// Heartbeat interval - server sends ping every 30 seconds
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
+
+/// Timeout for receiving auth message after connection
+const AUTH_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Authentication request message from client
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum ClientMessage {
+    #[serde(rename = "auth")]
+    Auth { token: String },
+}
+
+/// Authentication response message to client
+#[derive(Debug, Serialize)]
+#[serde(tag = "type")]
+pub enum ServerAuthResponse {
+    #[serde(rename = "auth_success")]
+    AuthSuccess,
+    #[serde(rename = "auth_error")]
+    AuthError { message: String },
+}
 
 pub fn routes() -> Router<AppState> {
     Router::new().route("/ws", get(websocket_handler))
@@ -26,10 +48,86 @@ async fn websocket_handler(ws: WebSocketUpgrade, State(state): State<AppState>) 
 }
 
 async fn handle_websocket(socket: WebSocket, state: AppState) {
-    // Track this connection
-    state.ws_connect();
-
     let (mut sender, mut receiver) = socket.split();
+
+    // Check if authentication is required
+    let auth_required = state.config.auth.is_enabled();
+
+    if auth_required {
+        // Wait for auth message from client
+        info!("WebSocket: waiting for auth message");
+
+        let auth_result = tokio::time::timeout(AUTH_TIMEOUT, async {
+            while let Some(Ok(msg)) = receiver.next().await {
+                match msg {
+                    Message::Text(text) => {
+                        // Try to parse as auth message
+                        match serde_json::from_str::<ClientMessage>(&text) {
+                            Ok(ClientMessage::Auth { token }) => {
+                                // Validate the token
+                                if state.config.auth.validate_token(&token) {
+                                    return Ok(());
+                                } else {
+                                    return Err("Invalid bearer token".to_string());
+                                }
+                            }
+                            Err(e) => {
+                                warn!("WebSocket: failed to parse auth message: {}", e);
+                                return Err("Invalid auth message format".to_string());
+                            }
+                        }
+                    }
+                    Message::Close(_) => {
+                        return Err("Client closed connection before auth".to_string());
+                    }
+                    Message::Ping(_) | Message::Pong(_) => {
+                        // Ignore ping/pong during auth phase
+                        continue;
+                    }
+                    _ => {
+                        continue;
+                    }
+                }
+            }
+            Err("Connection closed before auth".to_string())
+        })
+        .await;
+
+        match auth_result {
+            Ok(Ok(())) => {
+                // Auth successful, send success response
+                let response = serde_json::to_string(&ServerAuthResponse::AuthSuccess).unwrap();
+                if sender.send(Message::Text(response.into())).await.is_err() {
+                    error!("WebSocket: failed to send auth success response");
+                    return;
+                }
+                info!("WebSocket: authentication successful");
+            }
+            Ok(Err(msg)) => {
+                // Auth failed, send error response and close
+                warn!("WebSocket: authentication failed: {}", msg);
+                let response =
+                    serde_json::to_string(&ServerAuthResponse::AuthError { message: msg }).unwrap();
+                let _ = sender.send(Message::Text(response.into())).await;
+                let _ = sender.send(Message::Close(None)).await;
+                return;
+            }
+            Err(_) => {
+                // Timeout waiting for auth
+                warn!("WebSocket: auth timeout");
+                let response = serde_json::to_string(&ServerAuthResponse::AuthError {
+                    message: "Auth timeout".to_string(),
+                })
+                .unwrap();
+                let _ = sender.send(Message::Text(response.into())).await;
+                let _ = sender.send(Message::Close(None)).await;
+                return;
+            }
+        }
+    }
+
+    // Track this connection (only after successful auth)
+    state.ws_connect();
 
     // Subscribe to clip updates
     let mut rx = state.clip_updates.subscribe();

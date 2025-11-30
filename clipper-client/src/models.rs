@@ -82,6 +82,24 @@ pub enum ClipNotification {
     },
 }
 
+/// WebSocket authentication request message sent by client
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type")]
+pub enum WsAuthRequest {
+    #[serde(rename = "auth")]
+    Auth { token: String },
+}
+
+/// WebSocket authentication response message from server
+#[derive(Debug, Clone, Deserialize)]
+#[serde(tag = "type")]
+pub enum WsAuthResponse {
+    #[serde(rename = "auth_success")]
+    AuthSuccess,
+    #[serde(rename = "auth_error")]
+    AuthError { message: String },
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PagedResult {
     pub items: Vec<Clip>,

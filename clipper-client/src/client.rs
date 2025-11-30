@@ -1,6 +1,7 @@
 use crate::error::{ClientError, Result};
 use crate::models::{
     Clip, ClipNotification, CreateClipRequest, PagedResult, SearchFilters, UpdateClipRequest,
+    WsAuthRequest, WsAuthResponse,
 };
 use futures_util::{SinkExt, StreamExt};
 use reqwest::StatusCode;
@@ -403,6 +404,79 @@ impl ClipperClient {
 
         let (mut write, mut read) = ws_stream.split();
 
+        // If we have a token, send auth message and wait for response
+        if let Some(token) = &self.token {
+            let auth_msg = WsAuthRequest::Auth {
+                token: token.clone(),
+            };
+            let auth_json = serde_json::to_string(&auth_msg)
+                .map_err(|e| ClientError::WebSocket(format!("Failed to serialize auth: {}", e)))?;
+
+            write
+                .send(Message::Text(auth_json.into()))
+                .await
+                .map_err(|e| ClientError::WebSocket(format!("Failed to send auth: {}", e)))?;
+
+            // Wait for auth response with timeout
+            let auth_timeout = Duration::from_secs(10);
+            let auth_result = tokio::time::timeout(auth_timeout, async {
+                while let Some(msg) = read.next().await {
+                    match msg {
+                        Ok(Message::Text(text)) => {
+                            // Try to parse as auth response
+                            match serde_json::from_str::<WsAuthResponse>(&text) {
+                                Ok(WsAuthResponse::AuthSuccess) => {
+                                    return Ok(());
+                                }
+                                Ok(WsAuthResponse::AuthError { message }) => {
+                                    return Err(ClientError::WebSocket(format!(
+                                        "WebSocket auth failed: {}",
+                                        message
+                                    )));
+                                }
+                                Err(_) => {
+                                    // Not an auth response, this shouldn't happen during auth phase
+                                    return Err(ClientError::WebSocket(
+                                        "Unexpected message during auth".to_string(),
+                                    ));
+                                }
+                            }
+                        }
+                        Ok(Message::Close(_)) => {
+                            return Err(ClientError::WebSocket(
+                                "Connection closed during auth".to_string(),
+                            ));
+                        }
+                        Ok(Message::Ping(_) | Message::Pong(_)) => {
+                            // Ignore ping/pong during auth
+                            continue;
+                        }
+                        Err(e) => {
+                            return Err(ClientError::WebSocket(format!(
+                                "WebSocket error during auth: {}",
+                                e
+                            )));
+                        }
+                        _ => continue,
+                    }
+                }
+                Err(ClientError::WebSocket(
+                    "Connection closed before auth response".to_string(),
+                ))
+            })
+            .await;
+
+            match auth_result {
+                Ok(Ok(())) => {
+                    // Auth successful, continue
+                }
+                Ok(Err(e)) => return Err(e),
+                Err(_) => {
+                    return Err(ClientError::WebSocket("Auth timeout".to_string()));
+                }
+            }
+        }
+
         let handle = tokio::spawn(async move {
             loop {
                 // Use timeout to detect stale connections
@@ -458,7 +532,10 @@ impl ClipperClient {
         Ok(handle)
     }
 
-    /// Connect to a WebSocket URL with proper TLS handling and optional authentication
+    /// Connect to a WebSocket URL with proper TLS handling
+    ///
+    /// Note: Authentication is handled via message-based auth after connection,
+    /// not via headers, since WebSocket doesn't reliably support Authorization headers.
     async fn connect_websocket(
         &self,
         url: &str,
@@ -477,19 +554,12 @@ impl ClipperClient {
         let is_secure = parsed_url.scheme() == "wss";
 
         // Create a WebSocket request from the URL (this handles all required WS headers)
-        let mut request = url
+        let request = url
             .into_client_request()
             .map_err(|e| ClientError::WebSocket(format!("Failed to build request: {}", e)))?;
 
-        // Add Authorization header if token is set
-        if let Some(token) = &self.token {
-            request.headers_mut().insert(
-                "Authorization",
-                format!("Bearer {}", token)
-                    .parse()
-                    .map_err(|e| ClientError::WebSocket(format!("Invalid token header: {}", e)))?,
-            );
-        }
+        // Note: We don't add Authorization header here because WebSocket
+        // doesn't reliably support it. Auth is done via message after connection.
 
         if is_secure {
             // For WSS connections, use a custom TLS connector

@@ -19,6 +19,7 @@ use crate::state::AppState;
 /// Certain endpoints are always allowed without authentication:
 /// - GET /health - Health check endpoint
 /// - GET /auth/check - Authentication status check
+/// - GET /ws - WebSocket endpoint (handles its own message-based authentication)
 pub async fn auth_middleware(
     State(state): State<AppState>,
     request: Request,
@@ -32,8 +33,9 @@ pub async fn auth_middleware(
     }
 
     // Allow certain endpoints without authentication
+    // WebSocket endpoint handles its own message-based authentication
     let path = request.uri().path();
-    if path == "/health" || path == "/auth/check" {
+    if path == "/health" || path == "/auth/check" || path == "/ws" {
         return next.run(request).await;
     }
 
