@@ -74,6 +74,11 @@ pub struct Cli {
     #[arg(long, env = "CLIPPER_CERTS_DIR")]
     pub certs_dir: Option<PathBuf>,
 
+    // Auth options
+    /// Bearer token for authentication (if set, all requests must include this token)
+    #[arg(long, env = "CLIPPER_BEARER_TOKEN")]
+    pub bearer_token: Option<String>,
+
     // Cleanup options
     /// Enable automatic cleanup of old clips
     #[arg(long, env = "CLIPPER_CLEANUP_ENABLED")]
@@ -99,6 +104,30 @@ pub struct ServerConfig {
     pub acme: AcmeConfig,
     #[serde(default)]
     pub cleanup: CleanupConfig,
+    #[serde(default)]
+    pub auth: AuthConfig,
+}
+
+/// Authentication configuration
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct AuthConfig {
+    /// Bearer token for authentication (if set, all requests must include this token)
+    pub bearer_token: Option<String>,
+}
+
+impl AuthConfig {
+    /// Check if authentication is required
+    pub fn is_enabled(&self) -> bool {
+        self.bearer_token.is_some()
+    }
+
+    /// Validate a token against the configured bearer token
+    pub fn validate_token(&self, token: &str) -> bool {
+        match &self.bearer_token {
+            Some(expected) => expected == token,
+            None => true, // No auth required
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -241,6 +270,7 @@ impl Default for ServerConfig {
             tls: TlsConfig::default(),
             acme: AcmeConfig::default(),
             cleanup: CleanupConfig::default(),
+            auth: AuthConfig::default(),
         }
     }
 }
@@ -348,6 +378,11 @@ impl ServerConfig {
 
         if let Some(interval_hours) = cli.cleanup_interval_hours {
             cfg.cleanup.interval_hours = interval_hours;
+        }
+
+        // Auth configuration overrides
+        if let Some(bearer_token) = cli.bearer_token {
+            cfg.auth.bearer_token = Some(bearer_token);
         }
 
         Ok(cfg)

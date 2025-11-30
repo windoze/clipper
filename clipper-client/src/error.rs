@@ -22,6 +22,9 @@ pub enum ClientError {
 
     #[error("Bad request: {0}")]
     BadRequest(String),
+
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
 }
 
 pub type Result<T> = std::result::Result<T, ClientError>;

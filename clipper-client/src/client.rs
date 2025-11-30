@@ -21,6 +21,8 @@ const CONNECTION_TIMEOUT: Duration = Duration::from_secs(60);
 pub struct ClipperClient {
     base_url: String,
     client: reqwest::Client,
+    /// Optional Bearer token for authentication
+    token: Option<String>,
 }
 
 impl ClipperClient {
@@ -32,6 +34,41 @@ impl ClipperClient {
         Self {
             base_url: base_url.into().trim_end_matches('/').to_string(),
             client: reqwest::Client::new(),
+            token: None,
+        }
+    }
+
+    /// Create a new Clipper client with Bearer token authentication
+    ///
+    /// # Arguments
+    /// * `base_url` - Base URL of the Clipper server (e.g., "http://localhost:3000")
+    /// * `token` - Bearer token for authentication
+    pub fn new_with_token(base_url: impl Into<String>, token: impl Into<String>) -> Self {
+        Self {
+            base_url: base_url.into().trim_end_matches('/').to_string(),
+            client: reqwest::Client::new(),
+            token: Some(token.into()),
+        }
+    }
+
+    /// Set the Bearer token for authentication
+    ///
+    /// # Arguments
+    /// * `token` - Bearer token for authentication, or None to disable authentication
+    pub fn set_token(&mut self, token: Option<String>) {
+        self.token = token;
+    }
+
+    /// Get the current Bearer token
+    pub fn token(&self) -> Option<&str> {
+        self.token.as_deref()
+    }
+
+    /// Apply authentication header to a request builder if a token is set
+    fn apply_auth(&self, builder: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
+        match &self.token {
+            Some(token) => builder.header("Authorization", format!("Bearer {}", token)),
+            None => builder,
         }
     }
 
@@ -59,7 +96,10 @@ impl ClipperClient {
             additional_notes,
         };
 
-        let response = self.client.post(&url).json(&request).send().await?;
+        let response = self
+            .apply_auth(self.client.post(&url).json(&request))
+            .send()
+            .await?;
 
         self.handle_response(response).await
     }
@@ -118,7 +158,10 @@ impl ClipperClient {
             form = form.text("additional_notes", notes);
         }
 
-        let response = self.client.post(&url).multipart(form).send().await?;
+        let response = self
+            .apply_auth(self.client.post(&url).multipart(form))
+            .send()
+            .await?;
 
         self.handle_response(response).await
     }
@@ -169,7 +212,10 @@ impl ClipperClient {
             form = form.text("additional_notes", notes);
         }
 
-        let response = self.client.post(&url).multipart(form).send().await?;
+        let response = self
+            .apply_auth(self.client.post(&url).multipart(form))
+            .send()
+            .await?;
 
         self.handle_response(response).await
     }
@@ -180,7 +226,7 @@ impl ClipperClient {
     /// * `id` - The clip ID
     pub async fn get_clip(&self, id: &str) -> Result<Clip> {
         let url = format!("{}/clips/{}", self.base_url, id);
-        let response = self.client.get(&url).send().await?;
+        let response = self.apply_auth(self.client.get(&url)).send().await?;
 
         self.handle_response(response).await
     }
@@ -203,7 +249,10 @@ impl ClipperClient {
             additional_notes,
         };
 
-        let response = self.client.put(&url).json(&request).send().await?;
+        let response = self
+            .apply_auth(self.client.put(&url).json(&request))
+            .send()
+            .await?;
 
         self.handle_response(response).await
     }
@@ -243,7 +292,7 @@ impl ClipperClient {
             url.query_pairs_mut().append_pair("tags", &tags.join(","));
         }
 
-        let response = self.client.get(url).send().await?;
+        let response = self.apply_auth(self.client.get(url)).send().await?;
 
         self.handle_response(response).await
     }
@@ -280,7 +329,7 @@ impl ClipperClient {
             url.query_pairs_mut().append_pair("tags", &tags.join(","));
         }
 
-        let response = self.client.get(url).send().await?;
+        let response = self.apply_auth(self.client.get(url)).send().await?;
 
         self.handle_response(response).await
     }
@@ -291,7 +340,7 @@ impl ClipperClient {
     /// * `id` - The clip ID
     pub async fn download_file(&self, id: &str) -> Result<Vec<u8>> {
         let url = format!("{}/clips/{}/file", self.base_url, id);
-        let response = self.client.get(&url).send().await?;
+        let response = self.apply_auth(self.client.get(&url)).send().await?;
 
         match response.status() {
             StatusCode::OK => {
@@ -318,7 +367,7 @@ impl ClipperClient {
     /// * `id` - The clip ID
     pub async fn delete_clip(&self, id: &str) -> Result<()> {
         let url = format!("{}/clips/{}", self.base_url, id);
-        let response = self.client.delete(&url).send().await?;
+        let response = self.apply_auth(self.client.delete(&url)).send().await?;
 
         match response.status() {
             StatusCode::NO_CONTENT => Ok(()),
@@ -350,7 +399,7 @@ impl ClipperClient {
             .replace("https://", "wss://");
         let ws_url = format!("{}/ws", ws_url);
 
-        let (ws_stream, _) = Self::connect_websocket(&ws_url).await?;
+        let (ws_stream, _) = self.connect_websocket(&ws_url).await?;
 
         let (mut write, mut read) = ws_stream.split();
 
@@ -409,8 +458,9 @@ impl ClipperClient {
         Ok(handle)
     }
 
-    /// Connect to a WebSocket URL with proper TLS handling
+    /// Connect to a WebSocket URL with proper TLS handling and optional authentication
     async fn connect_websocket(
+        &self,
         url: &str,
     ) -> Result<(
         tokio_tungstenite::WebSocketStream<
@@ -418,11 +468,28 @@ impl ClipperClient {
         >,
         tokio_tungstenite::tungstenite::http::Response<Option<Vec<u8>>>,
     )> {
+        use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+
         let parsed_url = url
             .parse::<Url>()
             .map_err(|e| ClientError::WebSocket(format!("Invalid URL: {}", e)))?;
 
         let is_secure = parsed_url.scheme() == "wss";
+
+        // Create a WebSocket request from the URL (this handles all required WS headers)
+        let mut request = url
+            .into_client_request()
+            .map_err(|e| ClientError::WebSocket(format!("Failed to build request: {}", e)))?;
+
+        // Add Authorization header if token is set
+        if let Some(token) = &self.token {
+            request.headers_mut().insert(
+                "Authorization",
+                format!("Bearer {}", token)
+                    .parse()
+                    .map_err(|e| ClientError::WebSocket(format!("Invalid token header: {}", e)))?,
+            );
+        }
 
         if is_secure {
             // For WSS connections, use a custom TLS connector
@@ -453,12 +520,12 @@ impl ClipperClient {
 
             let connector = Connector::Rustls(config);
 
-            tokio_tungstenite::connect_async_tls_with_config(url, None, false, Some(connector))
+            tokio_tungstenite::connect_async_tls_with_config(request, None, false, Some(connector))
                 .await
                 .map_err(|e| ClientError::WebSocket(e.to_string()))
         } else {
             // For WS connections, use the simple connect_async
-            tokio_tungstenite::connect_async(url)
+            tokio_tungstenite::connect_async(request)
                 .await
                 .map_err(|e| ClientError::WebSocket(e.to_string()))
         }
@@ -480,6 +547,10 @@ impl ClipperClient {
             StatusCode::BAD_REQUEST => {
                 let error_text = response.text().await.unwrap_or_default();
                 Err(ClientError::BadRequest(error_text))
+            }
+            StatusCode::UNAUTHORIZED => {
+                let error_text = response.text().await.unwrap_or_default();
+                Err(ClientError::Unauthorized(error_text))
             }
             status => {
                 let error_text = response.text().await.unwrap_or_default();

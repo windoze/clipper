@@ -12,6 +12,7 @@ use crate::{error::Result, state::AppState};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
+        .route("/auth/check", get(check_auth))
         .route("/version", get(get_version))
         .route("/clips", post(create_clip))
         .route("/clips/upload", post(upload_clip_file))
@@ -59,6 +60,22 @@ pub struct ConfigInfo {
     /// Auto-cleanup retention in days (if cleanup is enabled)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cleanup_retention_days: Option<u32>,
+    /// Whether authentication is required
+    pub auth_required: bool,
+}
+
+/// Authentication check response
+#[derive(Debug, Serialize)]
+pub struct AuthCheckResponse {
+    /// Whether authentication is required
+    pub auth_required: bool,
+}
+
+/// Check if authentication is required
+async fn check_auth(State(state): State<AppState>) -> Json<AuthCheckResponse> {
+    Json(AuthCheckResponse {
+        auth_required: state.config.auth.is_enabled(),
+    })
 }
 
 /// Get server version and status information
@@ -90,6 +107,7 @@ async fn get_version(State(state): State<AppState>) -> Json<VersionResponse> {
         } else {
             None
         },
+        auth_required: config.auth.is_enabled(),
     };
 
     Json(VersionResponse {

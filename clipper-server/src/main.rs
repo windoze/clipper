@@ -1,13 +1,14 @@
 use axum::{
     body::Body,
     http::{header, StatusCode, Uri},
+    middleware,
     response::Response,
     routing::get,
     Router,
 };
 use clap::Parser;
 use clipper_indexer::ClipperIndexer;
-use clipper_server::{api, run_cleanup_task, websocket, AppState, Cli, ServerConfig};
+use clipper_server::{api, auth_middleware, run_cleanup_task, websocket, AppState, Cli, ServerConfig};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -110,12 +111,20 @@ async fn main() {
         });
     }
 
+    // Log auth status
+    if config.auth.is_enabled() {
+        tracing::info!("Authentication enabled (Bearer token required)");
+    } else {
+        tracing::info!("Authentication disabled (open access)");
+    }
+
     // Build the application with routes
     #[allow(unused_mut)]
     let mut api_routes = Router::new()
         .route("/health", get(health_check))
         .merge(api::routes())
         .merge(websocket::routes())
+        .layer(middleware::from_fn_with_state(state.clone(), auth_middleware))
         .with_state(state);
 
     // Add ACME challenge route if enabled

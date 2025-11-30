@@ -1,4 +1,5 @@
 pub mod api;
+pub mod auth;
 pub mod cleanup;
 pub mod config;
 pub mod error;
@@ -14,8 +15,9 @@ pub mod acme;
 
 pub mod cert_storage;
 
+pub use auth::auth_middleware;
 pub use cleanup::run_cleanup_task;
-pub use config::{CleanupConfig, Cli, ServerConfig};
+pub use config::{AuthConfig, CleanupConfig, Cli, ServerConfig};
 pub use error::{Result, ServerError};
 pub use state::{AppState, ClipUpdate};
 

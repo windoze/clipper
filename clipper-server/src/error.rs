@@ -19,6 +19,9 @@ pub enum ServerError {
 
     #[error("Internal server error: {0}")]
     Internal(String),
+
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
 }
 
 impl IntoResponse for ServerError {
@@ -33,6 +36,7 @@ impl IntoResponse for ServerError {
             ServerError::InvalidInput(msg) => (StatusCode::BAD_REQUEST, msg),
             ServerError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             ServerError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+            ServerError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
         };
 
         let body = Json(json!({
