@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
-import { Clip, isFavorite } from "../types";
+import { useState, useEffect, useMemo } from "react";
+import { Clip, isFavorite, calculateAgeRatio } from "../types";
 import { ImagePopup } from "./ImagePopup";
 import { EditClipDialog } from "./EditClipDialog";
 import { useI18n } from "../i18n";
 import { useToast } from "./Toast";
 import { useApi } from "../api";
+import { useCleanupConfig } from "../hooks/useCleanupConfig";
 
 interface ClipEntryProps {
   clip: Clip;
@@ -32,6 +33,9 @@ function isImageFile(filename: string): boolean {
 
 const MAX_CONTENT_LENGTH = 200;
 
+// Minimum opacity to ensure readability (0.5 = 50%)
+const MIN_OPACITY = 0.5;
+
 export function ClipEntry({
   clip,
   onToggleFavorite,
@@ -42,7 +46,22 @@ export function ClipEntry({
   const { t } = useI18n();
   const { showToast } = useToast();
   const api = useApi();
+  const cleanupConfig = useCleanupConfig();
   const favorite = isFavorite(clip);
+
+  // Calculate age-based opacity for visual aging effect
+  const ageStyle = useMemo(() => {
+    const ageRatio = calculateAgeRatio(clip, cleanupConfig);
+    if (ageRatio === null) {
+      return undefined;
+    }
+    // Map ageRatio (0-1) to opacity (1.0 - MIN_OPACITY)
+    // ageRatio 0 = full opacity (1.0), ageRatio 1 = minimum opacity (MIN_OPACITY)
+    const opacity = 1 - (ageRatio * (1 - MIN_OPACITY));
+    return {
+      "--clip-age-opacity": opacity,
+    } as React.CSSProperties;
+  }, [clip, cleanupConfig]);
   // Show regular tags and $host: tags (with special styling)
   const displayTags = clip.tags.filter((tag) => !tag.startsWith("$") || tag.startsWith("$host:"));
 
@@ -159,10 +178,18 @@ export function ClipEntry({
     setIsExpanded(!isExpanded);
   };
 
+  // Build class names including aging class if applicable
+  const clipEntryClassName = [
+    "clip-entry",
+    isImage ? "clip-entry-image" : "",
+    ageStyle ? "clip-entry-aging" : "",
+  ].filter(Boolean).join(" ");
+
   return (
     <>
       <div
-        className={`clip-entry ${isImage ? "clip-entry-image" : ""}`}
+        className={clipEntryClassName}
+        style={ageStyle}
         onClick={handleCopy}
       >
         <div className="clip-header">

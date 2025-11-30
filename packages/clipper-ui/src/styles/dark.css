@@ -123,6 +123,11 @@
   border-color: #667eea;
 }
 
+/* Aging effect works the same in dark mode - just uses CSS variable */
+:root[data-theme="dark"] .clip-entry.clip-entry-aging:hover {
+  opacity: 1;
+}
+
 :root[data-theme="dark"] .clip-content {
   color: #e9ecef;
 }

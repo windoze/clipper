@@ -3,8 +3,9 @@ export type {
   Clip,
   PagedResult,
   SearchFilters,
+  CleanupConfig,
 } from "./types";
-export { FAVORITE_TAG, isFavorite } from "./types";
+export { FAVORITE_TAG, isFavorite, calculateAgeRatio } from "./types";
 
 // API
 export type { ClipperApi } from "./api";
@@ -38,5 +39,5 @@ export {
 export type { ToastType } from "./components";
 
 // Hooks
-export { useClips, useTheme } from "./hooks";
+export { useClips, useTheme, useCleanupConfig, CleanupConfigProvider } from "./hooks";
 export type { Theme, ResolvedTheme } from "./hooks";

@@ -503,6 +503,17 @@
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
 }
 
+/* Aging effect for clips approaching auto-cleanup */
+.clip-entry.clip-entry-aging {
+  opacity: var(--clip-age-opacity, 1);
+  transition: border-color 0.2s, box-shadow 0.2s, opacity 0.3s;
+}
+
+/* Restore full opacity on hover for better readability when interacting */
+.clip-entry.clip-entry-aging:hover {
+  opacity: 1;
+}
+
 .clip-header {
   display: flex;
   justify-content: space-between;

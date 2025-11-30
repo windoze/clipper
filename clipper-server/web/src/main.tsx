@@ -6,6 +6,7 @@ import {
   ApiProvider,
   createRestApiClient,
 } from "@unwritten-codes/clipper-ui";
+import { CleanupConfigWrapper } from "./components/CleanupConfigWrapper";
 import App from "./App";
 import "./App.css";
 
@@ -17,7 +18,9 @@ createRoot(document.getElementById("root")!).render(
     <I18nProvider storageKey="clipper-web-language">
       <ApiProvider value={api}>
         <ToastProvider>
-          <App />
+          <CleanupConfigWrapper>
+            <App />
+          </CleanupConfigWrapper>
         </ToastProvider>
       </ApiProvider>
     </I18nProvider>
