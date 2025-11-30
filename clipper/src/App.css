@@ -793,7 +793,8 @@ body {
    Tauri-Specific: Extended Settings
    ============================================ */
 
-.settings-field input[type="text"] {
+.settings-field input[type="text"],
+.settings-field input[type="password"] {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #dee2e6;
@@ -801,9 +802,11 @@ body {
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
+  background: #fff;
 }
 
-.settings-field input[type="text"]:focus {
+.settings-field input[type="text"]:focus,
+.settings-field input[type="password"]:focus {
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
@@ -822,6 +825,39 @@ body {
 .settings-path-input {
   display: flex;
   gap: 8px;
+}
+
+/* Password input with toggle button */
+.settings-password-input {
+  position: relative;
+  display: flex;
+}
+
+.settings-password-input input {
+  flex: 1;
+  padding-right: 40px;
+}
+
+.password-toggle-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.password-toggle-button:hover {
+  color: #495057;
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .settings-url-input {
@@ -1123,13 +1159,15 @@ body {
 }
 
 /* Extended settings dark mode */
-:root[data-theme="dark"] .settings-field input[type="text"] {
+:root[data-theme="dark"] .settings-field input[type="text"],
+:root[data-theme="dark"] .settings-field input[type="password"] {
   background: #363636;
   border-color: #404040;
   color: #e9ecef;
 }
 
-:root[data-theme="dark"] .settings-field input[type="text"]:focus {
+:root[data-theme="dark"] .settings-field input[type="text"]:focus,
+:root[data-theme="dark"] .settings-field input[type="password"]:focus {
   border-color: #667eea;
 }
 
@@ -1147,6 +1185,15 @@ body {
 }
 
 :root[data-theme="dark"] .copy-icon-button:hover {
+  color: #e9ecef;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .password-toggle-button {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .password-toggle-button:hover {
   color: #e9ecef;
   background: rgba(255, 255, 255, 0.1);
 }
@@ -1296,13 +1343,15 @@ body {
   }
 
   /* Extended settings dark mode fallback */
-  :root:not([data-theme="light"]) .settings-field input[type="text"] {
+  :root:not([data-theme="light"]) .settings-field input[type="text"],
+  :root:not([data-theme="light"]) .settings-field input[type="password"] {
     background: #363636;
     border-color: #404040;
     color: #e9ecef;
   }
 
-  :root:not([data-theme="light"]) .settings-field input[type="text"]:focus {
+  :root:not([data-theme="light"]) .settings-field input[type="text"]:focus,
+  :root:not([data-theme="light"]) .settings-field input[type="password"]:focus {
     border-color: #667eea;
   }
 
@@ -1320,6 +1369,15 @@ body {
   }
 
   :root:not([data-theme="light"]) .copy-icon-button:hover {
+    color: #e9ecef;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  :root:not([data-theme="light"]) .password-toggle-button {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .password-toggle-button:hover {
     color: #e9ecef;
     background: rgba(255, 255, 255, 0.1);
   }
