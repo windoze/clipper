@@ -142,6 +142,7 @@
 
 :root[data-theme="dark"] .clip-date,
 :root[data-theme="dark"] .status-bar,
+:root[data-theme="dark"] .header-status,
 :root[data-theme="dark"] .clip-attachment {
   color: #adb5bd;
 }
@@ -593,6 +594,7 @@
 
   :root:not([data-theme="light"]) .clip-date,
   :root:not([data-theme="light"]) .status-bar,
+  :root:not([data-theme="light"]) .header-status,
   :root:not([data-theme="light"]) .clip-attachment {
     color: #adb5bd;
   }

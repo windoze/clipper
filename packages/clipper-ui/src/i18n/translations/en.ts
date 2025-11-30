@@ -101,6 +101,7 @@ export const en = {
   "toast.clipboardSent": "Clipboard content sent",
   "toast.clipboardEmpty": "Clipboard is empty",
   "toast.clipboardReadFailed": "Failed to read clipboard",
+  "toast.wsAuthFailed": "WebSocket authentication failed",
 
   // Authentication
   "auth.title": "Authentication Required",

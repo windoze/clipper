@@ -100,6 +100,7 @@ export const zh = {
   "toast.clipboardSent": "剪贴板内容已发送",
   "toast.clipboardEmpty": "剪贴板为空",
   "toast.clipboardReadFailed": "读取剪贴板失败",
+  "toast.wsAuthFailed": "WebSocket 身份验证失败",
 
   // Authentication
   "auth.title": "需要身份验证",
