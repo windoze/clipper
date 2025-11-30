@@ -75,11 +75,58 @@ export function useApi(): ClipperApi {
 }
 
 /**
- * Create a REST API client for the web UI.
- * @param baseUrl Base URL for the API (empty string for same-origin)
+ * Options for creating a REST API client
  */
-export function createRestApiClient(baseUrl: string = ""): ClipperApi {
+export interface RestApiClientOptions {
+  /** Base URL for the API (empty string for same-origin) */
+  baseUrl?: string;
+  /** Bearer token for authentication */
+  token?: string;
+  /** Callback when authentication fails (401 response) */
+  onAuthError?: () => void;
+}
+
+/**
+ * Extended API client with token management
+ */
+export interface RestApiClient extends ClipperApi {
+  /** Set the Bearer token for authentication */
+  setToken: (token: string | undefined) => void;
+  /** Get the current token */
+  getToken: () => string | undefined;
+}
+
+/**
+ * Create a REST API client for the web UI.
+ * @param baseUrlOrOptions Base URL string or options object
+ */
+export function createRestApiClient(
+  baseUrlOrOptions: string | RestApiClientOptions = ""
+): RestApiClient {
+  const options: RestApiClientOptions =
+    typeof baseUrlOrOptions === "string"
+      ? { baseUrl: baseUrlOrOptions }
+      : baseUrlOrOptions;
+
+  const baseUrl = options.baseUrl ?? "";
+  let token = options.token;
+
+  function getHeaders(contentType?: string): HeadersInit {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    if (contentType) {
+      headers["Content-Type"] = contentType;
+    }
+    return headers;
+  }
+
   async function handleResponse<T>(response: Response): Promise<T> {
+    if (response.status === 401) {
+      options.onAuthError?.();
+      throw new Error("Unauthorized");
+    }
     if (!response.ok) {
       const text = await response.text();
       throw new Error(text || `HTTP ${response.status}`);
@@ -88,6 +135,14 @@ export function createRestApiClient(baseUrl: string = ""): ClipperApi {
   }
 
   return {
+    setToken(newToken: string | undefined) {
+      token = newToken;
+    },
+
+    getToken() {
+      return token;
+    },
+
     async listClips(
       filters: SearchFilters,
       page: number,
@@ -107,7 +162,9 @@ export function createRestApiClient(baseUrl: string = ""): ClipperApi {
         params.set("tags", filters.tags.join(","));
       }
 
-      const response = await fetch(`${baseUrl}/clips?${params.toString()}`);
+      const response = await fetch(`${baseUrl}/clips?${params.toString()}`, {
+        headers: getHeaders(),
+      });
       return handleResponse<PagedResult>(response);
     },
 
@@ -133,13 +190,18 @@ export function createRestApiClient(baseUrl: string = ""): ClipperApi {
       }
 
       const response = await fetch(
-        `${baseUrl}/clips/search?${params.toString()}`
+        `${baseUrl}/clips/search?${params.toString()}`,
+        {
+          headers: getHeaders(),
+        }
       );
       return handleResponse<PagedResult>(response);
     },
 
     async getClip(id: string): Promise<Clip> {
-      const response = await fetch(`${baseUrl}/clips/${id}`);
+      const response = await fetch(`${baseUrl}/clips/${id}`, {
+        headers: getHeaders(),
+      });
       return handleResponse<Clip>(response);
     },
 
@@ -158,9 +220,7 @@ export function createRestApiClient(baseUrl: string = ""): ClipperApi {
 
       const response = await fetch(`${baseUrl}/clips`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getHeaders("application/json"),
         body: JSON.stringify(body),
       });
       return handleResponse<Clip>(response);
@@ -182,6 +242,7 @@ export function createRestApiClient(baseUrl: string = ""): ClipperApi {
 
       const response = await fetch(`${baseUrl}/clips/upload`, {
         method: "POST",
+        headers: getHeaders(), // Don't set Content-Type for FormData
         body: formData,
       });
       return handleResponse<Clip>(response);
@@ -202,9 +263,7 @@ export function createRestApiClient(baseUrl: string = ""): ClipperApi {
 
       const response = await fetch(`${baseUrl}/clips/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getHeaders("application/json"),
         body: JSON.stringify(body),
       });
       return handleResponse<Clip>(response);
@@ -213,7 +272,12 @@ export function createRestApiClient(baseUrl: string = ""): ClipperApi {
     async deleteClip(id: string): Promise<void> {
       const response = await fetch(`${baseUrl}/clips/${id}`, {
         method: "DELETE",
+        headers: getHeaders(),
       });
+      if (response.status === 401) {
+        options.onAuthError?.();
+        throw new Error("Unauthorized");
+      }
       if (!response.ok) {
         const text = await response.text();
         throw new Error(text || `HTTP ${response.status}`);
@@ -221,7 +285,11 @@ export function createRestApiClient(baseUrl: string = ""): ClipperApi {
     },
 
     getFileUrl(clipId: string): string {
-      return `${baseUrl}/clips/${clipId}/file`;
+      // Include token in URL for file downloads if set
+      const url = `${baseUrl}/clips/${clipId}/file`;
+      // Note: For authenticated file downloads, we'd need to handle this differently
+      // (e.g., fetch with headers and create blob URL), but for now just return the URL
+      return url;
     },
 
     async copyToClipboard(content: string): Promise<void> {
@@ -229,13 +297,36 @@ export function createRestApiClient(baseUrl: string = ""): ClipperApi {
     },
 
     async downloadFile(clipId: string, filename: string): Promise<void> {
-      const link = document.createElement("a");
-      link.href = this.getFileUrl(clipId);
-      link.download = filename;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // For authenticated downloads, we need to fetch with headers
+      if (token) {
+        const response = await fetch(`${baseUrl}/clips/${clipId}/file`, {
+          headers: getHeaders(),
+        });
+        if (response.status === 401) {
+          options.onAuthError?.();
+          throw new Error("Unauthorized");
+        }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        const link = document.createElement("a");
+        link.href = this.getFileUrl(clipId);
+        link.download = filename;
+        link.target = "_blank";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     },
   };
 }

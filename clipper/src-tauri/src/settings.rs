@@ -54,6 +54,12 @@ pub struct Settings {
     /// Retention period in days for automatic cleanup (bundled server only)
     #[serde(default = "default_cleanup_retention_days")]
     pub cleanup_retention_days: u32,
+    /// Bearer token for external server authentication
+    #[serde(default)]
+    pub external_server_token: Option<String>,
+    /// Bearer token for bundled server when external access is enabled
+    #[serde(default)]
+    pub bundled_server_token: Option<String>,
 }
 
 fn default_cleanup_retention_days() -> u32 {
@@ -95,6 +101,8 @@ impl Default for Settings {
             global_shortcut: default_global_shortcut(),
             cleanup_enabled: false,
             cleanup_retention_days: default_cleanup_retention_days(),
+            external_server_token: None,
+            bundled_server_token: None,
         }
     }
 }
@@ -192,6 +200,16 @@ impl SettingsManager {
     /// Get the cleanup retention days
     pub fn get_cleanup_retention_days(&self) -> u32 {
         self.settings.read().unwrap().cleanup_retention_days
+    }
+
+    /// Get the bundled server token (for external access auth)
+    pub fn get_bundled_server_token(&self) -> Option<String> {
+        self.settings.read().unwrap().bundled_server_token.clone()
+    }
+
+    /// Get the external server token
+    pub fn get_external_server_token(&self) -> Option<String> {
+        self.settings.read().unwrap().external_server_token.clone()
     }
 }
 

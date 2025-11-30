@@ -162,9 +162,14 @@ pub async fn upload_file(
 }
 
 /// Get the URL for a clip's file attachment
+/// If authentication is configured, the token is included as a query parameter
 #[tauri::command]
 pub fn get_file_url(state: State<'_, AppState>, clip_id: String) -> String {
-    format!("{}/clips/{}/file", state.base_url(), clip_id)
+    let base_url = format!("{}/clips/{}/file", state.base_url(), clip_id);
+    match state.token() {
+        Some(token) => format!("{}?token={}", base_url, token),
+        None => base_url,
+    }
 }
 
 /// Download a clip's file attachment and save it to a user-selected location
@@ -214,6 +219,8 @@ pub fn get_settings(settings_manager: State<'_, SettingsManager>) -> Settings {
 }
 
 /// Save settings
+/// Note: This only saves settings to disk. Server restart (when token/cleanup changes)
+/// is handled by the frontend when the settings dialog is closed, via switch_to_bundled_server.
 #[tauri::command]
 pub async fn save_settings(
     settings_manager: State<'_, SettingsManager>,
@@ -225,6 +232,7 @@ pub async fn save_settings(
         autolaunch::set_auto_launch(settings.start_on_login).await?;
     }
 
+    // Save settings to disk
     settings_manager.update(settings).await
 }
 
@@ -298,6 +306,8 @@ pub async fn clear_all_data(
 }
 
 /// Switch to using the bundled server
+/// This will restart the server if it's already running to pick up any configuration changes
+/// (token, cleanup settings, etc.)
 #[tauri::command]
 pub async fn switch_to_bundled_server(
     app: tauri::AppHandle,
@@ -309,11 +319,19 @@ pub async fn switch_to_bundled_server(
 
     eprintln!("[clipper] Switching to bundled server...");
 
-    // Start the bundled server if not running
-    let server_url = server_manager.start(&app).await?;
+    // Always restart the server to pick up any configuration changes (token, cleanup, etc.)
+    // If already running, restart; otherwise just start
+    let server_url = if server_manager.is_running().await {
+        server_manager.restart(&app).await?
+    } else {
+        server_manager.start(&app).await?
+    };
 
-    // Update the client to use the bundled server URL
-    state.set_server_url(&server_url);
+    // Get token for bundled server - always use if set (server requires it when configured)
+    let token = settings_manager.get_bundled_server_token();
+
+    // Update the client to use the bundled server URL with token
+    state.set_server_url_with_token(&server_url, token);
 
     // Update settings to remember this choice
     let mut settings = settings_manager.get();
@@ -348,8 +366,11 @@ pub async fn switch_to_external_server(
         server_manager.stop().await?;
     }
 
-    // Update the client to use the external server URL
-    state.set_server_url(&server_url);
+    // Get token from settings
+    let token = settings_manager.get_external_server_token();
+
+    // Update the client to use the external server URL with token
+    state.set_server_url_with_token(&server_url, token);
 
     // Update settings to remember this choice and the external URL
     let mut settings = settings_manager.get();
@@ -418,7 +439,11 @@ pub async fn toggle_listen_on_all_interfaces(
     if server_manager.is_running().await {
         server_manager.stop().await?;
         let new_url = server_manager.start(&app).await?;
-        state.set_server_url(&new_url);
+
+        // Get token - always use if set (server requires it when configured)
+        let token = settings_manager.get_bundled_server_token();
+
+        state.set_server_url_with_token(&new_url, token);
 
         // Emit event to refresh the clip list
         let _ = app.emit("server-switched", ());

@@ -8,7 +8,7 @@ export type {
 export { FAVORITE_TAG, isFavorite, calculateAgeRatio } from "./types";
 
 // API
-export type { ClipperApi } from "./api";
+export type { ClipperApi, RestApiClient, RestApiClientOptions } from "./api";
 export { ApiProvider, useApi, createRestApiClient } from "./api";
 
 // i18n

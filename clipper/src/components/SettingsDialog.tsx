@@ -24,6 +24,8 @@ export interface Settings {
   globalShortcut: string;
   cleanupEnabled: boolean;
   cleanupRetentionDays: number;
+  externalServerToken: string | null;
+  bundledServerToken: string | null;
 }
 
 interface SettingsDialogProps {
@@ -52,6 +54,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     globalShortcut: defaultShortcut,
     cleanupEnabled: false,
     cleanupRetentionDays: 30,
+    externalServerToken: null,
+    bundledServerToken: null,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +69,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   // Track original cleanup settings to detect changes (requires server restart)
   const [originalCleanupEnabled, setOriginalCleanupEnabled] = useState(false);
   const [originalCleanupRetentionDays, setOriginalCleanupRetentionDays] = useState(30);
+  // Track original token values to detect changes on close
+  const [originalExternalServerToken, setOriginalExternalServerToken] = useState<string | null>(null);
+  const [originalBundledServerToken, setOriginalBundledServerToken] = useState<string | null>(null);
   // Shortcut recording state
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
   const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
@@ -107,6 +114,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
       // Store original cleanup settings to detect changes
       setOriginalCleanupEnabled(loadedSettings.cleanupEnabled);
       setOriginalCleanupRetentionDays(loadedSettings.cleanupRetentionDays);
+      // Store original token values to detect changes
+      setOriginalExternalServerToken(loadedSettings.externalServerToken);
+      setOriginalBundledServerToken(loadedSettings.bundledServerToken);
     } catch (e) {
       setError(`Failed to load settings: ${e}`);
     } finally {
@@ -170,13 +180,17 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     await saveSettings(newSettings);
   };
 
-  // Handle close - reconnect if server URL changed while using external server
-  // or restart bundled server if cleanup settings changed
+  // Handle close - reconnect if server URL or token changed while using external server
+  // or restart bundled server if cleanup settings or token changed
   const handleClose = async () => {
     setShowClearConfirm(false);
 
-    // If using external server and the server address changed, reconnect
-    if (!settings.useBundledServer && settings.serverAddress !== originalServerAddress) {
+    // If using external server and the server address or token changed, reconnect
+    const externalServerChanged = !settings.useBundledServer && (
+      settings.serverAddress !== originalServerAddress ||
+      settings.externalServerToken !== originalExternalServerToken
+    );
+    if (externalServerChanged) {
       try {
         await invoke("switch_to_external_server", { serverUrl: settings.serverAddress });
         setServerUrl(settings.serverAddress);
@@ -186,17 +200,20 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
       }
     }
 
-    // If using bundled server and cleanup settings changed, restart the server
-    if (settings.useBundledServer &&
-        (settings.cleanupEnabled !== originalCleanupEnabled ||
-         settings.cleanupRetentionDays !== originalCleanupRetentionDays)) {
+    // If using bundled server and cleanup settings or token changed, restart the server
+    const bundledServerNeedsRestart = settings.useBundledServer && (
+      settings.cleanupEnabled !== originalCleanupEnabled ||
+      settings.cleanupRetentionDays !== originalCleanupRetentionDays ||
+      (settings.listenOnAllInterfaces && settings.bundledServerToken !== originalBundledServerToken)
+    );
+    if (bundledServerNeedsRestart) {
       try {
         // Restart by switching to bundled server again
         const newUrl = await invoke<string>("switch_to_bundled_server");
         setServerUrl(newUrl);
         showToast(t("toast.serverRestarted"));
       } catch (e) {
-        console.error("Failed to restart server with new cleanup settings:", e);
+        console.error("Failed to restart server with new settings:", e);
       }
     }
 
@@ -597,60 +614,94 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                 )}
 
                 {settings.useBundledServer && settings.listenOnAllInterfaces && (
-                  <div className="settings-field">
-                    <label>{t("settings.serverUrls")}</label>
-                    <div className="server-url-list">
-                      {localIpAddresses.length > 0 ? (
-                        localIpAddresses.map((ip) => {
-                          const url = `http://${ip}:${getServerPort()}`;
-                          return (
-                            <div key={ip} className="settings-url-input">
-                              <input
-                                type="text"
-                                value={url}
-                                readOnly
-                                className="settings-readonly with-copy"
-                              />
-                              <button
-                                type="button"
-                                className="copy-icon-button"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(url);
-                                }}
-                                title={t("tooltip.copy")}
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                              </button>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <p className="settings-hint">{t("settings.serverUrls.empty")}</p>
-                      )}
+                  <>
+                    <div className="settings-field">
+                      <label>{t("settings.serverUrls")}</label>
+                      <div className="server-url-list">
+                        {localIpAddresses.length > 0 ? (
+                          localIpAddresses.map((ip) => {
+                            const url = `http://${ip}:${getServerPort()}`;
+                            return (
+                              <div key={ip} className="settings-url-input">
+                                <input
+                                  type="text"
+                                  value={url}
+                                  readOnly
+                                  className="settings-readonly with-copy"
+                                />
+                                <button
+                                  type="button"
+                                  className="copy-icon-button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(url);
+                                  }}
+                                  title={t("tooltip.copy")}
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                  </svg>
+                                </button>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p className="settings-hint">{t("settings.serverUrls.empty")}</p>
+                        )}
+                      </div>
+                      <p className="settings-hint">
+                        {t("settings.serverUrls.hint")}
+                      </p>
                     </div>
-                    <p className="settings-hint">
-                      {t("settings.serverUrls.hint")}
-                    </p>
-                  </div>
+
+                    <div className="settings-field">
+                      <label htmlFor="bundledServerToken">{t("settings.bundledServerToken")}</label>
+                      <input
+                        id="bundledServerToken"
+                        type="password"
+                        value={settings.bundledServerToken || ""}
+                        onChange={(e) => handleChange("bundledServerToken", e.target.value || null)}
+                        placeholder={t("settings.bundledServerToken.placeholder")}
+                        autoComplete="off"
+                      />
+                      <p className="settings-hint">
+                        {t("settings.bundledServerToken.hint")}
+                      </p>
+                    </div>
+                  </>
                 )}
 
                 {!settings.useBundledServer && (
-                  <div className="settings-field">
-                    <label htmlFor="serverUrl">{t("settings.serverUrl")}</label>
-                    <input
-                      id="serverUrl"
-                      type="text"
-                      value={settings.serverAddress}
-                      onChange={(e) => handleChange("serverAddress", e.target.value)}
-                      placeholder={t("settings.serverUrl.placeholder")}
-                    />
-                    <p className="settings-hint">
-                      {t("settings.serverUrl.hint")}
-                    </p>
-                  </div>
+                  <>
+                    <div className="settings-field">
+                      <label htmlFor="serverUrl">{t("settings.serverUrl")}</label>
+                      <input
+                        id="serverUrl"
+                        type="text"
+                        value={settings.serverAddress}
+                        onChange={(e) => handleChange("serverAddress", e.target.value)}
+                        placeholder={t("settings.serverUrl.placeholder")}
+                      />
+                      <p className="settings-hint">
+                        {t("settings.serverUrl.hint")}
+                      </p>
+                    </div>
+
+                    <div className="settings-field">
+                      <label htmlFor="externalServerToken">{t("settings.serverToken")}</label>
+                      <input
+                        id="externalServerToken"
+                        type="password"
+                        value={settings.externalServerToken || ""}
+                        onChange={(e) => handleChange("externalServerToken", e.target.value || null)}
+                        placeholder={t("settings.serverToken.placeholder")}
+                        autoComplete="off"
+                      />
+                      <p className="settings-hint">
+                        {t("settings.serverToken.hint")}
+                      </p>
+                    </div>
+                  </>
                 )}
               </div>
 

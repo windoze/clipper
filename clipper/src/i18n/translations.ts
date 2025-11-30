@@ -26,6 +26,12 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.serverUrl": "Server URL",
     "settings.serverUrl.placeholder": "http://localhost:3000",
     "settings.serverUrl.hint": "Enter the URL of your external clipper-server.",
+    "settings.serverToken": "Access Token",
+    "settings.serverToken.placeholder": "Enter token (optional)",
+    "settings.serverToken.hint": "Bearer token for authenticating with the external server. Leave empty if the server doesn't require authentication.",
+    "settings.bundledServerToken": "Access Token",
+    "settings.bundledServerToken.placeholder": "Enter token (optional)",
+    "settings.bundledServerToken.hint": "Set a token to require authentication when accessing the server from other devices. Leave empty to allow unauthenticated access.",
 
     // Storage
     "settings.storage": "Storage",
@@ -102,6 +108,12 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.serverUrl": "服务器地址",
     "settings.serverUrl.placeholder": "http://localhost:3000",
     "settings.serverUrl.hint": "输入外部 clipper-server 的地址。",
+    "settings.serverToken": "访问令牌",
+    "settings.serverToken.placeholder": "输入令牌（可选）",
+    "settings.serverToken.hint": "用于外部服务器身份验证的令牌。如果服务器不需要身份验证，请留空。",
+    "settings.bundledServerToken": "访问令牌",
+    "settings.bundledServerToken.placeholder": "输入令牌（可选）",
+    "settings.bundledServerToken.hint": "设置令牌以在其他设备访问服务器时要求身份验证。留空则允许无需身份验证即可访问。",
 
     // Storage
     "settings.storage": "存储",

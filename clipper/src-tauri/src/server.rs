@@ -116,6 +116,10 @@ impl ServerManager {
         let cleanup_enabled = settings_manager.get_cleanup_enabled();
         let cleanup_retention_days = settings_manager.get_cleanup_retention_days();
 
+        // Get bundled server token for authentication
+        // Always use if set - this ensures client and server have consistent auth configuration
+        let bundled_server_token = settings_manager.get_bundled_server_token();
+
         // Log all parameters
         eprintln!(
             "[clipper-server] Starting bundled server with parameters:\n  \
@@ -124,13 +128,15 @@ impl ServerManager {
              listen_addr: {}\n  \
              port: {}\n  \
              cleanup_enabled: {}\n  \
-             cleanup_retention_days: {}",
+             cleanup_retention_days: {}\n  \
+             auth_enabled: {}",
             db_path_str,
             storage_path_str,
             listen_addr,
             port,
             cleanup_enabled,
-            cleanup_retention_days
+            cleanup_retention_days,
+            bundled_server_token.is_some()
         );
 
         // Build args list
@@ -150,6 +156,12 @@ impl ServerManager {
         args.push(cleanup_enabled.to_string());
         args.push("--cleanup-retention-days".to_string());
         args.push(cleanup_retention_days.to_string());
+
+        // Add bearer token if external access is enabled and token is set
+        if let Some(ref token) = bundled_server_token {
+            args.push("--bearer-token".to_string());
+            args.push(token.clone());
+        }
 
         // Spawn the sidecar process
         let sidecar_command = app
@@ -248,6 +260,13 @@ impl ServerManager {
         *self.server_url.write().await = None;
 
         Ok(())
+    }
+
+    /// Restart the server (stop and start)
+    pub async fn restart(&self, app: &AppHandle) -> Result<String, String> {
+        eprintln!("[clipper-server] Restarting server...");
+        self.stop().await?;
+        self.start(app).await
     }
 
     /// Clear all data (database and storage) - server must be stopped first

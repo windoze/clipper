@@ -100,4 +100,16 @@ export const zh = {
   "toast.clipboardSent": "剪贴板内容已发送",
   "toast.clipboardEmpty": "剪贴板为空",
   "toast.clipboardReadFailed": "读取剪贴板失败",
+
+  // Authentication
+  "auth.title": "需要身份验证",
+  "auth.description": "此服务器需要身份验证。请输入您的访问令牌。",
+  "auth.tokenLabel": "访问令牌",
+  "auth.tokenPlaceholder": "输入您的访问令牌...",
+  "auth.login": "登录",
+  "auth.logout": "退出登录",
+  "auth.loggingIn": "登录中...",
+  "auth.error": "身份验证失败。请检查您的令牌并重试。",
+  "auth.invalidToken": "无效的令牌",
+  "auth.sessionExpired": "会话已过期。请重新登录。",
 };

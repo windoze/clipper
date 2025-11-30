@@ -11,10 +11,30 @@ use serde_json::json;
 
 use crate::state::AppState;
 
+/// Extract token from query string (e.g., ?token=xxx)
+fn extract_query_token(query: Option<&str>) -> Option<String> {
+    query.and_then(|q| {
+        q.split('&')
+            .filter_map(|pair| {
+                let mut parts = pair.splitn(2, '=');
+                let key = parts.next()?;
+                let value = parts.next()?;
+                if key == "token" {
+                    Some(value.to_string())
+                } else {
+                    None
+                }
+            })
+            .next()
+    })
+}
+
 /// Middleware that validates Bearer token authentication.
 ///
 /// If authentication is not configured (no bearer token set), all requests are allowed.
-/// If authentication is configured, requests must include a valid `Authorization: Bearer <token>` header.
+/// If authentication is configured, requests must include either:
+/// - A valid `Authorization: Bearer <token>` header, OR
+/// - A valid `?token=<token>` query parameter (useful for file downloads, WebSocket, etc.)
 ///
 /// Certain endpoints are always allowed without authentication:
 /// - GET /health - Health check endpoint
@@ -39,33 +59,41 @@ pub async fn auth_middleware(
         return next.run(request).await;
     }
 
-    // Extract and validate the Bearer token
+    // Try to extract token from Authorization header first
     let auth_header = request.headers().get(header::AUTHORIZATION);
 
-    match auth_header {
-        Some(header_value) => {
-            let header_str = match header_value.to_str() {
-                Ok(s) => s,
-                Err(_) => {
-                    return unauthorized_response("Invalid Authorization header encoding");
-                }
-            };
-
-            // Check for Bearer prefix
-            if !header_str.starts_with("Bearer ") {
-                return unauthorized_response("Authorization header must use Bearer scheme");
+    if let Some(header_value) = auth_header {
+        let header_str = match header_value.to_str() {
+            Ok(s) => s,
+            Err(_) => {
+                return unauthorized_response("Invalid Authorization header encoding");
             }
+        };
 
-            let token = &header_str[7..]; // Skip "Bearer "
-
-            if auth_config.validate_token(token) {
-                next.run(request).await
-            } else {
-                unauthorized_response("Invalid bearer token")
-            }
+        // Check for Bearer prefix
+        if !header_str.starts_with("Bearer ") {
+            return unauthorized_response("Authorization header must use Bearer scheme");
         }
-        None => unauthorized_response("Missing Authorization header"),
+
+        let token = &header_str[7..]; // Skip "Bearer "
+
+        if auth_config.validate_token(token) {
+            return next.run(request).await;
+        } else {
+            return unauthorized_response("Invalid bearer token");
+        }
     }
+
+    // Fall back to query parameter token (useful for file downloads, images, etc.)
+    if let Some(token) = extract_query_token(request.uri().query()) {
+        if auth_config.validate_token(&token) {
+            return next.run(request).await;
+        } else {
+            return unauthorized_response("Invalid token");
+        }
+    }
+
+    unauthorized_response("Missing Authorization header or token parameter")
 }
 
 /// Create an unauthorized response with a JSON body.

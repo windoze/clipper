@@ -101,6 +101,18 @@ export const en = {
   "toast.clipboardSent": "Clipboard content sent",
   "toast.clipboardEmpty": "Clipboard is empty",
   "toast.clipboardReadFailed": "Failed to read clipboard",
+
+  // Authentication
+  "auth.title": "Authentication Required",
+  "auth.description": "This server requires authentication. Please enter your access token.",
+  "auth.tokenLabel": "Access Token",
+  "auth.tokenPlaceholder": "Enter your bearer token...",
+  "auth.login": "Login",
+  "auth.logout": "Logout",
+  "auth.loggingIn": "Logging in...",
+  "auth.error": "Authentication failed. Please check your token and try again.",
+  "auth.invalidToken": "Invalid token",
+  "auth.sessionExpired": "Session expired. Please login again.",
 };
 
 export type TranslationKey = keyof typeof en;

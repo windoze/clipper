@@ -1,11 +1,13 @@
 use clipper_client::ClipperClient;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 
 pub struct AppState {
     client: RwLock<ClipperClient>,
     pub last_synced_content: Arc<Mutex<String>>,
     pub websocket_connected: Arc<AtomicBool>,
+    /// Counter that increments when WebSocket should reconnect (e.g., token changed)
+    pub ws_reconnect_counter: Arc<AtomicU64>,
 }
 
 impl AppState {
@@ -14,6 +16,21 @@ impl AppState {
             client: RwLock::new(ClipperClient::new(base_url)),
             last_synced_content: Arc::new(Mutex::new(String::new())),
             websocket_connected: Arc::new(AtomicBool::new(false)),
+            ws_reconnect_counter: Arc::new(AtomicU64::new(0)),
+        }
+    }
+
+    /// Create a new AppState with optional Bearer token
+    pub fn new_with_token(base_url: &str, token: Option<String>) -> Self {
+        let client = match token {
+            Some(t) => ClipperClient::new_with_token(base_url, t),
+            None => ClipperClient::new(base_url),
+        };
+        Self {
+            client: RwLock::new(client),
+            last_synced_content: Arc::new(Mutex::new(String::new())),
+            websocket_connected: Arc::new(AtomicBool::new(false)),
+            ws_reconnect_counter: Arc::new(AtomicU64::new(0)),
         }
     }
 
@@ -25,10 +42,47 @@ impl AppState {
         self.client.read().unwrap().base_url().to_string()
     }
 
+    /// Get the current token (if any)
+    pub fn token(&self) -> Option<String> {
+        self.client.read().unwrap().token().map(|s| s.to_string())
+    }
+
     /// Update the server URL (called when bundled server starts)
     #[allow(dead_code)]
     pub fn set_server_url(&self, url: &str) {
         *self.client.write().unwrap() = ClipperClient::new(url);
+    }
+
+    /// Update the server URL with optional token
+    /// This also signals the WebSocket to reconnect
+    pub fn set_server_url_with_token(&self, url: &str, token: Option<String>) {
+        let client = match token {
+            Some(t) => ClipperClient::new_with_token(url, t),
+            None => ClipperClient::new(url),
+        };
+        *self.client.write().unwrap() = client;
+        // Signal WebSocket to reconnect with new credentials
+        self.signal_ws_reconnect();
+    }
+
+    /// Update only the token (keeping the same URL)
+    /// This also signals the WebSocket to reconnect
+    pub fn set_token(&self, token: Option<String>) {
+        let mut client = self.client.write().unwrap();
+        client.set_token(token);
+        drop(client); // Release lock before signaling
+        // Signal WebSocket to reconnect with new credentials
+        self.signal_ws_reconnect();
+    }
+
+    /// Signal the WebSocket listener to reconnect (e.g., after token change)
+    pub fn signal_ws_reconnect(&self) {
+        self.ws_reconnect_counter.fetch_add(1, Ordering::SeqCst);
+    }
+
+    /// Get the current reconnect counter value
+    pub fn ws_reconnect_counter(&self) -> u64 {
+        self.ws_reconnect_counter.load(Ordering::SeqCst)
     }
 
     pub fn set_last_synced_content(&self, content: String) {

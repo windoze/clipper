@@ -169,8 +169,11 @@ pub fn run() {
 
             // Start the bundled server if enabled, or use external server URL
             let app_handle_for_server = app.handle().clone();
-            let server_url = if use_bundled {
-                tauri::async_runtime::block_on(async {
+            let (server_url, token) = if use_bundled {
+                // Get token for bundled server - always use if set (server requires it when configured)
+                let bundled_token = settings_manager.get_bundled_server_token();
+
+                let url = tauri::async_runtime::block_on(async {
                     match server_manager.start(&app_handle_for_server).await {
                         Ok(url) => {
                             eprintln!("Bundled server started at: {}", url);
@@ -185,18 +188,20 @@ pub fn run() {
                             settings_manager.get().server_address.clone()
                         }
                     }
-                })
+                });
+                (url, bundled_token)
             } else {
                 let external_url = settings_manager.get().server_address.clone();
+                let external_token = settings_manager.get_external_server_token();
                 eprintln!("Using external server at: {}", external_url);
-                external_url
+                (external_url, external_token)
             };
 
             // Register server manager
             app.manage(server_manager);
 
-            // Create app state with the server URL
-            let app_state = AppState::new(&server_url);
+            // Create app state with the server URL and token
+            let app_state = AppState::new_with_token(&server_url, token);
             app.manage(app_state);
 
             // Handle window visibility based on settings
