@@ -135,6 +135,78 @@
   box-shadow: none;
 }
 
+/* ============================================
+   Web-Specific: Header Links
+   (Home and GitHub links)
+   ============================================ */
+
+.header-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+}
+
+.header-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: #6c757d;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.header-link:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #495057;
+}
+
+.header-link:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.header-link svg {
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.header-link:hover svg {
+  opacity: 1;
+}
+
+/* Dark theme for header links */
+:root[data-theme="dark"] .header-link {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .header-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .header-link:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Dark theme media query fallback for header links */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .header-link {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .header-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .header-link:active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
 /* Dark theme for header button group */
 :root[data-theme="dark"] .header-button-group {
   background: rgba(255, 255, 255, 0.1);
