@@ -344,3 +344,230 @@ async fn test_search_with_combined_filters() {
         .iter()
         .any(|e| e.tags.contains(&"rust".to_string())));
 }
+
+#[tokio::test]
+async fn test_cleanup_entries_no_tags() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add entry with no tags
+    let entry_no_tags = indexer
+        .add_entry_from_text("No tags entry".to_string(), vec![], None)
+        .await
+        .unwrap();
+
+    // Add entry with meaningful tag
+    let entry_with_tag = indexer
+        .add_entry_from_text(
+            "With tag entry".to_string(),
+            vec!["important".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Cleanup should delete the entry with no tags
+    let deleted = indexer.cleanup_entries(None, None).await.unwrap();
+
+    assert_eq!(deleted, 1);
+
+    // Verify entry with no tags is deleted
+    let result = indexer.get_entry(&entry_no_tags.id).await;
+    assert!(result.is_err());
+
+    // Verify entry with tag still exists
+    let result = indexer.get_entry(&entry_with_tag.id).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_cleanup_entries_only_host_tag() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add entry with only host tag
+    let entry_host_only = indexer
+        .add_entry_from_text(
+            "Host only entry".to_string(),
+            vec!["$host:my-machine".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Add entry with host tag and other tag
+    let entry_host_and_other = indexer
+        .add_entry_from_text(
+            "Host and other entry".to_string(),
+            vec!["$host:my-machine".to_string(), "important".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Cleanup should delete entry with only host tag
+    let deleted = indexer.cleanup_entries(None, None).await.unwrap();
+
+    assert_eq!(deleted, 1);
+
+    // Verify entry with only host tag is deleted
+    let result = indexer.get_entry(&entry_host_only.id).await;
+    assert!(result.is_err());
+
+    // Verify entry with host + other tag still exists
+    let result = indexer.get_entry(&entry_host_and_other.id).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_cleanup_entries_multiple_host_tags() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add entry with multiple host tags but no other tags
+    let entry_multi_host = indexer
+        .add_entry_from_text(
+            "Multiple hosts entry".to_string(),
+            vec![
+                "$host:machine1".to_string(),
+                "$host:machine2".to_string(),
+            ],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Add entry with meaningful tag
+    let entry_with_tag = indexer
+        .add_entry_from_text(
+            "With tag entry".to_string(),
+            vec!["favorite".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Cleanup should delete entry with only host tags
+    let deleted = indexer.cleanup_entries(None, None).await.unwrap();
+
+    assert_eq!(deleted, 1);
+
+    // Verify entry with only host tags is deleted
+    let result = indexer.get_entry(&entry_multi_host.id).await;
+    assert!(result.is_err());
+
+    // Verify entry with meaningful tag still exists
+    let result = indexer.get_entry(&entry_with_tag.id).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_cleanup_entries_with_date_range() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    let now = Utc::now();
+
+    // Add entry with no tags
+    let entry1 = indexer
+        .add_entry_from_text("Entry 1 no tags".to_string(), vec![], None)
+        .await
+        .unwrap();
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    let mid_time = Utc::now();
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    // Add another entry with no tags
+    let entry2 = indexer
+        .add_entry_from_text("Entry 2 no tags".to_string(), vec![], None)
+        .await
+        .unwrap();
+
+    // Cleanup only entries before mid_time
+    let deleted = indexer
+        .cleanup_entries(Some(now - Duration::hours(1)), Some(mid_time))
+        .await
+        .unwrap();
+
+    assert_eq!(deleted, 1);
+
+    // Verify first entry is deleted
+    let result = indexer.get_entry(&entry1.id).await;
+    assert!(result.is_err());
+
+    // Verify second entry still exists (outside date range)
+    let result = indexer.get_entry(&entry2.id).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_cleanup_entries_with_file_attachment() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Create a temporary file
+    let temp_file = TempDir::new().unwrap();
+    let file_path = temp_file.path().join("test.txt");
+    fs::write(&file_path, "File content to be cleaned up").unwrap();
+
+    // Add file entry with only host tag
+    let entry = indexer
+        .add_entry_from_file(&file_path, vec!["$host:test-machine".to_string()], None)
+        .await
+        .unwrap();
+
+    let file_key = entry.file_attachment.clone().unwrap();
+
+    // Verify file exists in storage
+    let file_content = indexer.get_file_content(&file_key).await;
+    assert!(file_content.is_ok());
+
+    // Cleanup should delete the entry and its file
+    let deleted = indexer.cleanup_entries(None, None).await.unwrap();
+
+    assert_eq!(deleted, 1);
+
+    // Verify entry is deleted
+    let result = indexer.get_entry(&entry.id).await;
+    assert!(result.is_err());
+
+    // Verify file is also deleted from storage
+    let file_content = indexer.get_file_content(&file_key).await;
+    assert!(file_content.is_err());
+}
+
+#[tokio::test]
+async fn test_cleanup_entries_none_to_delete() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add entries all with meaningful tags
+    indexer
+        .add_entry_from_text(
+            "Entry 1".to_string(),
+            vec!["important".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    indexer
+        .add_entry_from_text(
+            "Entry 2".to_string(),
+            vec!["$host:machine".to_string(), "favorite".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Cleanup should delete nothing
+    let deleted = indexer.cleanup_entries(None, None).await.unwrap();
+
+    assert_eq!(deleted, 0);
+
+    // Verify all entries still exist
+    let paging = PagingParams::default();
+    let all_entries = indexer
+        .list_entries(SearchFilters::new(), paging)
+        .await
+        .unwrap();
+
+    assert_eq!(all_entries.total, 2);
+}

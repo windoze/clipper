@@ -570,4 +570,77 @@ impl ClipperIndexer {
 
         Ok(())
     }
+
+    /// Delete all clip entries without any tags (except host tags) within a given time range.
+    ///
+    /// This function finds entries where:
+    /// - All tags start with "host:" (only host tags), OR
+    /// - There are no tags at all
+    ///
+    /// And deletes them if they fall within the specified time range.
+    ///
+    /// # Arguments
+    /// * `start_date` - Optional start of the time range (inclusive)
+    /// * `end_date` - Optional end of the time range (inclusive)
+    ///
+    /// # Returns
+    /// The number of entries deleted
+    pub async fn cleanup_entries(
+        &self,
+        start_date: Option<chrono::DateTime<chrono::Utc>>,
+        end_date: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> Result<usize> {
+        let mut where_clauses = Vec::new();
+
+        // Entries with no tags OR all tags start with "$host:"
+        // array::len(tags) == 0 OR all tags match "$host:*"
+        where_clauses.push(
+            "(array::len(tags) == 0 OR array::len(array::filter(tags, |$t| !string::starts_with($t, '$host:'))) == 0)".to_string()
+        );
+
+        if let Some(start) = start_date {
+            where_clauses.push(format!(
+                "created_at >= <datetime>'{}'",
+                start.to_rfc3339()
+            ));
+        }
+
+        if let Some(end) = end_date {
+            where_clauses.push(format!(
+                "created_at <= <datetime>'{}'",
+                end.to_rfc3339()
+            ));
+        }
+
+        let where_clause = where_clauses.join(" AND ");
+
+        // First, get all entries that match the criteria to delete their files
+        let select_query = format!(
+            "SELECT * FROM {} WHERE {};",
+            TABLE_NAME, where_clause
+        );
+
+        let mut response = self.db.query(select_query).await?;
+        let entries: Vec<DbClipboardEntry> = response
+            .take(0)
+            .map_err(|e| IndexerError::Serialization(e.to_string()))?;
+
+        let count = entries.len();
+
+        // Delete file attachments for all matching entries
+        for entry in &entries {
+            if let Some(ref file_key) = entry.file_attachment {
+                let _ = self.storage.delete_file(file_key).await;
+            }
+        }
+
+        // Delete all matching entries from the database
+        let delete_query = format!(
+            "DELETE FROM {} WHERE {};",
+            TABLE_NAME, where_clause
+        );
+        self.db.query(delete_query).await?;
+
+        Ok(count)
+    }
 }
