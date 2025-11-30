@@ -24,6 +24,7 @@ A cross-platform clipboard manager built with Tauri 2 + React + TypeScript.
 - **Infinite Scroll**: Smooth scrolling through large clip collections
 - **Image Preview**: Click to preview image clips
 - **Drag & Drop**: Drop files directly into the app
+- **Visual Fade-out**: Clips approaching auto-cleanup date gradually fade to indicate expiration
 
 ### Platform Support
 - **macOS**: Full support with auto-launch

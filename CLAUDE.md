@@ -159,9 +159,11 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
      - **Drag-and-drop file upload**: Drop files anywhere to upload
      - **Send clipboard button**: Manually send clipboard content (browsers can't auto-monitor)
      - **WebSocket real-time sync**: Toast notifications on new/updated clips (HTTPS only)
+     - **Visual fade-out**: Clips approaching auto-cleanup date gradually fade
    - **Architecture**: Pure frontend, communicates with server via REST API and WebSocket
    - **Components** (in `clipper-server/web/src/`):
      - `hooks/useWebSocket.ts`: WebSocket connection for real-time updates
+     - `hooks/useCleanupConfig.ts`: Fetches cleanup config from `/version` API for fade-out effect
      - `components/`: Reusable UI components (shared via @unwritten-codes/clipper-ui package)
 
 4. **clipper-client (Client Library)**
@@ -198,6 +200,7 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
      - **Toast notifications**: Configurable notification system
      - **Clear all data**: Option to wipe all clips and restart server
      - **Auto-reconnect**: Reconnects to server when URL changes in settings
+     - **Visual fade-out**: Clips approaching auto-cleanup date gradually fade
    - **Key Modules** (in `clipper/src-tauri/src/`):
      - `lib.rs`: Tauri app setup, plugin initialization, event handlers
      - `state.rs`: AppState with ClipperClient
@@ -410,6 +413,7 @@ Settings include:
 ### REST Endpoints
 
 - `GET /health` - Health check
+- `GET /version` - Server version and status (version, uptime, active connections, config)
 - `POST /clips` - Create clip from text
 - `POST /clips/upload` - Upload file as clip
 - `GET /clips` - List clips with pagination (query params: start_date, end_date, tags, page, page_size)
@@ -520,6 +524,10 @@ update_tray_language(language: string): Promise<void>
   - Only deletes clips without meaningful tags (no tags or only `$host:*` tags)
   - `ClipsCleanedUp` WebSocket notification to all connected clients
   - Toast notifications in desktop app and web UI
+  - **Visual fade-out**: Clips gradually fade as they approach cleanup date
+- **Version API** (`GET /version`):
+  - Returns server version, uptime, active WebSocket connections
+  - Exposes server configuration (TLS, ACME, cleanup settings)
 
 ### Future Work
 - File content preview/rendering improvements

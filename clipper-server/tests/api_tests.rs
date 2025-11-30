@@ -1185,11 +1185,11 @@ async fn test_version_endpoint() {
 
     // Default config values
     assert_eq!(config["port"].as_u64().unwrap(), 3000);
-    assert_eq!(config["tls_enabled"].as_bool().unwrap(), false);
+    assert!(!config["tls_enabled"].as_bool().unwrap());
     assert!(config["tls_port"].is_null()); // Not present when TLS disabled
-    assert_eq!(config["acme_enabled"].as_bool().unwrap(), false);
+    assert!(!config["acme_enabled"].as_bool().unwrap());
     assert!(config["acme_domain"].is_null()); // Not present when ACME disabled
-    assert_eq!(config["cleanup_enabled"].as_bool().unwrap(), false);
+    assert!(!config["cleanup_enabled"].as_bool().unwrap());
     assert!(config["cleanup_interval_mins"].is_null()); // Not present when cleanup disabled
     assert!(config["cleanup_retention_days"].is_null()); // Not present when cleanup disabled
 }

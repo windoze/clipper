@@ -166,6 +166,7 @@ The server includes a built-in web UI accessible at the root URL (e.g., `http://
 - Internationalization (English/Chinese)
 - Favorites and date filtering
 - Infinite scroll with pagination
+- Visual fade-out for clips approaching auto-cleanup date (when cleanup is enabled)
 
 ### Building with Embedded Web UI
 
@@ -185,6 +186,30 @@ GET /health
 ```
 
 Returns `OK` if the server is running.
+
+### Version and Status
+
+```
+GET /version
+```
+
+Returns server version and status information.
+
+**Response**: `200 OK`
+```json
+{
+  "version": "0.9.2",
+  "uptime_secs": 3600,
+  "active_ws_connections": 5,
+  "config": {
+    "port": 3000,
+    "tls_enabled": false,
+    "acme_enabled": false,
+    "cleanup_enabled": true,
+    "cleanup_retention_days": 30
+  }
+}
+```
 
 ### Create a Clip
 
