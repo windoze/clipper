@@ -12,6 +12,7 @@ use crate::{error::Result, state::AppState};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
+        .route("/version", get(get_version))
         .route("/clips", post(create_clip))
         .route("/clips/upload", post(upload_clip_file))
         .route("/clips", get(list_clips))
@@ -20,6 +21,83 @@ pub fn routes() -> Router<AppState> {
         .route("/clips/{id}", put(update_clip))
         .route("/clips/{id}", delete(delete_clip))
         .route("/clips/{id}/file", get(get_clip_file))
+}
+
+/// Version information response
+#[derive(Debug, Serialize)]
+pub struct VersionResponse {
+    /// Server version string
+    pub version: String,
+    /// Uptime in seconds
+    pub uptime_secs: u64,
+    /// Number of active WebSocket connections
+    pub active_ws_connections: usize,
+    /// Configuration info
+    pub config: ConfigInfo,
+}
+
+/// Configuration information (subset of server config)
+#[derive(Debug, Serialize)]
+pub struct ConfigInfo {
+    /// HTTP listening port
+    pub port: u16,
+    /// Whether TLS is enabled
+    pub tls_enabled: bool,
+    /// HTTPS port (if TLS is enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tls_port: Option<u16>,
+    /// Whether ACME is enabled
+    pub acme_enabled: bool,
+    /// ACME domain (if ACME is enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub acme_domain: Option<String>,
+    /// Whether auto-cleanup is enabled
+    pub cleanup_enabled: bool,
+    /// Auto-cleanup interval in minutes (if cleanup is enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cleanup_interval_mins: Option<u32>,
+    /// Auto-cleanup retention in days (if cleanup is enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cleanup_retention_days: Option<u32>,
+}
+
+/// Get server version and status information
+async fn get_version(State(state): State<AppState>) -> Json<VersionResponse> {
+    let config = &state.config;
+
+    let config_info = ConfigInfo {
+        port: config.server.port,
+        tls_enabled: config.tls_available(),
+        tls_port: if config.tls_available() {
+            Some(config.tls.port)
+        } else {
+            None
+        },
+        acme_enabled: config.acme_available(),
+        acme_domain: if config.acme_available() {
+            config.acme.domain.clone()
+        } else {
+            None
+        },
+        cleanup_enabled: config.cleanup.enabled,
+        cleanup_interval_mins: if config.cleanup.enabled {
+            Some(config.cleanup.interval_hours * 60)
+        } else {
+            None
+        },
+        cleanup_retention_days: if config.cleanup.enabled {
+            Some(config.cleanup.retention_days)
+        } else {
+            None
+        },
+    };
+
+    Json(VersionResponse {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        uptime_secs: state.uptime_secs(),
+        active_ws_connections: state.active_ws_connections(),
+        config: config_info,
+    })
 }
 
 #[derive(Debug, Deserialize)]

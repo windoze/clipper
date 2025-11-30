@@ -94,7 +94,7 @@ async fn main() {
         .expect("Failed to initialize indexer");
 
     // Create application state
-    let state = AppState::new(indexer);
+    let state = AppState::new(indexer, config.clone());
 
     // Start cleanup task if enabled
     if config.cleanup.is_active() {

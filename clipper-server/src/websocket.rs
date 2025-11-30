@@ -26,6 +26,9 @@ async fn websocket_handler(ws: WebSocketUpgrade, State(state): State<AppState>) 
 }
 
 async fn handle_websocket(socket: WebSocket, state: AppState) {
+    // Track this connection
+    state.ws_connect();
+
     let (mut sender, mut receiver) = socket.split();
 
     // Subscribe to clip updates
@@ -115,6 +118,9 @@ async fn handle_websocket(socket: WebSocket, state: AppState) {
     // Clean up
     heartbeat_task.abort();
     updates_task.abort();
+
+    // Track disconnection
+    state.ws_disconnect();
 
     info!("WebSocket connection closed");
 }

@@ -4,7 +4,7 @@ use axum::{
     Router,
 };
 use clipper_indexer::ClipperIndexer;
-use clipper_server::{api, AppState};
+use clipper_server::{api, AppState, ServerConfig};
 use http_body_util::BodyExt;
 use serde_json::json;
 use tempfile::TempDir;
@@ -20,7 +20,8 @@ async fn create_test_app() -> (Router, TempDir) {
         .await
         .expect("Failed to create indexer");
 
-    let state = AppState::new(indexer);
+    let config = ServerConfig::default();
+    let state = AppState::new(indexer, config);
     let app = Router::new().merge(api::routes()).with_state(state);
 
     (app, temp_dir)
@@ -1147,4 +1148,48 @@ async fn test_upload_file() {
     assert_eq!(body["additional_notes"], "Test upload");
     assert!(body["file_attachment"].is_string());
     assert_eq!(body["original_filename"], "test.txt");
+}
+
+#[tokio::test]
+async fn test_version_endpoint() {
+    let (app, _temp_dir) = create_test_app().await;
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/version")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+
+    // Check version string exists
+    assert!(body["version"].is_string());
+
+    // Check uptime is a number >= 0
+    assert!(body["uptime_secs"].is_u64());
+
+    // Check active_ws_connections is a number >= 0
+    assert!(body["active_ws_connections"].is_u64());
+    assert_eq!(body["active_ws_connections"].as_u64().unwrap(), 0);
+
+    // Check config info
+    let config = &body["config"];
+    assert!(config.is_object());
+
+    // Default config values
+    assert_eq!(config["port"].as_u64().unwrap(), 3000);
+    assert_eq!(config["tls_enabled"].as_bool().unwrap(), false);
+    assert!(config["tls_port"].is_null()); // Not present when TLS disabled
+    assert_eq!(config["acme_enabled"].as_bool().unwrap(), false);
+    assert!(config["acme_domain"].is_null()); // Not present when ACME disabled
+    assert_eq!(config["cleanup_enabled"].as_bool().unwrap(), false);
+    assert!(config["cleanup_interval_mins"].is_null()); // Not present when cleanup disabled
+    assert!(config["cleanup_retention_days"].is_null()); // Not present when cleanup disabled
 }
