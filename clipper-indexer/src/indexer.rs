@@ -584,12 +584,12 @@ impl ClipperIndexer {
     /// * `end_date` - Optional end of the time range (inclusive)
     ///
     /// # Returns
-    /// The number of entries deleted
+    /// A vector of IDs of the deleted entries
     pub async fn cleanup_entries(
         &self,
         start_date: Option<chrono::DateTime<chrono::Utc>>,
         end_date: Option<chrono::DateTime<chrono::Utc>>,
-    ) -> Result<usize> {
+    ) -> Result<Vec<String>> {
         let mut where_clauses = Vec::new();
 
         // Entries with no tags OR all tags start with "$host:"
@@ -599,33 +599,29 @@ impl ClipperIndexer {
         );
 
         if let Some(start) = start_date {
-            where_clauses.push(format!(
-                "created_at >= <datetime>'{}'",
-                start.to_rfc3339()
-            ));
+            where_clauses.push(format!("created_at >= <datetime>'{}'", start.to_rfc3339()));
         }
 
         if let Some(end) = end_date {
-            where_clauses.push(format!(
-                "created_at <= <datetime>'{}'",
-                end.to_rfc3339()
-            ));
+            where_clauses.push(format!("created_at <= <datetime>'{}'", end.to_rfc3339()));
         }
 
         let where_clause = where_clauses.join(" AND ");
 
         // First, get all entries that match the criteria to delete their files
-        let select_query = format!(
-            "SELECT * FROM {} WHERE {};",
-            TABLE_NAME, where_clause
-        );
+        let select_query = format!("SELECT * FROM {} WHERE {};", TABLE_NAME, where_clause);
 
         let mut response = self.db.query(select_query).await?;
         let entries: Vec<DbClipboardEntry> = response
             .take(0)
             .map_err(|e| IndexerError::Serialization(e.to_string()))?;
 
-        let count = entries.len();
+        // Collect the IDs of entries to be deleted
+        let deleted_ids: Vec<String> = entries.iter().map(|e| e.id.id.to_string()).collect();
+
+        // Delete all matching entries from the database
+        let delete_query = format!("DELETE FROM {} WHERE {};", TABLE_NAME, where_clause);
+        self.db.query(delete_query).await?;
 
         // Delete file attachments for all matching entries
         for entry in &entries {
@@ -634,13 +630,6 @@ impl ClipperIndexer {
             }
         }
 
-        // Delete all matching entries from the database
-        let delete_query = format!(
-            "DELETE FROM {} WHERE {};",
-            TABLE_NAME, where_clause
-        );
-        self.db.query(delete_query).await?;
-
-        Ok(count)
+        Ok(deleted_ids)
     }
 }

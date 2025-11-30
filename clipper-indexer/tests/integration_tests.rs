@@ -366,9 +366,10 @@ async fn test_cleanup_entries_no_tags() {
         .unwrap();
 
     // Cleanup should delete the entry with no tags
-    let deleted = indexer.cleanup_entries(None, None).await.unwrap();
+    let deleted_ids = indexer.cleanup_entries(None, None).await.unwrap();
 
-    assert_eq!(deleted, 1);
+    assert_eq!(deleted_ids.len(), 1);
+    assert!(deleted_ids.contains(&entry_no_tags.id));
 
     // Verify entry with no tags is deleted
     let result = indexer.get_entry(&entry_no_tags.id).await;
@@ -404,9 +405,10 @@ async fn test_cleanup_entries_only_host_tag() {
         .unwrap();
 
     // Cleanup should delete entry with only host tag
-    let deleted = indexer.cleanup_entries(None, None).await.unwrap();
+    let deleted_ids = indexer.cleanup_entries(None, None).await.unwrap();
 
-    assert_eq!(deleted, 1);
+    assert_eq!(deleted_ids.len(), 1);
+    assert!(deleted_ids.contains(&entry_host_only.id));
 
     // Verify entry with only host tag is deleted
     let result = indexer.get_entry(&entry_host_only.id).await;
@@ -445,9 +447,10 @@ async fn test_cleanup_entries_multiple_host_tags() {
         .unwrap();
 
     // Cleanup should delete entry with only host tags
-    let deleted = indexer.cleanup_entries(None, None).await.unwrap();
+    let deleted_ids = indexer.cleanup_entries(None, None).await.unwrap();
 
-    assert_eq!(deleted, 1);
+    assert_eq!(deleted_ids.len(), 1);
+    assert!(deleted_ids.contains(&entry_multi_host.id));
 
     // Verify entry with only host tags is deleted
     let result = indexer.get_entry(&entry_multi_host.id).await;
@@ -483,12 +486,13 @@ async fn test_cleanup_entries_with_date_range() {
         .unwrap();
 
     // Cleanup only entries before mid_time
-    let deleted = indexer
+    let deleted_ids = indexer
         .cleanup_entries(Some(now - Duration::hours(1)), Some(mid_time))
         .await
         .unwrap();
 
-    assert_eq!(deleted, 1);
+    assert_eq!(deleted_ids.len(), 1);
+    assert!(deleted_ids.contains(&entry1.id));
 
     // Verify first entry is deleted
     let result = indexer.get_entry(&entry1.id).await;
@@ -521,9 +525,10 @@ async fn test_cleanup_entries_with_file_attachment() {
     assert!(file_content.is_ok());
 
     // Cleanup should delete the entry and its file
-    let deleted = indexer.cleanup_entries(None, None).await.unwrap();
+    let deleted_ids = indexer.cleanup_entries(None, None).await.unwrap();
 
-    assert_eq!(deleted, 1);
+    assert_eq!(deleted_ids.len(), 1);
+    assert!(deleted_ids.contains(&entry.id));
 
     // Verify entry is deleted
     let result = indexer.get_entry(&entry.id).await;
@@ -558,9 +563,9 @@ async fn test_cleanup_entries_none_to_delete() {
         .unwrap();
 
     // Cleanup should delete nothing
-    let deleted = indexer.cleanup_entries(None, None).await.unwrap();
+    let deleted_ids = indexer.cleanup_entries(None, None).await.unwrap();
 
-    assert_eq!(deleted, 0);
+    assert!(deleted_ids.is_empty());
 
     // Verify all entries still exist
     let paging = PagingParams::default();
