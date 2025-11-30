@@ -14,6 +14,7 @@ A REST API server with WebSocket support for managing clipboard entries using th
 - **Built-in Web UI** with drag-and-drop file upload
 - **TLS/HTTPS support** with manual or automatic (Let's Encrypt) certificates
 - **Certificate hot-reload** for zero-downtime certificate updates
+- **Automatic cleanup** with configurable retention policy
 
 ## Getting Started
 
@@ -37,6 +38,9 @@ Options:
       --storage-path <PATH>        Storage path for file attachments
       --listen-addr <ADDR>         Server listen address (default: 0.0.0.0)
   -p, --port <PORT>                Server listen port (default: 3000)
+      --cleanup-enabled            Enable automatic cleanup of old clips
+      --cleanup-retention-days <DAYS>   Retention period in days (default: 30)
+      --cleanup-interval-hours <HOURS>  Cleanup interval in hours (default: 24)
   -h, --help                       Print help
 ```
 
@@ -48,6 +52,9 @@ Options:
 - `CLIPPER_LISTEN_ADDR` - Server listen address (default: `0.0.0.0`)
 - `PORT` - Server port (default: `3000`)
 - `RUST_LOG` - Logging level (default: `clipper_server=debug,tower_http=debug`)
+- `CLIPPER_CLEANUP_ENABLED` - Enable automatic cleanup (default: `false`)
+- `CLIPPER_CLEANUP_RETENTION_DAYS` - Retention period in days (default: `30`)
+- `CLIPPER_CLEANUP_INTERVAL_HOURS` - Cleanup interval in hours (default: `24`)
 
 #### Configuration File
 
@@ -63,6 +70,11 @@ path = "./data/storage"
 [server]
 listen_addr = "0.0.0.0"
 port = 3000
+
+[cleanup]
+enabled = false
+retention_days = 30
+interval_hours = 24
 ```
 
 Or specify a custom config file location:
@@ -357,6 +369,15 @@ The server sends JSON messages for clip updates:
 {
   "type": "deleted_clip",
   "id": "abc123"
+}
+```
+
+#### Clips Cleaned Up
+```json
+{
+  "type": "clips_cleaned_up",
+  "ids": ["abc123", "def456"],
+  "count": 2
 }
 ```
 

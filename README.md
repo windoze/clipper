@@ -2,7 +2,7 @@
 
 A modern, cross-platform clipboard manager with full-text search, real-time sync, and a beautiful desktop interface.
 
-![Version](https://img.shields.io/badge/version-0.8.0-blue)
+![Version](https://img.shields.io/badge/version-0.9.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -18,6 +18,7 @@ English | [简体中文](README.zh-CN.md)
 - **Bundled Server** - Zero-configuration setup with embedded server
 - **Network Sharing** - Share clips across your local network
 - **HTTPS/TLS Support** - Secure connections with manual certificates or automatic Let's Encrypt
+- **Auto-cleanup** - Automatic deletion of old clips based on retention policy
 - **Web UI** - Browser-based access with drag-and-drop file upload
 - **Multi-language** - English and Chinese interface
 - **Theme Support** - Light, dark, and auto themes
@@ -120,6 +121,9 @@ cargo run --bin clipper-server -- \
 | `CLIPPER_STORAGE_PATH` | `./data/storage` | File storage directory |
 | `CLIPPER_LISTEN_ADDR` | `0.0.0.0` | Server bind address |
 | `PORT` | `3000` | Server port |
+| `CLIPPER_CLEANUP_ENABLED` | `false` | Enable automatic cleanup |
+| `CLIPPER_CLEANUP_RETENTION_DAYS` | `30` | Days to retain clips |
+| `CLIPPER_CLEANUP_INTERVAL_HOURS` | `24` | Hours between cleanups |
 
 ### TLS/HTTPS Configuration
 

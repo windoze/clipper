@@ -2,7 +2,7 @@
 
 一款现代化、跨平台的剪贴板管理器，支持全文搜索、实时同步，拥有精美的桌面界面。
 
-![Version](https://img.shields.io/badge/version-0.8.0-blue)
+![Version](https://img.shields.io/badge/version-0.9.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -18,6 +18,7 @@
 - **内置服务器** - 零配置启动，内嵌服务器
 - **局域网共享** - 在本地网络中共享剪贴内容
 - **HTTPS/TLS 支持** - 支持手动证书或 Let's Encrypt 自动证书的安全连接
+- **自动清理** - 根据保留策略自动删除旧剪贴内容
 - **Web 界面** - 浏览器访问，支持拖放上传文件
 - **多语言支持** - 中英文界面
 - **主题支持** - 浅色、深色和自动主题
@@ -120,6 +121,9 @@ cargo run --bin clipper-server -- \
 | `CLIPPER_STORAGE_PATH` | `./data/storage` | 文件存储目录 |
 | `CLIPPER_LISTEN_ADDR` | `0.0.0.0` | 服务器绑定地址 |
 | `PORT` | `3000` | 服务器端口 |
+| `CLIPPER_CLEANUP_ENABLED` | `false` | 启用自动清理 |
+| `CLIPPER_CLEANUP_RETENTION_DAYS` | `30` | 剪贴保留天数 |
+| `CLIPPER_CLEANUP_INTERVAL_HOURS` | `24` | 清理间隔小时数 |
 
 ### TLS/HTTPS 配置
 

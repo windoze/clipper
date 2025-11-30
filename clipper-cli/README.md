@@ -212,6 +212,7 @@ Notification types:
 {"type":"new_clip","id":"abc123","content":"Hello","tags":["greeting"]}
 {"type":"updated_clip","id":"abc123"}
 {"type":"deleted_clip","id":"abc123"}
+{"type":"clips_cleaned_up","ids":["abc123","def456"],"count":2}
 ```
 
 ## Output Formats

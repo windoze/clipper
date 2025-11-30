@@ -195,11 +195,12 @@
 
     .hero-tagline {
       font-size: 20px;
-      opacity: 0.9;
       margin-bottom: 32px;
       max-width: 600px;
       margin-left: auto;
       margin-right: auto;
+      color: #f0f4ff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
 
     .hero-buttons {
@@ -809,6 +810,12 @@
           <p data-i18n="features.cross.desc">Available as a desktop app (macOS, Windows, Linux) and accessible via web
             browser.</p>
         </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128465;</div>
+          <h3 data-i18n="features.cleanup.title">Auto-Cleanup</h3>
+          <p data-i18n="features.cleanup.desc">Automatic deletion of old clips based on configurable retention policy.
+            Keep your clipboard history tidy.</p>
+        </div>
       </div>
     </section>
 
@@ -1047,6 +1054,21 @@ docker run -d \
             <td>/data/storage</td>
             <td data-i18n="manual.selfhost.config.storage">File attachment storage path</td>
           </tr>
+          <tr>
+            <td><code>CLIPPER_CLEANUP_ENABLED</code></td>
+            <td>false</td>
+            <td data-i18n="manual.selfhost.config.cleanup_enabled">Enable automatic cleanup</td>
+          </tr>
+          <tr>
+            <td><code>CLIPPER_CLEANUP_RETENTION_DAYS</code></td>
+            <td>30</td>
+            <td data-i18n="manual.selfhost.config.cleanup_days">Days to retain clips</td>
+          </tr>
+          <tr>
+            <td><code>CLIPPER_CLEANUP_INTERVAL_HOURS</code></td>
+            <td>24</td>
+            <td data-i18n="manual.selfhost.config.cleanup_interval">Hours between cleanups</td>
+          </tr>
         </tbody>
       </table>
 
@@ -1095,8 +1117,8 @@ docker run -d \
         <button class="faq-question" data-i18n="faq.storage.q">How much storage does Clipper use?</button>
         <div class="faq-answer">
           <p data-i18n="faq.storage.a">Text clips use minimal storage (a few KB each). Images and file attachments use
-            more space depending on their size. You can delete old clips at any time to free up storage. There's
-            currently no automatic cleanup - you have full control over your data.</p>
+            more space depending on their size. You can delete old clips at any time to free up storage. The server
+            also supports automatic cleanup of old clips based on a configurable retention policy.</p>
         </div>
       </div>
 
@@ -1237,7 +1259,7 @@ docker run -d \
         <a href="https://github.com/windoze/clipper/blob/main/LICENSE" target="_blank" rel="noopener"
           data-i18n="footer.license">License</a>
       </div>
-      <p class="footer-copyright" data-i18n="footer.copyright">&copy; 2024 Clipper. Open source under MIT License.</p>
+      <p class="footer-copyright" data-i18n="footer.copyright">&copy; 2025 Clipper. Open source under MIT License.</p>
     </div>
   </footer>
 
@@ -1266,6 +1288,8 @@ docker run -d \
         "features.files.desc": "Drag, drop, done. Images, documents, whatever. Your clips can have files attached.",
         "features.cross.title": "Cross-Platform",
         "features.cross.desc": "Mac, Windows, Linux - we don't discriminate. Web UI too if you're into that.",
+        "features.cleanup.title": "Auto-Cleanup",
+        "features.cleanup.desc": "Old clips getting dusty? Set a retention policy and let the server clean house. Your favorites stay safe.",
         "download.title": "Get It",
         "download.intro": "Grab the version for your OS. Or just use Docker if you're not a casual.",
         "download.docker.desc": "Server + Web UI",
@@ -1357,6 +1381,9 @@ docker run -d \
         "manual.selfhost.config.port": "Server port",
         "manual.selfhost.config.db": "Database path",
         "manual.selfhost.config.storage": "File storage path",
+        "manual.selfhost.config.cleanup_enabled": "Enable auto-cleanup",
+        "manual.selfhost.config.cleanup_days": "Retention period (days)",
+        "manual.selfhost.config.cleanup_interval": "Cleanup interval (hours)",
         "manual.selfhost.https.title": "HTTPS Setup",
         "manual.selfhost.https.intro": "Production = TLS. Do it right:",
         "manual.selfhost.https.manual.title": "Manual certs",
@@ -1371,7 +1398,7 @@ docker run -d \
         "faq.files.q": "What files can I upload?",
         "faq.files.a": "Anything. Images get thumbnails. Other files are attachments you can download whenever. No restrictions.",
         "faq.storage.q": "How much disk space does this eat?",
-        "faq.storage.a": "Text clips = basically nothing. Images and files = depends on size, obviously. Delete old stuff anytime. No auto-cleanup, you're in control.",
+        "faq.storage.a": "Text clips = basically nothing. Images and files = depends on size, obviously. Delete old stuff anytime. Server also has auto-cleanup if you enable it - set retention days and it handles the rest. Favorites are never auto-deleted.",
         "faq.web_only.q": "Can I skip the desktop app?",
         "faq.web_only.a": "Yeah. Run the server (Docker or binary) and use the web UI. Catch: web can't auto-monitor clipboard (browser security). You'll need to manually send stuff with the clipboard button or drag-drop.",
         "faq.offline.q": "Works offline?",
@@ -1427,7 +1454,7 @@ docker run -d \
         "footer.releases": "Releases",
         "footer.issues": "Report Bug",
         "footer.license": "License",
-        "footer.copyright": "\u00a9 2024 Clipper. MIT License. Do whatever."
+        "footer.copyright": "\u00a9 2025 Clipper. MIT License. Do whatever."
       },
       zh: {
         "nav.features": "会干啥",
@@ -1451,6 +1478,8 @@ docker run -d \
         "features.files.desc": "把梦往屏幕上一泼就完事了，什么会说话的胡萝卜都行。一条记录还能附带一包辣酱，奢华。",
         "features.cross.title": "跨家具兼容",
         "features.cross.desc": "冰箱、微波炉、会说话的马桶都能用。你用什么我变成什么，够意思吧？",
+        "features.cleanup.title": "自动倒垃圾",
+        "features.cleanup.desc": "剩饭放久了会长毛？设个保质期让炉灶自动倒掉过期的。放心，你的拿手菜永远不会被倒。",
         "download.title": "领养中心",
         "download.intro": "选一个和你拖鞋匹配的版本。会做饭的直接炒菜也行，显得你很香。",
         "download.docker.desc": "会说话的茶壶+隐形拖鞋套餐",
@@ -1542,6 +1571,9 @@ docker run -d \
         "manual.selfhost.config.port": "炉灶号码",
         "manual.selfhost.config.db": "菜谱存哪",
         "manual.selfhost.config.storage": "剩饭存放处",
+        "manual.selfhost.config.cleanup_enabled": "自动倒垃圾",
+        "manual.selfhost.config.cleanup_days": "保质期（天）",
+        "manual.selfhost.config.cleanup_interval": "倒垃圾频率（小时）",
         "manual.selfhost.https.title": "锅盖配置",
         "manual.selfhost.https.intro": "正式用就盖个锅盖，安心：",
         "manual.selfhost.https.manual.title": "手工锅盖",
@@ -1556,7 +1588,7 @@ docker run -d \
         "faq.files.q": "能存啥剩饭？有限制吗？",
         "faq.files.a": "没限制，你存啥都行。会转圈的土豆会显示缩略图，其他剩饭当配菜存着，想吃就吃。不挑食。",
         "faq.storage.q": "这玩意儿占多少冰箱空间？",
-        "faq.storage.a": "纯想法基本不占地方（几个蒜头的事）。会跳舞的胡萝卜占多少看你买多大的，这不是废话嘛。旧的可以倒掉，存多少你自己说了算。",
+        "faq.storage.a": "纯想法基本不占地方（几个蒜头的事）。会跳舞的胡萝卜占多少看你买多大的，这不是废话嘛。旧的可以手动倒掉，也可以开自动倒垃圾功能让炉灶定时清理过期的。放心，你的拿手菜不会被自动倒。",
         "faq.web_only.q": "不买炒菜锅光用网页煮面行吗？",
         "faq.web_only.a": "行啊，开个炉灶然后用网页煮面就行。但有个事得说清楚：网页煮面没法自动偷看饭盒（浏览器安全限制，不是我不想偷），你得手动点「发送饭盒」或者倒剩饭进去。",
         "faq.offline.q": "没煤气能用吗？",
@@ -1612,7 +1644,7 @@ docker run -d \
         "footer.releases": "版本上菜",
         "footer.issues": "来报炒菜 Bug",
         "footer.license": "开源菜谱",
-        "footer.copyright": "© 2024 炒菜机。厨房协议，爱咋炒咋炒。"
+        "footer.copyright": "© 2025 炒菜机。厨房协议，爱咋炒咋炒。"
       }
     };
 

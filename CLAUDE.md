@@ -224,7 +224,7 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
 
 - **File Storage**: Files stored separately via object_store, not in database. Entry contains file_key reference.
 - **Search Content**: Concatenation of content + additional_notes for full-text indexing
-- **WebSocket Updates**: Broadcast channel pattern - all connected clients receive clip events (NewClip, UpdatedClip, DeletedClip)
+- **WebSocket Updates**: Broadcast channel pattern - all connected clients receive clip events (NewClip, UpdatedClip, DeletedClip, ClipsCleanedUp)
 - **Testing**: Server and client tests use temporary databases (TempDir) for isolation
 - **Pagination**: Implemented at indexer level with `PagingParams` and `PagedResult<T>`, exposed through API and CLI
 - **Configuration Management**: Multi-source configuration with priority: CLI args > env vars > config file > defaults
@@ -283,12 +283,13 @@ let result = indexer.search_entries(query, filters, paging).await?;
 
 ### WebSocket Notifications
 
-Server broadcasts three types of notifications:
+Server broadcasts four types of notifications:
 
 ```rust
 // NewClip: { type: "new_clip", id, content, tags }
 // UpdatedClip: { type: "updated_clip", id }
 // DeletedClip: { type: "deleted_clip", id }
+// ClipsCleanedUp: { type: "clips_cleaned_up", ids, count }
 
 // Client subscription
 let (tx, mut rx) = mpsc::unbounded_channel();
@@ -298,6 +299,7 @@ while let Some(notification) = rx.recv().await {
         ClipNotification::NewClip { id, content, tags } => { /* handle */ }
         ClipNotification::UpdatedClip { id } => { /* handle */ }
         ClipNotification::DeletedClip { id } => { /* handle */ }
+        ClipNotification::ClipsCleanedUp { ids, count } => { /* handle */ }
     }
 }
 ```
@@ -316,6 +318,7 @@ await listen("new-clip", (event) => {
 
 await listen("clip-updated", (event) => { /* ... */ });
 await listen("clip-deleted", (event) => { /* ... */ });
+await listen("clips-cleaned-up", (event) => { /* ... */ }); // From auto-cleanup
 await listen("clip-created", (event) => { /* ... */ }); // From clipboard monitor
 await listen("open-settings", () => { /* ... */ }); // From tray menu
 ```
@@ -362,6 +365,11 @@ ACME environment variables (requires `acme` feature):
 - `CLIPPER_ACME_EMAIL` - Contact email for Let's Encrypt notifications
 - `CLIPPER_ACME_STAGING` - Use staging environment for testing (default: `false`)
 - `CLIPPER_CERTS_DIR` - Directory for certificate cache (default: `~/.config/com.0d0a.clipper/certs/`)
+
+Auto-cleanup environment variables:
+- `CLIPPER_CLEANUP_ENABLED` - Enable automatic cleanup of old clips (default: `false`)
+- `CLIPPER_CLEANUP_RETENTION_DAYS` - Delete clips older than this many days (default: `30`)
+- `CLIPPER_CLEANUP_INTERVAL_HOURS` - Interval in hours between cleanup runs (default: `24`)
 
 ### CLI Configuration
 
@@ -506,6 +514,12 @@ update_tray_language(language: string): Promise<void>
   - Certificate hot-reload support
   - HTTP to HTTPS redirect
   - Secure storage for ACME credentials (`full-tls` feature)
+- **Auto-cleanup** (clipper-server):
+  - Configurable retention period (days)
+  - Configurable cleanup interval (hours)
+  - Only deletes clips without meaningful tags (no tags or only `$host:*` tags)
+  - `ClipsCleanedUp` WebSocket notification to all connected clients
+  - Toast notifications in desktop app and web UI
 
 ### Future Work
 - File content preview/rendering improvements

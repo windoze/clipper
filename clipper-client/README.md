@@ -171,6 +171,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ClipNotification::DeletedClip { id } => {
                     println!("Clip deleted: {}", id);
                 }
+                ClipNotification::ClipsCleanedUp { ids, count } => {
+                    println!("{} old clips cleaned up", count);
+                }
             }
         }
     });

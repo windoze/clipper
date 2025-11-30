@@ -188,6 +188,16 @@ indexer.delete_entry(&entry_id).await?;
 
 This will also delete any associated file attachments.
 
+### Cleanup Old Entries
+
+Delete entries older than a specified number of days (excluding entries with meaningful tags like "favorite"):
+
+```rust
+// Cleanup entries older than 30 days, returns IDs of deleted entries
+let deleted_ids = indexer.cleanup_entries(30).await?;
+println!("Cleaned up {} old entries", deleted_ids.len());
+```
+
 ## Pagination
 
 The library provides built-in pagination support for search and list operations:
