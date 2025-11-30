@@ -111,17 +111,26 @@ impl ServerManager {
         } else {
             "127.0.0.1"
         };
-        eprintln!(
-            "[clipper-server] Binding to {} (listen_on_all_interfaces: {})",
-            listen_addr, listen_on_all
-        );
 
         // Get cleanup settings
         let cleanup_enabled = settings_manager.get_cleanup_enabled();
         let cleanup_retention_days = settings_manager.get_cleanup_retention_days();
+
+        // Log all parameters
         eprintln!(
-            "[clipper-server] Cleanup enabled: {}, retention days: {}",
-            cleanup_enabled, cleanup_retention_days
+            "[clipper-server] Starting bundled server with parameters:\n  \
+             db_path: {}\n  \
+             storage_path: {}\n  \
+             listen_addr: {}\n  \
+             port: {}\n  \
+             cleanup_enabled: {}\n  \
+             cleanup_retention_days: {}",
+            db_path_str,
+            storage_path_str,
+            listen_addr,
+            port,
+            cleanup_enabled,
+            cleanup_retention_days
         );
 
         // Build args list
@@ -136,12 +145,11 @@ impl ServerManager {
             port.to_string(),
         ];
 
-        // Add cleanup args if enabled
-        if cleanup_enabled {
-            args.push("--cleanup-enabled".to_string());
-            args.push("--cleanup-retention-days".to_string());
-            args.push(cleanup_retention_days.to_string());
-        }
+        // Add cleanup args
+        args.push("--cleanup-enabled".to_string());
+        args.push(cleanup_enabled.to_string());
+        args.push("--cleanup-retention-days".to_string());
+        args.push(cleanup_retention_days.to_string());
 
         // Spawn the sidecar process
         let sidecar_command = app
