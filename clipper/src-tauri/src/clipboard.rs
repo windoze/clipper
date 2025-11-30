@@ -119,12 +119,12 @@ pub fn start_clipboard_monitor(app: AppHandle) {
         const ERROR_BACKOFF_MS: u64 = 1000;
 
         // Initialize with current clipboard content if we have a handle
-        if let Some(ref mut cb) = clipboard {
-            if let ClipboardResult::Content(content) = get_clipboard_content(cb) {
-                // Handle potential mutex poisoning gracefully
-                if let Ok(mut guard) = last_content.lock() {
-                    *guard = content;
-                }
+        if let Some(ref mut cb) = clipboard
+            && let ClipboardResult::Content(content) = get_clipboard_content(cb)
+        {
+            // Handle potential mutex poisoning gracefully
+            if let Ok(mut guard) = last_content.lock() {
+                *guard = content;
             }
         }
 

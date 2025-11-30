@@ -374,10 +374,14 @@ Auto-cleanup environment variables:
 - `CLIPPER_CLEANUP_RETENTION_DAYS` - Delete clips older than this many days (default: `30`)
 - `CLIPPER_CLEANUP_INTERVAL_HOURS` - Interval in hours between cleanup runs (default: `24`)
 
+Authentication environment variables:
+- `CLIPPER_BEARER_TOKEN` - Bearer token for authentication (if set, all requests require `Authorization: Bearer <token>` header)
+
 ### CLI Configuration
 
 Environment variables:
 - `CLIPPER_URL` - Server URL (default: `http://localhost:3000`)
+- `CLIPPER_TOKEN` - Bearer token for authentication (optional)
 
 ### Tauri App Configuration
 
@@ -397,6 +401,8 @@ Settings include:
 - `serverPort`: Port for bundled server (persisted across restarts)
 - `language`: UI language ("en", "zh", or null for auto)
 - `notificationsEnabled`: Show toast notifications
+- `bundledServerToken`: Bearer token for bundled server authentication (auto-generated when network access is enabled)
+- `externalServerToken`: Bearer token for external server authentication
 
 ## Testing Notes
 
@@ -528,6 +534,14 @@ update_tray_language(language: string): Promise<void>
 - **Version API** (`GET /version`):
   - Returns server version, uptime, active WebSocket connections
   - Exposes server configuration (TLS, ACME, cleanup settings)
+- **Authentication** (all components):
+  - Server: Bearer token authentication via `--bearer-token` option or `CLIPPER_BEARER_TOKEN` env var
+  - Client library: `with_token()` method for setting authentication token
+  - CLI: `--token` option or `CLIPPER_TOKEN` env var
+  - Tauri app: Settings for bundled server token (shown when network access enabled) and external server token
+  - Web UI: Login screen when authentication is required
+  - WebSocket: Message-based authentication (sends auth message after connection)
+  - File downloads: Query parameter token support (`?token=xxx`)
 
 ### Future Work
 - File content preview/rendering improvements

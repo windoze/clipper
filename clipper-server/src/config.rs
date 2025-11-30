@@ -118,14 +118,14 @@ pub struct AuthConfig {
 impl AuthConfig {
     /// Check if authentication is required
     pub fn is_enabled(&self) -> bool {
-        self.bearer_token.is_some()
+        !self.bearer_token.as_deref().unwrap_or("").is_empty()
     }
 
     /// Validate a token against the configured bearer token
     pub fn validate_token(&self, token: &str) -> bool {
         match &self.bearer_token {
-            Some(expected) => expected == token,
-            None => true, // No auth required
+            Some(expected) if !expected.is_empty() => expected == token,
+            _ => true, // No auth required
         }
     }
 }
@@ -381,7 +381,9 @@ impl ServerConfig {
         }
 
         // Auth configuration overrides
-        if let Some(bearer_token) = cli.bearer_token {
+        if let Some(bearer_token) = cli.bearer_token
+            && !bearer_token.is_empty()
+        {
             cfg.auth.bearer_token = Some(bearer_token);
         }
 

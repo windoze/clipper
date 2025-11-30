@@ -3,8 +3,8 @@ use crate::models::{ClipboardEntry, PagedResult, PagingParams, SearchFilters};
 use crate::storage::FileStorage;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use surrealdb::engine::local::{Db, RocksDb};
 use surrealdb::Surreal;
+use surrealdb::engine::local::{Db, RocksDb};
 
 const TABLE_NAME: &str = "clipboard";
 const CONFIG_TABLE: &str = "config";
@@ -388,14 +388,14 @@ impl ClipperIndexer {
             ));
         }
 
-        if let Some(tags) = filters.tags {
-            if !tags.is_empty() {
-                let tag_conditions: Vec<String> = tags
-                    .iter()
-                    .map(|tag| format!("'{}' IN tags", tag))
-                    .collect();
-                where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
-            }
+        if let Some(tags) = filters.tags
+            && !tags.is_empty()
+        {
+            let tag_conditions: Vec<String> = tags
+                .iter()
+                .map(|tag| format!("'{}' IN tags", tag))
+                .collect();
+            where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
         }
 
         let where_clause = where_clauses.join(" AND ");
@@ -473,14 +473,14 @@ impl ClipperIndexer {
             ));
         }
 
-        if let Some(tags) = filters.tags {
-            if !tags.is_empty() {
-                let tag_conditions: Vec<String> = tags
-                    .iter()
-                    .map(|tag| format!("'{}' IN tags", tag))
-                    .collect();
-                where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
-            }
+        if let Some(tags) = filters.tags
+            && !tags.is_empty()
+        {
+            let tag_conditions: Vec<String> = tags
+                .iter()
+                .map(|tag| format!("'{}' IN tags", tag))
+                .collect();
+            where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
         }
 
         // Get total count

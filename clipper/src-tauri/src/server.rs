@@ -1,8 +1,8 @@
 use crate::settings::SettingsManager;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tokio::sync::{Mutex, RwLock};
 
 /// Manages the bundled clipper-server sidecar process
@@ -58,10 +58,10 @@ impl ServerManager {
     /// Start the bundled server
     pub async fn start(&self, app: &AppHandle) -> Result<String, String> {
         // Check if already running
-        if self.is_running().await {
-            if let Some(url) = self.server_url().await {
-                return Ok(url);
-            }
+        if self.is_running().await
+            && let Some(url) = self.server_url().await
+        {
+            return Ok(url);
         }
 
         // Get settings manager for port persistence
@@ -300,10 +300,10 @@ impl Drop for ServerManager {
     fn drop(&mut self) {
         // Try to stop the server synchronously on drop
         // This is a best-effort cleanup
-        if let Ok(mut child_guard) = self.child.try_lock() {
-            if let Some(child) = child_guard.take() {
-                let _ = child.kill();
-            }
+        if let Ok(mut child_guard) = self.child.try_lock()
+            && let Some(child) = child_guard.take()
+        {
+            let _ = child.kill();
         }
     }
 }

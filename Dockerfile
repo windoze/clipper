@@ -96,6 +96,12 @@ ENV CLIPPER_ACME_ENABLED=false
 ENV CLIPPER_ACME_STAGING=false
 ENV CLIPPER_CERTS_DIR=/data/certs
 
+# Authentication configuration
+# Set CLIPPER_BEARER_TOKEN to a non-empty value to enable Bearer token authentication
+# When set, all requests must include Authorization: Bearer <token> header
+# or ?token=<token> query parameter
+# ENV CLIPPER_BEARER_TOKEN=
+
 # Expose HTTP and HTTPS ports
 EXPOSE 3000 443
 

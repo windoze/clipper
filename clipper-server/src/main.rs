@@ -1,14 +1,16 @@
 use axum::{
+    Router,
     body::Body,
-    http::{header, StatusCode, Uri},
+    http::{StatusCode, Uri, header},
     middleware,
     response::Response,
     routing::get,
-    Router,
 };
 use clap::Parser;
 use clipper_indexer::ClipperIndexer;
-use clipper_server::{api, auth_middleware, run_cleanup_task, websocket, AppState, Cli, ServerConfig};
+use clipper_server::{
+    AppState, Cli, ServerConfig, api, auth_middleware, run_cleanup_task, websocket,
+};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -20,7 +22,7 @@ use clipper_server::TlsManager;
 
 #[cfg(feature = "acme")]
 use {
-    clipper_server::acme::{challenge_handler::AcmeChallengeState, AcmeManager},
+    clipper_server::acme::{AcmeManager, challenge_handler::AcmeChallengeState},
     clipper_server::cert_storage::create_storage,
     std::sync::Arc,
 };
@@ -124,7 +126,10 @@ async fn main() {
         .route("/health", get(health_check))
         .merge(api::routes())
         .merge(websocket::routes())
-        .layer(middleware::from_fn_with_state(state.clone(), auth_middleware))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ))
         .with_state(state);
 
     // Add ACME challenge route if enabled
@@ -237,41 +242,40 @@ where
 
     // Start certificate renewal task if ACME is enabled
     #[cfg(feature = "acme")]
-    if let Some(ref manager) = acme_manager {
-        if let Some(acme) = (manager as &dyn Any).downcast_ref::<Arc<AcmeManager>>() {
-            let acme_clone = acme.clone();
-            let tls_config_clone = rustls_config.clone();
-            tokio::spawn(async move {
-                clipper_server::acme::certificate_renewal_task(acme_clone, move |cert, key| {
-                    let config = tls_config_clone.clone();
-                    tokio::spawn(async move {
-                        if let Err(e) = config
-                            .reload_from_pem(cert.as_bytes().to_vec(), key.as_bytes().to_vec())
-                            .await
-                        {
-                            tracing::error!("Failed to reload certificate: {}", e);
-                        }
-                    });
-                })
-                .await;
-            });
-        }
+    if let Some(ref manager) = acme_manager
+        && let Some(acme) = (manager as &dyn Any).downcast_ref::<Arc<AcmeManager>>()
+    {
+        let acme_clone = acme.clone();
+        let tls_config_clone = rustls_config.clone();
+        tokio::spawn(async move {
+            clipper_server::acme::certificate_renewal_task(acme_clone, move |cert, key| {
+                let config = tls_config_clone.clone();
+                tokio::spawn(async move {
+                    if let Err(e) = config
+                        .reload_from_pem(cert.as_bytes().to_vec(), key.as_bytes().to_vec())
+                        .await
+                    {
+                        tracing::error!("Failed to reload certificate: {}", e);
+                    }
+                });
+            })
+            .await;
+        });
     }
 
     // Start periodic certificate reload task for manually managed certificates
-    if let Some(interval) = config.tls.reload_interval() {
-        if let (Some(cert_path), Some(key_path)) =
+    if let Some(interval) = config.tls.reload_interval()
+        && let (Some(cert_path), Some(key_path)) =
             (config.tls.cert_path.clone(), config.tls.key_path.clone())
-        {
-            let tls_config_clone = rustls_config.clone();
-            tracing::info!(
-                "Certificate reload enabled: checking every {} seconds",
-                interval.as_secs()
-            );
-            tokio::spawn(async move {
-                run_certificate_reload_task(tls_config_clone, cert_path, key_path, interval).await;
-            });
-        }
+    {
+        let tls_config_clone = rustls_config.clone();
+        tracing::info!(
+            "Certificate reload enabled: checking every {} seconds",
+            interval.as_secs()
+        );
+        tokio::spawn(async move {
+            run_certificate_reload_task(tls_config_clone, cert_path, key_path, interval).await;
+        });
     }
 
     tracing::info!("HTTPS server listening on {}", tls_addr);
@@ -296,16 +300,15 @@ where
 
     // Try ACME first if enabled
     #[cfg(feature = "acme")]
-    if config.acme.enabled {
-        if let Some(ref manager) = acme_manager {
-            if let Some(acme) = (manager as &dyn Any).downcast_ref::<Arc<AcmeManager>>() {
-                match acme.provision_certificate().await {
-                    Ok((cert, key)) => return (cert, key),
-                    Err(e) => {
-                        tracing::error!("ACME certificate provisioning failed: {}", e);
-                        // Fall through to manual cert or self-signed
-                    }
-                }
+    if config.acme.enabled
+        && let Some(manager) = acme_manager
+        && let Some(acme) = (manager as &dyn Any).downcast_ref::<Arc<AcmeManager>>()
+    {
+        match acme.provision_certificate().await {
+            Ok((cert, key)) => return (cert, key),
+            Err(e) => {
+                tracing::error!("ACME certificate provisioning failed: {}", e);
+                // Fall through to manual cert or self-signed
             }
         }
     }

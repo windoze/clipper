@@ -8,8 +8,8 @@ mod tray;
 mod tray_i18n;
 mod websocket;
 
-use server::{get_server_data_dir, ServerManager};
-use settings::{get_app_config_dir, SettingsManager};
+use server::{ServerManager, get_server_data_dir};
+use settings::{SettingsManager, get_app_config_dir};
 use state::AppState;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
@@ -206,12 +206,12 @@ pub fn run() {
 
             // Handle window visibility based on settings
             let settings = settings_manager.get();
-            if !settings.open_on_startup {
-                if let Some(window) = app_handle.get_webview_window("main") {
-                    let _ = window.hide();
-                    #[cfg(target_os = "macos")]
-                    let _ = app_handle.set_activation_policy(ActivationPolicy::Accessory);
-                }
+            if !settings.open_on_startup
+                && let Some(window) = app_handle.get_webview_window("main")
+            {
+                let _ = window.hide();
+                #[cfg(target_os = "macos")]
+                let _ = app_handle.set_activation_policy(ActivationPolicy::Accessory);
             }
 
             // Setup system tray with language from settings
@@ -258,20 +258,19 @@ pub fn run() {
             app.handle().plugin(
                 tauri_plugin_global_shortcut::Builder::new()
                     .with_handler(move |_app, _shortcut, event| {
-                        if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                            if let Some(window) = app_handle.get_webview_window("main") {
-                                if window.is_visible().unwrap_or(false) {
-                                    let _ = window.hide();
-                                    #[cfg(target_os = "macos")]
-                                    let _ = app_handle
-                                        .set_activation_policy(ActivationPolicy::Accessory);
-                                } else {
-                                    let _ = window.show();
-                                    let _ = window.set_focus();
-                                    #[cfg(target_os = "macos")]
-                                    let _ =
-                                        app_handle.set_activation_policy(ActivationPolicy::Regular);
-                                }
+                        if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed
+                            && let Some(window) = app_handle.get_webview_window("main")
+                        {
+                            if window.is_visible().unwrap_or(false) {
+                                let _ = window.hide();
+                                #[cfg(target_os = "macos")]
+                                let _ =
+                                    app_handle.set_activation_policy(ActivationPolicy::Accessory);
+                            } else {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                                #[cfg(target_os = "macos")]
+                                let _ = app_handle.set_activation_policy(ActivationPolicy::Regular);
                             }
                         }
                     })

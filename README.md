@@ -2,7 +2,7 @@
 
 A modern, cross-platform clipboard manager with full-text search, real-time sync, and a beautiful desktop interface.
 
-![Version](https://img.shields.io/badge/version-0.9.2-blue)
+![Version](https://img.shields.io/badge/version-0.10.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -18,6 +18,7 @@ English | [简体中文](README.zh-CN.md)
 - **Bundled Server** - Zero-configuration setup with embedded server
 - **Network Sharing** - Share clips across your local network
 - **HTTPS/TLS Support** - Secure connections with manual certificates or automatic Let's Encrypt
+- **Authentication** - Optional Bearer token authentication for API security
 - **Auto-cleanup** - Automatic deletion of old clips based on retention policy
 - **Web UI** - Browser-based access with drag-and-drop file upload
 - **Multi-language** - English and Chinese interface
@@ -91,6 +92,8 @@ The desktop app provides a full-featured clipboard manager with a modern interfa
 |---------|-------------|
 | Server Mode | Bundled (automatic) or External server |
 | Network Access | Allow LAN access for multi-device sync |
+| Bundled Server Token | Authentication token for bundled server (shown when network access enabled) |
+| External Server Token | Authentication token for connecting to external server |
 | Theme | Light, Dark, or Auto (follows system) |
 | Language | English or Chinese |
 | Notifications | Toast notifications on/off |
@@ -124,6 +127,25 @@ cargo run --bin clipper-server -- \
 | `CLIPPER_CLEANUP_ENABLED` | `false` | Enable automatic cleanup |
 | `CLIPPER_CLEANUP_RETENTION_DAYS` | `30` | Days to retain clips |
 | `CLIPPER_CLEANUP_INTERVAL_HOURS` | `24` | Hours between cleanups |
+| `CLIPPER_BEARER_TOKEN` | - | Bearer token for authentication |
+
+### Authentication
+
+Enable authentication by setting a bearer token:
+
+```bash
+# Set a bearer token to require authentication
+cargo run --bin clipper-server -- --bearer-token your-secret-token
+
+# Or via environment variable
+CLIPPER_BEARER_TOKEN=your-secret-token cargo run --bin clipper-server
+```
+
+When authentication is enabled, all API requests must include the token:
+
+```bash
+curl -H "Authorization: Bearer your-secret-token" http://localhost:3000/clips
+```
 
 ### TLS/HTTPS Configuration
 
@@ -194,6 +216,19 @@ clipper-cli delete <clip-id>
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CLIPPER_URL` | `http://localhost:3000` | Server URL |
+| `CLIPPER_TOKEN` | - | Bearer token for authentication |
+
+### Authentication
+
+When connecting to a server with authentication enabled:
+
+```bash
+# Using command-line option
+clipper-cli --token your-secret-token search "hello"
+
+# Using environment variable
+CLIPPER_TOKEN=your-secret-token clipper-cli search "hello"
+```
 
 ## Client Library
 
@@ -204,7 +239,9 @@ use clipper_client::{ClipperClient, SearchFilters};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = ClipperClient::new("http://localhost:3000");
+    // Create a client (optionally with authentication token)
+    let client = ClipperClient::new("http://localhost:3000")
+        .with_token("your-secret-token".to_string()); // Optional
 
     // Create a clip
     let clip = client

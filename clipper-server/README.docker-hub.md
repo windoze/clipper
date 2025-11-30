@@ -65,6 +65,12 @@ Access the Web UI at `http://localhost:3000`
 | `CLIPPER_ACME_STAGING` | `false` | Use staging environment |
 | `CLIPPER_CERTS_DIR` | `/data/certs` | Certificate cache directory |
 
+### Authentication
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLIPPER_BEARER_TOKEN` | - | Bearer token for authentication (if set, all requests require auth) |
+
 ## Usage Examples
 
 ### Basic HTTP
@@ -116,6 +122,21 @@ docker run -d \
   windoze/clipper-server
 ```
 
+### With Authentication
+
+```bash
+docker run -d \
+  --name clipper \
+  -p 3000:3000 \
+  -v clipper-data:/data \
+  -e CLIPPER_BEARER_TOKEN=your-secret-token \
+  windoze/clipper-server
+```
+
+When authentication is enabled, all API requests must include:
+- `Authorization: Bearer your-secret-token` header, OR
+- `?token=your-secret-token` query parameter
+
 ## Docker Compose
 
 ```yaml
@@ -130,6 +151,8 @@ services:
       - ./certs:/certs:ro  # Optional: for manual TLS
     environment:
       - RUST_LOG=clipper_server=info
+      # Enable authentication:
+      # - CLIPPER_BEARER_TOKEN=your-secret-token
       # Enable HTTPS with Let's Encrypt:
       # - CLIPPER_ACME_ENABLED=true
       # - CLIPPER_ACME_DOMAIN=clips.example.com

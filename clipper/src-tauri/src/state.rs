@@ -11,15 +11,6 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(base_url: &str) -> Self {
-        Self {
-            client: RwLock::new(ClipperClient::new(base_url)),
-            last_synced_content: Arc::new(Mutex::new(String::new())),
-            websocket_connected: Arc::new(AtomicBool::new(false)),
-            ws_reconnect_counter: Arc::new(AtomicU64::new(0)),
-        }
-    }
-
     /// Create a new AppState with optional Bearer token
     pub fn new_with_token(base_url: &str, token: Option<String>) -> Self {
         let client = match token {
@@ -61,16 +52,6 @@ impl AppState {
             None => ClipperClient::new(url),
         };
         *self.client.write().unwrap() = client;
-        // Signal WebSocket to reconnect with new credentials
-        self.signal_ws_reconnect();
-    }
-
-    /// Update only the token (keeping the same URL)
-    /// This also signals the WebSocket to reconnect
-    pub fn set_token(&self, token: Option<String>) {
-        let mut client = self.client.write().unwrap();
-        client.set_token(token);
-        drop(client); // Release lock before signaling
         // Signal WebSocket to reconnect with new credentials
         self.signal_ws_reconnect();
     }

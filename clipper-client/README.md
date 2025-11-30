@@ -9,6 +9,7 @@ A Rust client library for interacting with the Clipper server REST API and WebSo
 - **Pagination Support**: Built-in pagination for search and list operations
 - **Real-time Notifications**: WebSocket support for live clip updates
 - **File Operations**: Upload files and download attachments
+- **Authentication Support**: Optional Bearer token authentication
 - **Async/Await**: Built on Tokio for efficient async I/O
 - **Type-Safe**: Strongly typed API with comprehensive error handling
 
@@ -29,8 +30,9 @@ use clipper_client::{ClipperClient, SearchFilters};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a client
-    let client = ClipperClient::new("http://localhost:3000");
+    // Create a client (with optional authentication)
+    let client = ClipperClient::new("http://localhost:3000")
+        .with_token("your-secret-token".to_string()); // Optional
 
     // Create a clip
     let clip = client
@@ -140,6 +142,25 @@ let result = client.list_clips(filters, 1, 50).await?;
 client.delete_clip("clip_id").await?;
 ```
 
+## Authentication
+
+If the server requires authentication, use the `with_token()` method:
+
+```rust
+use clipper_client::ClipperClient;
+
+let client = ClipperClient::new("http://localhost:3000")
+    .with_token("your-secret-token".to_string());
+
+// All subsequent requests will include the Authorization header
+let clips = client.list_clips(SearchFilters::new(), 1, 20).await?;
+```
+
+The token is automatically:
+- Sent as `Authorization: Bearer <token>` header for REST API requests
+- Sent as a message-based authentication after WebSocket connection
+- Appended as `?token=<token>` query parameter for file downloads
+
 ## WebSocket Notifications
 
 Receive real-time updates when clips are created, updated, or deleted:
@@ -235,7 +256,9 @@ use clipper_client::ClipperClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create client (with optional token for authenticated servers)
     let client = ClipperClient::new("http://localhost:3000");
+    // .with_token("your-secret-token".to_string()); // Uncomment if server requires auth
 
     // Create
     let clip = client

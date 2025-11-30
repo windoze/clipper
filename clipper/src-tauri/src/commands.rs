@@ -28,16 +28,16 @@ impl SearchFiltersInput {
     pub fn into_search_filters(self) -> SearchFilters {
         let mut filters = SearchFilters::new();
 
-        if let Some(start) = self.start_date {
-            if let Ok(dt) = start.parse::<DateTime<Utc>>() {
-                filters.start_date = Some(dt);
-            }
+        if let Some(start) = self.start_date
+            && let Ok(dt) = start.parse::<DateTime<Utc>>()
+        {
+            filters.start_date = Some(dt);
         }
 
-        if let Some(end) = self.end_date {
-            if let Ok(dt) = end.parse::<DateTime<Utc>>() {
-                filters.end_date = Some(dt);
-            }
+        if let Some(end) = self.end_date
+            && let Ok(dt) = end.parse::<DateTime<Utc>>()
+        {
+            filters.end_date = Some(dt);
         }
 
         if let Some(tags) = self.tags {

@@ -38,6 +38,7 @@ Options:
       --storage-path <PATH>        Storage path for file attachments
       --listen-addr <ADDR>         Server listen address (default: 0.0.0.0)
   -p, --port <PORT>                Server listen port (default: 3000)
+      --bearer-token <TOKEN>       Bearer token for authentication
       --cleanup-enabled            Enable automatic cleanup of old clips
       --cleanup-retention-days <DAYS>   Retention period in days (default: 30)
       --cleanup-interval-hours <HOURS>  Cleanup interval in hours (default: 24)
@@ -55,6 +56,7 @@ Options:
 - `CLIPPER_CLEANUP_ENABLED` - Enable automatic cleanup (default: `false`)
 - `CLIPPER_CLEANUP_RETENTION_DAYS` - Retention period in days (default: `30`)
 - `CLIPPER_CLEANUP_INTERVAL_HOURS` - Cleanup interval in hours (default: `24`)
+- `CLIPPER_BEARER_TOKEN` - Bearer token for authentication (if set, all requests require auth)
 
 #### Configuration File
 
@@ -75,6 +77,9 @@ port = 3000
 enabled = false
 retention_days = 30
 interval_hours = 24
+
+[auth]
+# bearer_token = "your-secret-token"
 ```
 
 Or specify a custom config file location:
@@ -84,6 +89,31 @@ clipper-server --config /path/to/config.toml
 ```
 
 See `config.toml.example` for a complete example.
+
+### Authentication
+
+Enable Bearer token authentication to protect the API:
+
+```bash
+# Via command line
+clipper-server --bearer-token your-secret-token
+
+# Via environment variable
+CLIPPER_BEARER_TOKEN=your-secret-token clipper-server
+
+# Via config file (see config.toml.example)
+```
+
+When authentication is enabled:
+- All REST API endpoints (except `/health`) require the `Authorization: Bearer <token>` header
+- File downloads also support `?token=<token>` query parameter
+- WebSocket connections use message-based authentication (client sends auth message after connecting)
+- The Web UI will show a login screen when authentication is required
+
+Example authenticated request:
+```bash
+curl -H "Authorization: Bearer your-secret-token" http://localhost:3000/clips
+```
 
 ### TLS/HTTPS Configuration
 
@@ -198,7 +228,7 @@ Returns server version and status information.
 **Response**: `200 OK`
 ```json
 {
-  "version": "0.9.2",
+  "version": "0.10.0",
   "uptime_secs": 3600,
   "active_ws_connections": 5,
   "config": {
@@ -410,6 +440,18 @@ The server sends JSON messages for clip updates:
 
 Clients can send:
 - **Ping messages** - Server responds with pong to keep connection alive
+- **Authentication message** - Required when server has authentication enabled:
+  ```json
+  {"type": "auth", "token": "your-secret-token"}
+  ```
+  Server responds with:
+  ```json
+  {"type": "auth_response", "success": true}
+  ```
+  or
+  ```json
+  {"type": "auth_response", "success": false, "error": "Invalid token"}
+  ```
 - **Text messages** - Logged by the server (reserved for future features)
 
 ## Example Usage
@@ -439,6 +481,16 @@ curl -X POST http://localhost:3000/clips/upload \
   -F "file=@/path/to/your/file.txt" \
   -F "tags=document,important" \
   -F "additional_notes=This is a test file"
+```
+
+With authentication:
+```bash
+# All requests with authentication header
+curl -H "Authorization: Bearer your-secret-token" \
+  http://localhost:3000/clips
+
+# File download with query parameter
+curl "http://localhost:3000/clips/abc123/file?token=your-secret-token" -o file.txt
 ```
 
 ### Using WebSocket (JavaScript)
@@ -471,8 +523,10 @@ use clipper_client::{ClipperClient, SearchFilters};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = ClipperClient::new("http://localhost:3000");
-    
+    // Create client with optional authentication
+    let client = ClipperClient::new("http://localhost:3000")
+        .with_token("your-secret-token".to_string()); // Optional
+
     // Create a clip
     let clip = client.create_clip(
         "Hello, World!".to_string(),
@@ -630,6 +684,8 @@ services:
       - ./certs:/certs:ro  # Optional: for manual TLS
     environment:
       - RUST_LOG=clipper_server=info
+      # Authentication (recommended for public deployments):
+      # - CLIPPER_BEARER_TOKEN=your-secret-token
       # TLS with manual certificates:
       # - CLIPPER_TLS_ENABLED=true
       # - CLIPPER_TLS_CERT=/certs/cert.pem
@@ -663,6 +719,7 @@ volumes:
 | `CLIPPER_ACME_EMAIL` | - | Contact email |
 | `CLIPPER_ACME_STAGING` | `false` | Use staging environment |
 | `CLIPPER_CERTS_DIR` | `/data/certs` | ACME certificate cache |
+| `CLIPPER_BEARER_TOKEN` | - | Bearer token for authentication (if set, all requests require auth) |
 
 #### Docker Volumes
 

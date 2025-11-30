@@ -11,6 +11,7 @@ A command-line interface for managing clipboard entries with the Clipper server.
 - **Delete clips** by ID
 - **Watch mode** for real-time clip notifications
 - **Pagination support** for search and list operations
+- **Authentication support** for secured servers
 - **Multiple output formats**: JSON (default) or plain text
 
 ## Installation
@@ -28,10 +29,12 @@ The binary will be available at `target/release/clipper-cli`.
 The CLI can be configured using environment variables:
 
 - `CLIPPER_URL` - Server URL (default: `http://localhost:3000`)
+- `CLIPPER_TOKEN` - Bearer token for authentication (optional)
 
 Example:
 ```bash
 export CLIPPER_URL=http://clipper-server.local:8080
+export CLIPPER_TOKEN=your-secret-token
 ```
 
 ## Usage
@@ -55,8 +58,9 @@ CLIPPER_DB_PATH=./data/db cargo run --bin clipper-server
 clipper-cli [OPTIONS] <COMMAND>
 
 Options:
-  -u, --url <URL>    Server URL [env: CLIPPER_URL] [default: http://localhost:3000]
-  -h, --help         Print help
+  -u, --url <URL>      Server URL [env: CLIPPER_URL] [default: http://localhost:3000]
+  -t, --token <TOKEN>  Bearer token for authentication [env: CLIPPER_TOKEN]
+  -h, --help           Print help
 ```
 
 ## Commands
@@ -354,7 +358,26 @@ Caused by:
 ## Environment Variables
 
 - `CLIPPER_URL` - Server URL (can be overridden with `-u` flag)
+- `CLIPPER_TOKEN` - Bearer token for authentication (can be overridden with `-t` flag)
 - `RUST_LOG` - Log level for debugging (e.g., `RUST_LOG=debug clipper-cli search test`)
+
+## Authentication
+
+If the server requires authentication, provide the bearer token:
+
+```bash
+# Using command-line option
+clipper-cli --token your-secret-token search "hello"
+
+# Using environment variable
+export CLIPPER_TOKEN=your-secret-token
+clipper-cli search "hello"
+
+# One-time with environment variable
+CLIPPER_TOKEN=your-secret-token clipper-cli search "hello"
+```
+
+The token is sent as an `Authorization: Bearer <token>` header with all requests.
 
 ## Requirements
 
@@ -379,6 +402,13 @@ Error: Invalid start_date format, use ISO 8601
 
 **Server URL not found**:
 → Set the correct server URL: `clipper-cli -u http://your-server:3000 search test`
+
+**401 Unauthorized**:
+```
+Error: Failed to search clips
+Caused by: 401 Unauthorized: Invalid or missing authentication token
+```
+→ The server requires authentication. Provide the token: `clipper-cli --token your-secret-token search test`
 
 ## Development
 

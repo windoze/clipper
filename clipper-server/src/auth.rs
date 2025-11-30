@@ -16,9 +16,8 @@ fn extract_query_token(query: Option<&str>) -> Option<String> {
     query.and_then(|q| {
         q.split('&')
             .filter_map(|pair| {
-                let mut parts = pair.splitn(2, '=');
-                let key = parts.next()?;
-                let value = parts.next()?;
+                let (key, value) = pair.split_once('=')?;
+
                 if key == "token" {
                     Some(value.to_string())
                 } else {

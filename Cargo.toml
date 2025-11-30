@@ -9,5 +9,11 @@ members = [
 ]
 resolver = "2"
 
+[workspace.package]
+version = "0.10.0"
+edition = "2024"
+repository = "https://github.com/windoze/clipper"
+authors = ["Chen Xu <windoze@0d0a.com>"]
+
 [patch.crates-io]
 cmake = { git = "https://github.com/windoze/cmake-rs", branch = "master" }

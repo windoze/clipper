@@ -2,7 +2,7 @@
 
 一款现代化、跨平台的剪贴板管理器，支持全文搜索、实时同步，拥有精美的桌面界面。
 
-![Version](https://img.shields.io/badge/version-0.9.2-blue)
+![Version](https://img.shields.io/badge/version-0.10.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -18,6 +18,7 @@
 - **内置服务器** - 零配置启动，内嵌服务器
 - **局域网共享** - 在本地网络中共享剪贴内容
 - **HTTPS/TLS 支持** - 支持手动证书或 Let's Encrypt 自动证书的安全连接
+- **身份验证** - 可选的 Bearer Token 认证，保护 API 安全
 - **自动清理** - 根据保留策略自动删除旧剪贴内容
 - **Web 界面** - 浏览器访问，支持拖放上传文件
 - **多语言支持** - 中英文界面
@@ -91,6 +92,8 @@ clipper/
 |--------|------|
 | 服务器模式 | 内置（自动）或外部服务器 |
 | 网络访问 | 允许局域网访问以进行多设备同步 |
+| 内置服务器令牌 | 内置服务器的认证令牌（启用网络访问时显示） |
+| 外部服务器令牌 | 连接外部服务器的认证令牌 |
 | 主题 | 浅色、深色或自动（跟随系统） |
 | 语言 | 中文或英文 |
 | 通知 | 开启/关闭消息通知 |
@@ -124,6 +127,25 @@ cargo run --bin clipper-server -- \
 | `CLIPPER_CLEANUP_ENABLED` | `false` | 启用自动清理 |
 | `CLIPPER_CLEANUP_RETENTION_DAYS` | `30` | 剪贴保留天数 |
 | `CLIPPER_CLEANUP_INTERVAL_HOURS` | `24` | 清理间隔小时数 |
+| `CLIPPER_BEARER_TOKEN` | - | 身份验证令牌 |
+
+### 身份验证
+
+通过设置 Bearer Token 启用身份验证：
+
+```bash
+# 设置令牌以启用身份验证
+cargo run --bin clipper-server -- --bearer-token your-secret-token
+
+# 或通过环境变量
+CLIPPER_BEARER_TOKEN=your-secret-token cargo run --bin clipper-server
+```
+
+启用身份验证后，所有 API 请求必须包含令牌：
+
+```bash
+curl -H "Authorization: Bearer your-secret-token" http://localhost:3000/clips
+```
 
 ### TLS/HTTPS 配置
 
@@ -206,6 +228,19 @@ clipper-cli delete <clip-id>
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `CLIPPER_URL` | `http://localhost:3000` | 服务器地址 |
+| `CLIPPER_TOKEN` | - | 身份验证令牌 |
+
+### 身份验证
+
+连接启用身份验证的服务器：
+
+```bash
+# 使用命令行选项
+clipper-cli --token your-secret-token search "hello"
+
+# 使用环境变量
+CLIPPER_TOKEN=your-secret-token clipper-cli search "hello"
+```
 
 ## 客户端库
 
@@ -216,7 +251,9 @@ use clipper_client::{ClipperClient, SearchFilters};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = ClipperClient::new("http://localhost:3000");
+    // 创建客户端（可选身份验证令牌）
+    let client = ClipperClient::new("http://localhost:3000")
+        .with_token("your-secret-token".to_string()); // 可选
 
     // 创建剪贴
     let clip = client
