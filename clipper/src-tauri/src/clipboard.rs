@@ -101,6 +101,7 @@ pub fn start_clipboard_monitor(app: AppHandle) {
     let state = app.state::<AppState>();
     let client = state.client().clone();
     let last_synced = Arc::clone(&state.last_synced_content);
+    let last_synced_image = Arc::clone(&state.last_synced_image);
     let last_content = Arc::new(std::sync::Mutex::new(ClipboardContent::Empty));
 
     // Spawn clipboard monitoring task
@@ -211,6 +212,24 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                     }
                 };
                 if *text == synced {
+                    match last_content.lock() {
+                        Ok(mut guard) => *guard = current_content,
+                        Err(poisoned) => *poisoned.into_inner() = current_content,
+                    }
+                    continue;
+                }
+            }
+
+            // For image content, check if it was just synced from server (avoid loop)
+            if let ClipboardContent::Image(ref png_bytes) = current_content {
+                let synced_image = match last_synced_image.lock() {
+                    Ok(guard) => guard.clone(),
+                    Err(poisoned) => {
+                        eprintln!("[clipboard] last_synced_image mutex was poisoned, recovering");
+                        poisoned.into_inner().clone()
+                    }
+                };
+                if *png_bytes == synced_image {
                     match last_content.lock() {
                         Ok(mut guard) => *guard = current_content,
                         Err(poisoned) => *poisoned.into_inner() = current_content,

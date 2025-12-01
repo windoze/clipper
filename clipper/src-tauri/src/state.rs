@@ -5,6 +5,8 @@ use std::sync::{Arc, Mutex, RwLock};
 pub struct AppState {
     client: RwLock<ClipperClient>,
     pub last_synced_content: Arc<Mutex<String>>,
+    /// Last synced image content (PNG bytes) to prevent duplicate uploads
+    pub last_synced_image: Arc<Mutex<Vec<u8>>>,
     pub websocket_connected: Arc<AtomicBool>,
     /// Counter that increments when WebSocket should reconnect (e.g., token changed)
     pub ws_reconnect_counter: Arc<AtomicU64>,
@@ -20,6 +22,7 @@ impl AppState {
         Self {
             client: RwLock::new(client),
             last_synced_content: Arc::new(Mutex::new(String::new())),
+            last_synced_image: Arc::new(Mutex::new(Vec::new())),
             websocket_connected: Arc::new(AtomicBool::new(false)),
             ws_reconnect_counter: Arc::new(AtomicU64::new(0)),
         }
@@ -68,6 +71,10 @@ impl AppState {
 
     pub fn set_last_synced_content(&self, content: String) {
         *self.last_synced_content.lock().unwrap() = content;
+    }
+
+    pub fn set_last_synced_image(&self, image_bytes: Vec<u8>) {
+        *self.last_synced_image.lock().unwrap() = image_bytes;
     }
 
     pub fn set_websocket_connected(&self, connected: bool) {

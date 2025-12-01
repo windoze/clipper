@@ -71,10 +71,19 @@ pub async fn start_websocket_listener(app: AppHandle) {
                                         if !is_from_this_machine {
                                             let client = state.client().clone();
                                             let clip_id = id.clone();
+                                            let app_for_image = app.clone();
                                             // Download image in background and set to clipboard
                                             tokio::spawn(async move {
                                                 match client.download_file(&clip_id).await {
                                                     Ok(image_bytes) => {
+                                                        // Set last synced image BEFORE setting clipboard
+                                                        // to prevent the clipboard monitor from uploading it again
+                                                        let state =
+                                                            app_for_image.state::<AppState>();
+                                                        state.set_last_synced_image(
+                                                            image_bytes.clone(),
+                                                        );
+
                                                         if let Err(e) =
                                                             set_clipboard_image(&image_bytes)
                                                         {
