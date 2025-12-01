@@ -51,12 +51,18 @@ pub async fn start_websocket_listener(app: AppHandle) {
                         Ok(Some(notification)) => {
                             match &notification {
                                 ClipNotification::NewClip { id, content, tags } => {
-                                    // Update system clipboard with new content
-                                    if let Err(e) = set_clipboard_content(content) {
-                                        eprintln!("Failed to set clipboard: {}", e);
-                                    } else {
-                                        // Update last synced content to prevent loop
-                                        state.set_last_synced_content(content.clone());
+                                    // Only update system clipboard for text clips, not images
+                                    // Image clips have the $image tag and their content is just a filename
+                                    let is_image_clip = tags.iter().any(|t| t == "$image");
+
+                                    if !is_image_clip {
+                                        // Update system clipboard with new text content
+                                        if let Err(e) = set_clipboard_content(content) {
+                                            eprintln!("Failed to set clipboard: {}", e);
+                                        } else {
+                                            // Update last synced content to prevent loop
+                                            state.set_last_synced_content(content.clone());
+                                        }
                                     }
 
                                     // Emit event to frontend
