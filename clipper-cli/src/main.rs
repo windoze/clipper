@@ -111,6 +111,52 @@ enum Commands {
     /// Watch for real-time notifications via WebSocket (outputs NDJSON)
     #[clap(alias = "w")]
     Watch,
+
+    /// List clips
+    #[clap(alias = "l")]
+    List {
+        /// Filter by tags (comma-separated)
+        #[arg(short, long)]
+        tags: Option<String>,
+
+        /// Filter by start date (ISO 8601 format)
+        #[arg(long)]
+        start_date: Option<String>,
+
+        /// Filter by end date (ISO 8601 format)
+        #[arg(long)]
+        end_date: Option<String>,
+
+        /// Page number (starting from 1)
+        #[arg(short, long, default_value = "1")]
+        page: usize,
+
+        /// Number of items per page
+        #[arg(long, default_value = "100")]
+        page_size: usize,
+
+        /// Output format: json or text (content only with IDs)
+        #[arg(short = 'f', long, default_value = "json")]
+        format: String,
+    },
+
+    /// Upload a file to create a clip
+    Upload {
+        /// Path to the file to upload
+        file: PathBuf,
+
+        /// Tags (comma-separated)
+        #[arg(short, long)]
+        tags: Option<String>,
+
+        /// Additional notes
+        #[arg(short, long)]
+        notes: Option<String>,
+
+        /// Content override (defaults to file path)
+        #[arg(short, long)]
+        content: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -271,6 +317,94 @@ async fn main() -> Result<()> {
                 let json = serde_json::to_string(&notification)?;
                 println!("{}", json);
             }
+        }
+
+        Commands::List {
+            tags,
+            start_date,
+            end_date,
+            page,
+            page_size,
+            format,
+        } => {
+            let tags_vec = tags.map(|t| t.split(',').map(|s| s.trim().to_string()).collect());
+
+            let start_date_parsed = start_date
+                .map(|s| {
+                    DateTime::parse_from_rfc3339(&s)
+                        .context("Invalid start_date format, use ISO 8601")
+                        .map(|dt| dt.with_timezone(&Utc))
+                })
+                .transpose()?;
+
+            let end_date_parsed = end_date
+                .map(|s| {
+                    DateTime::parse_from_rfc3339(&s)
+                        .context("Invalid end_date format, use ISO 8601")
+                        .map(|dt| dt.with_timezone(&Utc))
+                })
+                .transpose()?;
+
+            let filters = SearchFilters {
+                start_date: start_date_parsed,
+                end_date: end_date_parsed,
+                tags: tags_vec,
+            };
+
+            let result = client
+                .list_clips(filters, page, page_size)
+                .await
+                .context("Failed to list clips")?;
+
+            match format.as_str() {
+                "text" => {
+                    for clip in result.items {
+                        println!("{}\n{}\n", clip.id, clip.content);
+                    }
+                    eprintln!(
+                        "Page {} of {} (Total: {} clips)",
+                        result.page, result.total_pages, result.total
+                    );
+                }
+                "json" => {
+                    println!("{}", serde_json::to_string_pretty(&result)?);
+                }
+                _ => {
+                    anyhow::bail!("Invalid format. Use 'json' or 'text'");
+                }
+            }
+        }
+
+        Commands::Upload {
+            file,
+            tags,
+            notes,
+            content,
+        } => {
+            let tags_vec = tags
+                .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
+                .unwrap_or_default();
+
+            // Use absolute path as content if not specified
+            let file_path = std::fs::canonicalize(&file)
+                .with_context(|| format!("Failed to resolve path: {}", file.display()))?;
+            let content = Some(content.unwrap_or_else(|| file_path.to_string_lossy().to_string()));
+
+            let filename = file
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "file".to_string());
+
+            let bytes = tokio::fs::read(&file)
+                .await
+                .with_context(|| format!("Failed to read file: {}", file.display()))?;
+
+            let clip = client
+                .upload_file_bytes_with_content(bytes, filename, tags_vec, notes, content)
+                .await
+                .context("Failed to upload file")?;
+
+            println!("{}", serde_json::to_string_pretty(&clip)?);
         }
     }
 
