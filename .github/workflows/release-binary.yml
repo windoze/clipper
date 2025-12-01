@@ -3,7 +3,7 @@ name: Release Binary
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 env:
   CARGO_TERM_COLOR: always
@@ -18,20 +18,20 @@ jobs:
         include:
           - platform: macos-latest
             arch: universal
-            rust_targets: ''
+            rust_targets: ""
             tauri_args: --target universal-apple-darwin
           - platform: ubuntu-22.04
             arch: amd64
             rust_targets: x86_64-unknown-linux-gnu
-            tauri_args: ''
+            tauri_args: ""
           - platform: ubuntu-22.04-arm
             arch: arm64
             rust_targets: aarch64-unknown-linux-gnu
-            tauri_args: ''
+            tauri_args: ""
           - platform: windows-latest
             arch: x64
             rust_targets: x86_64-pc-windows-msvc
-            tauri_args: ''
+            tauri_args: ""
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -54,20 +54,20 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: '. -> target'
+          workspaces: ". -> target"
           key: ${{ matrix.platform }}
 
       - name: Install dependencies (Ubuntu)
         if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf libgtk-3-dev libayatana-appindicator3-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf libgtk-3-dev libayatana-appindicator3-dev xdg-utils
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: clipper/package-lock.json
 
       - name: Install shared UI dependencies
