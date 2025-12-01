@@ -22,6 +22,9 @@ pub enum ServerError {
 
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
+
+    #[error("Payload too large: {0}")]
+    PayloadTooLarge(String),
 }
 
 impl IntoResponse for ServerError {
@@ -37,6 +40,7 @@ impl IntoResponse for ServerError {
             ServerError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             ServerError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             ServerError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
+            ServerError::PayloadTooLarge(msg) => (StatusCode::PAYLOAD_TOO_LARGE, msg),
         };
 
         let body = Json(json!({

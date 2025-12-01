@@ -60,10 +60,17 @@ pub struct Settings {
     /// Bearer token for bundled server when external access is enabled
     #[serde(default)]
     pub bundled_server_token: Option<String>,
+    /// Maximum upload size in MB for bundled server (default: 10)
+    #[serde(default = "default_max_upload_size_mb")]
+    pub max_upload_size_mb: u64,
 }
 
 fn default_cleanup_retention_days() -> u32 {
     30
+}
+
+fn default_max_upload_size_mb() -> u64 {
+    10
 }
 
 fn default_global_shortcut() -> String {
@@ -103,6 +110,7 @@ impl Default for Settings {
             cleanup_retention_days: default_cleanup_retention_days(),
             external_server_token: None,
             bundled_server_token: None,
+            max_upload_size_mb: default_max_upload_size_mb(),
         }
     }
 }
@@ -210,6 +218,11 @@ impl SettingsManager {
     /// Get the external server token
     pub fn get_external_server_token(&self) -> Option<String> {
         self.settings.read().unwrap().external_server_token.clone()
+    }
+
+    /// Get the maximum upload size in MB
+    pub fn get_max_upload_size_mb(&self) -> u64 {
+        self.settings.read().unwrap().max_upload_size_mb
     }
 }
 

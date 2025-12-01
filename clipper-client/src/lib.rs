@@ -4,4 +4,7 @@ pub mod models;
 
 pub use client::ClipperClient;
 pub use error::{ClientError, Result};
-pub use models::{Clip, ClipNotification, CreateClipRequest, SearchFilters, UpdateClipRequest};
+pub use models::{
+    Clip, ClipNotification, CreateClipRequest, SearchFilters, ServerConfigInfo, ServerInfo,
+    UpdateClipRequest,
+};

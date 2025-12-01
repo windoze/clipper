@@ -10,7 +10,12 @@ pub struct AppState {
     pub websocket_connected: Arc<AtomicBool>,
     /// Counter that increments when WebSocket should reconnect (e.g., token changed)
     pub ws_reconnect_counter: Arc<AtomicU64>,
+    /// Maximum upload size in bytes (from server config)
+    max_upload_size_bytes: Arc<AtomicU64>,
 }
+
+/// Default max upload size: 10MB
+const DEFAULT_MAX_UPLOAD_SIZE_BYTES: u64 = 10 * 1024 * 1024;
 
 impl AppState {
     /// Create a new AppState with optional Bearer token
@@ -25,6 +30,7 @@ impl AppState {
             last_synced_image: Arc::new(Mutex::new(Vec::new())),
             websocket_connected: Arc::new(AtomicBool::new(false)),
             ws_reconnect_counter: Arc::new(AtomicU64::new(0)),
+            max_upload_size_bytes: Arc::new(AtomicU64::new(DEFAULT_MAX_UPLOAD_SIZE_BYTES)),
         }
     }
 
@@ -83,5 +89,20 @@ impl AppState {
 
     pub fn is_websocket_connected(&self) -> bool {
         self.websocket_connected.load(Ordering::SeqCst)
+    }
+
+    /// Set the maximum upload size in bytes
+    pub fn set_max_upload_size_bytes(&self, size: u64) {
+        self.max_upload_size_bytes.store(size, Ordering::SeqCst);
+    }
+
+    /// Get the maximum upload size in bytes
+    pub fn get_max_upload_size_bytes(&self) -> u64 {
+        self.max_upload_size_bytes.load(Ordering::SeqCst)
+    }
+
+    /// Get a clone of the max upload size Arc for use in other threads
+    pub fn max_upload_size_arc(&self) -> Arc<AtomicU64> {
+        Arc::clone(&self.max_upload_size_bytes)
     }
 }

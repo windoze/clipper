@@ -91,6 +91,11 @@ pub struct Cli {
     /// Interval in hours between cleanup runs
     #[arg(long, env = "CLIPPER_CLEANUP_INTERVAL_HOURS")]
     pub cleanup_interval_hours: Option<u32>,
+
+    // Upload options
+    /// Maximum upload size in megabytes (default: 10)
+    #[arg(long, env = "CLIPPER_MAX_UPLOAD_SIZE_MB")]
+    pub max_upload_size_mb: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -106,6 +111,8 @@ pub struct ServerConfig {
     pub cleanup: CleanupConfig,
     #[serde(default)]
     pub auth: AuthConfig,
+    #[serde(default)]
+    pub upload: UploadConfig,
 }
 
 /// Authentication configuration
@@ -232,6 +239,28 @@ pub struct CleanupConfig {
     pub interval_hours: u32,
 }
 
+/// Upload configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UploadConfig {
+    /// Maximum upload size in bytes (default: 10MB)
+    pub max_size_bytes: u64,
+}
+
+impl Default for UploadConfig {
+    fn default() -> Self {
+        Self {
+            max_size_bytes: 10 * 1024 * 1024, // 10MB
+        }
+    }
+}
+
+impl UploadConfig {
+    /// Get the maximum upload size in megabytes
+    pub fn max_size_mb(&self) -> f64 {
+        self.max_size_bytes as f64 / (1024.0 * 1024.0)
+    }
+}
+
 impl Default for CleanupConfig {
     fn default() -> Self {
         Self {
@@ -271,6 +300,7 @@ impl Default for ServerConfig {
             acme: AcmeConfig::default(),
             cleanup: CleanupConfig::default(),
             auth: AuthConfig::default(),
+            upload: UploadConfig::default(),
         }
     }
 }
@@ -385,6 +415,11 @@ impl ServerConfig {
             && !bearer_token.is_empty()
         {
             cfg.auth.bearer_token = Some(bearer_token);
+        }
+
+        // Upload configuration overrides
+        if let Some(max_upload_size_mb) = cli.max_upload_size_mb {
+            cfg.upload.max_size_bytes = max_upload_size_mb * 1024 * 1024;
         }
 
         Ok(cfg)

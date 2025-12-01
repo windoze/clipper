@@ -120,6 +120,9 @@ impl ServerManager {
         // Always use if set - this ensures client and server have consistent auth configuration
         let bundled_server_token = settings_manager.get_bundled_server_token();
 
+        // Get max upload size setting
+        let max_upload_size_mb = settings_manager.get_max_upload_size_mb();
+
         // Log all parameters
         eprintln!(
             "[clipper-server] Starting bundled server with parameters:\n  \
@@ -129,14 +132,16 @@ impl ServerManager {
              port: {}\n  \
              cleanup_enabled: {}\n  \
              cleanup_retention_days: {}\n  \
-             auth_enabled: {}",
+             auth_enabled: {}\n  \
+             max_upload_size_mb: {}",
             db_path_str,
             storage_path_str,
             listen_addr,
             port,
             cleanup_enabled,
             cleanup_retention_days,
-            bundled_server_token.is_some()
+            bundled_server_token.is_some(),
+            max_upload_size_mb
         );
 
         // Build args list
@@ -156,6 +161,10 @@ impl ServerManager {
         args.push(cleanup_enabled.to_string());
         args.push("--cleanup-retention-days".to_string());
         args.push(cleanup_retention_days.to_string());
+
+        // Add max upload size
+        args.push("--max-upload-size-mb".to_string());
+        args.push(max_upload_size_mb.to_string());
 
         // Add bearer token if external access is enabled and token is set
         if let Some(ref token) = bundled_server_token {

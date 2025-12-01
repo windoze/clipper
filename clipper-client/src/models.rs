@@ -108,3 +108,50 @@ pub struct PagedResult {
     pub page_size: usize,
     pub total_pages: usize,
 }
+
+/// Server configuration information returned by /version API
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServerConfigInfo {
+    /// HTTP listening port
+    pub port: u16,
+    /// Whether TLS is enabled
+    pub tls_enabled: bool,
+    /// HTTPS port (if TLS is enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tls_port: Option<u16>,
+    /// Whether ACME is enabled
+    pub acme_enabled: bool,
+    /// ACME domain (if ACME is enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub acme_domain: Option<String>,
+    /// Whether auto-cleanup is enabled
+    pub cleanup_enabled: bool,
+    /// Auto-cleanup interval in minutes (if cleanup is enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cleanup_interval_mins: Option<u32>,
+    /// Auto-cleanup retention in days (if cleanup is enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cleanup_retention_days: Option<u32>,
+    /// Whether authentication is required
+    pub auth_required: bool,
+    /// Maximum upload size in bytes
+    #[serde(default = "default_max_upload_size")]
+    pub max_upload_size_bytes: u64,
+}
+
+fn default_max_upload_size() -> u64 {
+    10 * 1024 * 1024 // 10MB default
+}
+
+/// Server version and status information returned by /version API
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServerInfo {
+    /// Server version string
+    pub version: String,
+    /// Uptime in seconds
+    pub uptime_secs: u64,
+    /// Number of active WebSocket connections
+    pub active_ws_connections: usize,
+    /// Configuration info
+    pub config: ServerConfigInfo,
+}

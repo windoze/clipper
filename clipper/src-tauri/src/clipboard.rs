@@ -4,6 +4,7 @@ use chrono::Utc;
 use gethostname::gethostname;
 use image::{ImageBuffer, Rgba};
 use std::io::Cursor;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
@@ -99,10 +100,11 @@ fn create_clipboard() -> Option<Clipboard> {
 
 pub fn start_clipboard_monitor(app: AppHandle) {
     let state = app.state::<AppState>();
-    let client = state.client().clone();
     let last_synced = Arc::clone(&state.last_synced_content);
     let last_synced_image = Arc::clone(&state.last_synced_image);
     let last_content = Arc::new(std::sync::Mutex::new(ClipboardContent::Empty));
+    // Get a reference to the max upload size (AtomicU64 wrapped in Arc)
+    let max_upload_size_arc = state.max_upload_size_arc();
 
     // Spawn clipboard monitoring task
     std::thread::spawn(move || {
@@ -244,14 +246,15 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                 Err(poisoned) => *poisoned.into_inner() = current_content.clone(),
             }
 
-            let client_clone = client.clone();
+            // Get a fresh client from the app state each time to pick up URL changes
+            let client = app.state::<AppState>().client();
             let app_handle = app.clone();
 
             match current_content {
                 ClipboardContent::Text(text) => {
                     let hostname_tag = get_hostname_tag();
                     rt.spawn(async move {
-                        match client_clone
+                        match client
                             .create_clip(text, vec![hostname_tag], None)
                             .await
                         {
@@ -265,11 +268,22 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                     });
                 }
                 ClipboardContent::Image(png_bytes) => {
+                    // Check size limit before uploading
+                    let max_size = max_upload_size_arc.load(Ordering::SeqCst);
+                    if png_bytes.len() as u64 > max_size {
+                        let max_size_mb = max_size as f64 / (1024.0 * 1024.0);
+                        let file_size_mb = png_bytes.len() as f64 / (1024.0 * 1024.0);
+                        eprintln!(
+                            "[clipboard] Image size ({:.2} MB) exceeds maximum allowed size ({:.2} MB), skipping upload",
+                            file_size_mb, max_size_mb
+                        );
+                        continue;
+                    }
                     let filename =
                         format!("screenshot-{}.png", Utc::now().format("%Y-%m-%d-%H-%M-%S"));
                     let hostname_tag = get_hostname_tag();
                     rt.spawn(async move {
-                        match client_clone
+                        match client
                             .upload_file_bytes(
                                 png_bytes,
                                 filename,

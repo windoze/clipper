@@ -26,6 +26,21 @@ export interface Settings {
   cleanupRetentionDays: number;
   externalServerToken: string | null;
   bundledServerToken: string | null;
+  maxUploadSizeMb: number;
+}
+
+interface ServerInfo {
+  version: string;
+  uptime_secs: number;
+  active_ws_connections: number;
+  config: {
+    port: number;
+    tls_enabled: boolean;
+    acme_enabled: boolean;
+    cleanup_enabled: boolean;
+    auth_required: boolean;
+    max_upload_size_bytes: number;
+  };
 }
 
 interface SettingsDialogProps {
@@ -56,6 +71,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     cleanupRetentionDays: 30,
     externalServerToken: null,
     bundledServerToken: null,
+    maxUploadSizeMb: 10,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +91,10 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
   // Track original token values to detect changes on close
   const [originalExternalServerToken, setOriginalExternalServerToken] = useState<string | null>(null);
   const [originalBundledServerToken, setOriginalBundledServerToken] = useState<string | null>(null);
+  // Track original max upload size
+  const [originalMaxUploadSizeMb, setOriginalMaxUploadSizeMb] = useState(10);
+  // External server's max upload size (read-only, fetched from server)
+  const [externalMaxUploadSizeMb, setExternalMaxUploadSizeMb] = useState<number | null>(null);
   // Shortcut recording state
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
   const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
@@ -120,6 +140,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
       // Store original token values to detect changes
       setOriginalExternalServerToken(loadedSettings.externalServerToken);
       setOriginalBundledServerToken(loadedSettings.bundledServerToken);
+      // Store original max upload size
+      setOriginalMaxUploadSizeMb(loadedSettings.maxUploadSizeMb);
     } catch (e) {
       setError(`Failed to load settings: ${e}`);
     } finally {
@@ -131,6 +153,10 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     try {
       const url = await invoke<string>("get_server_url");
       setServerUrl(url);
+      // Fetch server info to get max upload size
+      const serverInfo = await invoke<ServerInfo>("get_server_info");
+      const maxSizeMb = Math.round(serverInfo.config.max_upload_size_bytes / (1024 * 1024));
+      setExternalMaxUploadSizeMb(maxSizeMb);
     } catch (e) {
       console.error("Failed to load server info:", e);
     }
@@ -203,10 +229,11 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
       }
     }
 
-    // If using bundled server and cleanup settings or token changed, restart the server
+    // If using bundled server and cleanup settings, token, or max upload size changed, restart the server
     const bundledServerNeedsRestart = settings.useBundledServer && (
       settings.cleanupEnabled !== originalCleanupEnabled ||
       settings.cleanupRetentionDays !== originalCleanupRetentionDays ||
+      settings.maxUploadSizeMb !== originalMaxUploadSizeMb ||
       (settings.listenOnAllInterfaces && settings.bundledServerToken !== originalBundledServerToken)
     );
     if (bundledServerNeedsRestart) {
@@ -242,15 +269,17 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
         // Switch to bundled server
         const newUrl = await invoke<string>("switch_to_bundled_server");
         setServerUrl(newUrl);
-        setSettings((prev) => ({ ...prev, useBundledServer: true }));
         showToast(t("toast.serverStarted"));
       } else {
         // Switch to external server
         await invoke("switch_to_external_server", { serverUrl: settings.serverAddress });
         setServerUrl(settings.serverAddress);
-        setSettings((prev) => ({ ...prev, useBundledServer: false }));
         showToast(t("toast.serverConnected"));
       }
+      // Reload settings from backend to ensure frontend is in sync
+      // This is important because the switch commands update settings on the backend
+      const loadedSettings = await invoke<Settings>("get_settings");
+      setSettings(loadedSettings);
     } catch (e) {
       setError(`Failed to switch server mode: ${e}`);
     }
@@ -284,7 +313,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
         listenOnAll,
       });
       setServerUrl(newUrl);
-      setSettings((prev) => ({ ...prev, listenOnAllInterfaces: listenOnAll }));
+      // Reload settings from backend to ensure frontend is in sync
+      const loadedSettings = await invoke<Settings>("get_settings");
+      setSettings(loadedSettings);
     } catch (e) {
       setError(`Failed to toggle network access: ${e}`);
     } finally {
@@ -744,6 +775,21 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                         {t("settings.serverToken.hint")}
                       </p>
                     </div>
+
+                    {externalMaxUploadSizeMb !== null && (
+                      <div className="settings-field">
+                        <label>{t("settings.maxUploadSize")}</label>
+                        <input
+                          type="text"
+                          value={externalMaxUploadSizeMb}
+                          readOnly
+                          className="settings-readonly"
+                        />
+                        <p className="settings-hint">
+                          {t("settings.maxUploadSize.externalHint")}
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -823,8 +869,32 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                     </div>
                   )}
 
+                  <div className="settings-field">
+                    <label htmlFor="maxUploadSizeMb">
+                      {t("settings.maxUploadSize")}
+                    </label>
+                    <input
+                      id="maxUploadSizeMb"
+                      type="number"
+                      min="1"
+                      max="1024"
+                      value={settings.maxUploadSizeMb}
+                      onChange={(e) =>
+                        handleChange(
+                          "maxUploadSizeMb",
+                          Math.max(1, Math.min(1024, parseInt(e.target.value) || 10))
+                        )
+                      }
+                      className="settings-number-input"
+                    />
+                    <p className="settings-hint">
+                      {t("settings.maxUploadSize.hint")}
+                    </p>
+                  </div>
+
                   {(settings.cleanupEnabled !== originalCleanupEnabled ||
-                    settings.cleanupRetentionDays !== originalCleanupRetentionDays) && (
+                    settings.cleanupRetentionDays !== originalCleanupRetentionDays ||
+                    settings.maxUploadSizeMb !== originalMaxUploadSizeMb) && (
                     <div className="settings-notice">
                       {t("settings.cleanup.restartNotice")}
                     </div>

@@ -4,7 +4,7 @@ use crate::settings::{Settings, SettingsManager};
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
 use clipper_client::models::PagedResult;
-use clipper_client::{Clip, SearchFilters};
+use clipper_client::{Clip, SearchFilters, ServerInfo};
 use gethostname::gethostname;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -144,6 +144,17 @@ pub async fn upload_file(
 ) -> Result<Clip, String> {
     // Read file bytes
     let bytes = fs::read(&path).await.map_err(|e| e.to_string())?;
+
+    // Check file size limit
+    let max_size = state.get_max_upload_size_bytes();
+    if bytes.len() as u64 > max_size {
+        let max_size_mb = max_size as f64 / (1024.0 * 1024.0);
+        let file_size_mb = bytes.len() as f64 / (1024.0 * 1024.0);
+        return Err(format!(
+            "File size ({:.2} MB) exceeds maximum allowed size ({:.2} MB)",
+            file_size_mb, max_size_mb
+        ));
+    }
 
     // Get filename from path
     let filename = path
@@ -491,4 +502,25 @@ pub fn update_global_shortcut(app: tauri::AppHandle, shortcut: String) -> Result
 
     eprintln!("[clipper] Global shortcut updated to: {}", shortcut);
     Ok(())
+}
+
+/// Get server info (including max upload size) from the connected server
+#[tauri::command]
+pub async fn get_server_info(state: State<'_, AppState>) -> Result<ServerInfo, String> {
+    let client = state.client();
+    let info = client
+        .get_server_info()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Update the max upload size in app state
+    state.set_max_upload_size_bytes(info.config.max_upload_size_bytes);
+
+    Ok(info)
+}
+
+/// Get the current effective max upload size in bytes
+#[tauri::command]
+pub fn get_max_upload_size_bytes(state: State<'_, AppState>) -> u64 {
+    state.get_max_upload_size_bytes()
 }

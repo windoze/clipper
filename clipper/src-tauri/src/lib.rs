@@ -146,6 +146,7 @@ pub fn run() {
         .setup(move |app| {
             // Initialize settings manager
             let config_dir = get_app_config_dir(app.handle())?;
+            eprintln!("[clipper] Config directory: {}", config_dir.display());
             let settings_manager = SettingsManager::new(config_dir);
 
             // Load settings synchronously during setup
@@ -423,6 +424,8 @@ pub fn run() {
             commands::update_tray_language,
             commands::update_global_shortcut,
             commands::get_websocket_status,
+            commands::get_server_info,
+            commands::get_max_upload_size_bytes,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

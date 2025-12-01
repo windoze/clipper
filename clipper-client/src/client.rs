@@ -1,7 +1,7 @@
 use crate::error::{ClientError, Result};
 use crate::models::{
-    Clip, ClipNotification, CreateClipRequest, PagedResult, SearchFilters, UpdateClipRequest,
-    WsAuthRequest, WsAuthResponse,
+    Clip, ClipNotification, CreateClipRequest, PagedResult, SearchFilters, ServerInfo,
+    UpdateClipRequest, WsAuthRequest, WsAuthResponse,
 };
 use futures_util::{SinkExt, StreamExt};
 use reqwest::StatusCode;
@@ -76,6 +76,17 @@ impl ClipperClient {
     /// Get the base URL of the server
     pub fn base_url(&self) -> &str {
         &self.base_url
+    }
+
+    /// Get server version and configuration information
+    ///
+    /// # Returns
+    /// Server info including version, uptime, and configuration (including max upload size)
+    pub async fn get_server_info(&self) -> Result<ServerInfo> {
+        let url = format!("{}/version", self.base_url);
+        let response = self.apply_auth(self.client.get(&url)).send().await?;
+
+        self.handle_response(response).await
     }
 
     /// Create a new clip

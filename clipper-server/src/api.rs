@@ -62,6 +62,8 @@ pub struct ConfigInfo {
     pub cleanup_retention_days: Option<u32>,
     /// Whether authentication is required
     pub auth_required: bool,
+    /// Maximum upload size in bytes
+    pub max_upload_size_bytes: u64,
 }
 
 /// Authentication check response
@@ -108,6 +110,7 @@ async fn get_version(State(state): State<AppState>) -> Json<VersionResponse> {
             None
         },
         auth_required: config.auth.is_enabled(),
+        max_upload_size_bytes: config.upload.max_size_bytes,
     };
 
     Json(VersionResponse {
@@ -420,6 +423,17 @@ async fn upload_clip_file(
     // Validate required fields
     let file_data = file_data
         .ok_or_else(|| crate::error::ServerError::InvalidInput("Missing file field".to_string()))?;
+
+    // Check file size limit
+    let max_size = state.config.upload.max_size_bytes;
+    if file_data.len() as u64 > max_size {
+        let max_size_mb = max_size as f64 / (1024.0 * 1024.0);
+        let file_size_mb = file_data.len() as f64 / (1024.0 * 1024.0);
+        return Err(crate::error::ServerError::PayloadTooLarge(format!(
+            "File size ({:.2} MB) exceeds maximum allowed size ({:.2} MB)",
+            file_size_mb, max_size_mb
+        )));
+    }
 
     let original_filename = original_filename.unwrap_or_else(|| "uploaded_file".to_string());
 

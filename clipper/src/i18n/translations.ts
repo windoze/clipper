@@ -93,6 +93,11 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     // File Upload Errors
     "toast.fileTooLarge": "File too large: {filename} ({size} MB). Maximum size is {maxSize} MB.",
     "toast.fileUploadFailed": "Failed to upload file: {filename}",
+
+    // Max Upload Size
+    "settings.maxUploadSize": "Maximum Upload Size (MB)",
+    "settings.maxUploadSize.hint": "Maximum file size allowed for uploads. Larger files will be rejected.",
+    "settings.maxUploadSize.externalHint": "This value is configured on the external server and cannot be changed here.",
   },
   zh: {
     // Startup
@@ -185,5 +190,10 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     // File Upload Errors
     "toast.fileTooLarge": "文件过大：{filename}（{size} MB）。最大允许 {maxSize} MB。",
     "toast.fileUploadFailed": "上传文件失败：{filename}",
+
+    // Max Upload Size
+    "settings.maxUploadSize": "最大上传大小 (MB)",
+    "settings.maxUploadSize.hint": "允许上传的最大文件大小。超过此大小的文件将被拒绝。",
+    "settings.maxUploadSize.externalHint": "此值在外部服务器上配置，无法在此处更改。",
   },
 };
