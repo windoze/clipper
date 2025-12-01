@@ -255,15 +255,39 @@ impl ClipperIndexer {
         tags: Vec<String>,
         additional_notes: Option<String>,
     ) -> Result<ClipboardEntry> {
+        self.add_entry_from_file_content_with_override(
+            file_content,
+            original_filename,
+            tags,
+            additional_notes,
+            None,
+        )
+        .await
+    }
+
+    /// Add a new entry from file bytes with an optional content override.
+    ///
+    /// When `content_override` is provided, it will be used as the entry's content
+    /// instead of trying to read the file as text or falling back to the filename.
+    /// This is useful when you want to store the full file path as content.
+    pub async fn add_entry_from_file_content_with_override(
+        &self,
+        file_content: bytes::Bytes,
+        original_filename: String,
+        tags: Vec<String>,
+        additional_notes: Option<String>,
+        content_override: Option<String>,
+    ) -> Result<ClipboardEntry> {
         // Store the file using object_store
         let stored_file_key = self
             .storage
             .put_file_bytes(file_content.clone(), &original_filename)
             .await?;
 
-        // Try to read file content as text for search indexing
-        let text_content =
-            String::from_utf8(file_content.to_vec()).unwrap_or_else(|_| original_filename.clone());
+        // Use content_override if provided, otherwise try to read file content as text
+        let text_content = content_override.unwrap_or_else(|| {
+            String::from_utf8(file_content.to_vec()).unwrap_or_else(|_| original_filename.clone())
+        });
 
         let mut entry = ClipboardEntry::new(text_content, tags);
         entry = entry.with_file_attachment(stored_file_key);

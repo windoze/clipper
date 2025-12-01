@@ -378,6 +378,7 @@ async fn upload_clip_file(
     let mut original_filename: Option<String> = None;
     let mut tags: Vec<String> = Vec::new();
     let mut additional_notes: Option<String> = None;
+    let mut content_override: Option<String> = None;
 
     // Process multipart form data
     while let Some(field) = multipart
@@ -405,6 +406,11 @@ async fn upload_clip_file(
                     crate::error::ServerError::InvalidInput(format!("Failed to read notes: {}", e))
                 })?);
             }
+            "content" => {
+                content_override = Some(field.text().await.map_err(|e| {
+                    crate::error::ServerError::InvalidInput(format!("Failed to read content: {}", e))
+                })?);
+            }
             _ => {
                 // Ignore unknown fields
             }
@@ -417,14 +423,15 @@ async fn upload_clip_file(
 
     let original_filename = original_filename.unwrap_or_else(|| "uploaded_file".to_string());
 
-    // Create entry from file content
+    // Create entry from file content with optional content override
     let entry = state
         .indexer
-        .add_entry_from_file_content(
+        .add_entry_from_file_content_with_override(
             file_data,
             original_filename.clone(),
             tags.clone(),
             additional_notes,
+            content_override,
         )
         .await?;
 

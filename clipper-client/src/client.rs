@@ -199,6 +199,45 @@ impl ClipperClient {
         tags: Vec<String>,
         additional_notes: Option<String>,
     ) -> Result<Clip> {
+        self.upload_file_bytes_with_content(bytes, filename, tags, additional_notes, None)
+            .await
+    }
+
+    /// Upload file bytes to create a clip with optional content override
+    ///
+    /// # Arguments
+    /// * `bytes` - The file content as bytes
+    /// * `filename` - The filename to use
+    /// * `tags` - List of tags for the clip
+    /// * `additional_notes` - Optional additional notes
+    /// * `content` - Optional content override (e.g., full file path instead of filename)
+    ///
+    /// # Example
+    /// ```no_run
+    /// use clipper_client::ClipperClient;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = ClipperClient::new("http://localhost:3000");
+    /// let png_bytes = vec![0u8; 100]; // PNG file bytes
+    ///
+    /// let clip = client.upload_file_bytes_with_content(
+    ///     png_bytes,
+    ///     "image.png".to_string(),
+    ///     vec!["image".to_string()],
+    ///     None,
+    ///     Some("/path/to/image.png".to_string()),
+    /// ).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn upload_file_bytes_with_content(
+        &self,
+        bytes: Vec<u8>,
+        filename: String,
+        tags: Vec<String>,
+        additional_notes: Option<String>,
+        content: Option<String>,
+    ) -> Result<Clip> {
         let url = format!("{}/clips/upload", self.base_url);
 
         let file_part = reqwest::multipart::Part::bytes(bytes).file_name(filename);
@@ -211,6 +250,10 @@ impl ClipperClient {
 
         if let Some(notes) = additional_notes {
             form = form.text("additional_notes", notes);
+        }
+
+        if let Some(content_value) = content {
+            form = form.text("content", content_value);
         }
 
         let response = self

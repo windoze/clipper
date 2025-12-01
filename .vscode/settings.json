@@ -67,5 +67,6 @@
     "Winit",
     "winreg",
     "xattr"
-  ]
+  ],
+  "git.ignoreLimitWarning": true
 }

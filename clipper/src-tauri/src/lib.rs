@@ -299,17 +299,52 @@ pub fn run() {
                         .set_activation_policy(ActivationPolicy::Accessory);
                 }
                 tauri::WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) => {
-                    let app = window.app_handle();
+                    const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
+
+                    let app = window.app_handle().clone();
                     let state = app.state::<AppState>();
                     let client = state.client();
+                    let paths = paths.clone();
 
-                    for path in paths {
-                        let path = path.clone();
-                        let client = client.clone();
-                        let app_handle = app.clone();
+                    // Process all files sequentially in a single async task to avoid race conditions
+                    tauri::async_runtime::spawn(async move {
+                        for path in paths {
+                            // Check file size first
+                            let metadata = match tokio::fs::metadata(&path).await {
+                                Ok(m) => m,
+                                Err(e) => {
+                                    eprintln!("Failed to read file metadata: {}", e);
+                                    let _ = app.emit(
+                                        "file-upload-error",
+                                        serde_json::json!({
+                                            "path": path.to_string_lossy(),
+                                            "error": format!("Failed to read file: {}", e)
+                                        }),
+                                    );
+                                    continue;
+                                }
+                            };
 
-                        // Read file and upload
-                        tauri::async_runtime::spawn(async move {
+                            if metadata.len() > MAX_FILE_SIZE {
+                                let size_mb = metadata.len() as f64 / (1024.0 * 1024.0);
+                                eprintln!(
+                                    "File too large: {} ({:.1} MB, max {} MB)",
+                                    path.display(),
+                                    size_mb,
+                                    MAX_FILE_SIZE / (1024 * 1024)
+                                );
+                                let _ = app.emit(
+                                    "file-upload-error",
+                                    serde_json::json!({
+                                        "path": path.to_string_lossy(),
+                                        "error": "file_too_large",
+                                        "size_mb": size_mb,
+                                        "max_size_mb": MAX_FILE_SIZE / (1024 * 1024)
+                                    }),
+                                );
+                                continue;
+                            }
+
                             match tokio::fs::read(&path).await {
                                 Ok(bytes) => {
                                     let filename = path
@@ -318,29 +353,47 @@ pub fn run() {
                                         .unwrap_or("unknown")
                                         .to_string();
 
+                                    // Use full path as content
+                                    let full_path = path.to_string_lossy().to_string();
+
                                     match client
-                                        .upload_file_bytes(
+                                        .upload_file_bytes_with_content(
                                             bytes,
                                             filename,
                                             vec!["$file".to_string()],
                                             None,
+                                            Some(full_path),
                                         )
                                         .await
                                     {
                                         Ok(clip) => {
-                                            let _ = app_handle.emit("clip-created", &clip);
+                                            let _ = app.emit("clip-created", &clip);
                                         }
                                         Err(e) => {
                                             eprintln!("Failed to upload dropped file: {}", e);
+                                            let _ = app.emit(
+                                                "file-upload-error",
+                                                serde_json::json!({
+                                                    "path": path.to_string_lossy(),
+                                                    "error": format!("Upload failed: {}", e)
+                                                }),
+                                            );
                                         }
                                     }
                                 }
                                 Err(e) => {
                                     eprintln!("Failed to read dropped file: {}", e);
+                                    let _ = app.emit(
+                                        "file-upload-error",
+                                        serde_json::json!({
+                                            "path": path.to_string_lossy(),
+                                            "error": format!("Failed to read file: {}", e)
+                                        }),
+                                    );
                                 }
                             }
-                        });
-                    }
+                        }
+                    });
                 }
                 _ => {}
             }

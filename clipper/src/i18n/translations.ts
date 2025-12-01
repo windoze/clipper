@@ -89,6 +89,10 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "toast.serverStopped": "Server stopped",
     "toast.serverConnected": "Connected to server",
     "toast.serverRestarted": "Server restarted with new settings",
+
+    // File Upload Errors
+    "toast.fileTooLarge": "File too large: {filename} ({size} MB). Maximum size is {maxSize} MB.",
+    "toast.fileUploadFailed": "Failed to upload file: {filename}",
   },
   zh: {
     // Startup
@@ -177,5 +181,9 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "toast.serverStopped": "服务器已停止",
     "toast.serverConnected": "已连接到服务器",
     "toast.serverRestarted": "服务器已重启以应用新设置",
+
+    // File Upload Errors
+    "toast.fileTooLarge": "文件过大：{filename}（{size} MB）。最大允许 {maxSize} MB。",
+    "toast.fileUploadFailed": "上传文件失败：{filename}",
   },
 };

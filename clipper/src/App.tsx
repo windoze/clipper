@@ -153,6 +153,27 @@ function App() {
       refetch();
     });
 
+    // Listen for file upload errors (e.g., file too large)
+    const unlistenFileUploadError = listen<{ path: string; error: string; size_mb?: number; max_size_mb?: number }>(
+      "file-upload-error",
+      (event) => {
+        const { path, error, size_mb, max_size_mb } = event.payload;
+        const filename = path.split("/").pop() || path.split("\\").pop() || path;
+
+        if (error === "file_too_large" && size_mb !== undefined && max_size_mb !== undefined) {
+          showToast(
+            t("toast.fileTooLarge")
+              .replace("{filename}", filename)
+              .replace("{size}", size_mb.toFixed(1))
+              .replace("{maxSize}", String(max_size_mb)),
+            "error"
+          );
+        } else {
+          showToast(t("toast.fileUploadFailed").replace("{filename}", filename), "error");
+        }
+      }
+    );
+
     return () => {
       unlistenDataCleared.then((fn) => fn());
       unlistenServerSwitched.then((fn) => fn());
@@ -160,6 +181,7 @@ function App() {
       unlistenClipUpdated.then((fn) => fn());
       unlistenClipDeleted.then((fn) => fn());
       unlistenClipsCleanedUp.then((fn) => fn());
+      unlistenFileUploadError.then((fn) => fn());
     };
   }, [refetch, showToast, t]);
 
