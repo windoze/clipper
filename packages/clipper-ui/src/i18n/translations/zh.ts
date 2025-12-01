@@ -102,6 +102,16 @@ export const zh = {
   "toast.clipboardReadFailed": "读取剪贴板失败",
   "toast.wsAuthFailed": "WebSocket 身份验证失败",
 
+  // Connection Error
+  "connectionError.title": "无法连接",
+  "connectionError.description": "无法连接到 Clipper 服务器。可能的原因：",
+  "connectionError.reason.serverDown": "服务器未运行或无法访问",
+  "connectionError.reason.networkIssue": "网络连接问题",
+  "connectionError.reason.wrongUrl": "设置中的服务器地址不正确",
+  "connectionError.retry": "重试",
+  "connectionError.openSettings": "打开设置",
+  "connectionError.hint": "如果问题持续存在，请检查服务器是否正在运行并验证您的网络连接。",
+
   // Authentication
   "auth.title": "需要身份验证",
   "auth.description": "此服务器需要身份验证。请输入您的访问令牌。",

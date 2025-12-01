@@ -486,6 +486,60 @@
 }
 
 /* ============================================
+   Connection Error - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .connection-error-icon {
+  background: linear-gradient(135deg, #4a2020 0%, #5c2828 100%);
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .connection-error-title {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .connection-error-description {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .connection-error-reasons li {
+  background: #363636;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .connection-error-reasons .reason-icon {
+  color: #6b7280;
+}
+
+:root[data-theme="dark"] .connection-error-details summary {
+  background: #363636;
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .connection-error-details summary:hover {
+  background: #404040;
+}
+
+:root[data-theme="dark"] .connection-error-details code {
+  background: #1a1a1a;
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .connection-error-btn.secondary {
+  background: #404040;
+  color: #e9ecef;
+  border-color: #4a4a4a;
+}
+
+:root[data-theme="dark"] .connection-error-btn.secondary:hover:not(:disabled) {
+  background: #4a4a4a;
+  border-color: #5a5a5a;
+}
+
+:root[data-theme="dark"] .connection-error-hint {
+  color: #6b7280;
+}
+
+/* ============================================
    Media Query Fallback for Auto Theme
    Used when no explicit data-theme is set
    ============================================ */
@@ -912,5 +966,57 @@
 
   :root:not([data-theme="light"]) .ws-disconnected .ws-status-text {
     color: #f8a0a0;
+  }
+
+  /* Connection Error dark mode fallback */
+  :root:not([data-theme="light"]) .connection-error-icon {
+    background: linear-gradient(135deg, #4a2020 0%, #5c2828 100%);
+    color: #f87171;
+  }
+
+  :root:not([data-theme="light"]) .connection-error-title {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .connection-error-description {
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .connection-error-reasons li {
+    background: #363636;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .connection-error-reasons .reason-icon {
+    color: #6b7280;
+  }
+
+  :root:not([data-theme="light"]) .connection-error-details summary {
+    background: #363636;
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .connection-error-details summary:hover {
+    background: #404040;
+  }
+
+  :root:not([data-theme="light"]) .connection-error-details code {
+    background: #1a1a1a;
+    color: #f87171;
+  }
+
+  :root:not([data-theme="light"]) .connection-error-btn.secondary {
+    background: #404040;
+    color: #e9ecef;
+    border-color: #4a4a4a;
+  }
+
+  :root:not([data-theme="light"]) .connection-error-btn.secondary:hover:not(:disabled) {
+    background: #4a4a4a;
+    border-color: #5a5a5a;
+  }
+
+  :root:not([data-theme="light"]) .connection-error-hint {
+    color: #6b7280;
   }
 }

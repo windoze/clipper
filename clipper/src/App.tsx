@@ -30,6 +30,7 @@ function App() {
   const [os] = useState(() => detectPlatform());
   const [isMaximized, setIsMaximized] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
+  const [useBundledServer, setUseBundledServer] = useState(true);
   const {
     clips,
     loading,
@@ -86,6 +87,22 @@ function App() {
 
     return () => {
       unlistenWsStatus.then((fn) => fn());
+    };
+  }, []);
+
+  // Get bundled server status on mount and when server switches
+  useEffect(() => {
+    invoke<boolean>("is_bundled_server").then(setUseBundledServer).catch(() => { });
+  }, []);
+
+  // Listen for server switch events to update bundled server state
+  useEffect(() => {
+    const unlistenServerSwitched = listen("server-switched", () => {
+      invoke<boolean>("is_bundled_server").then(setUseBundledServer).catch(() => { });
+    });
+
+    return () => {
+      unlistenServerSwitched.then((fn) => fn());
     };
   }, []);
 
@@ -450,6 +467,9 @@ function App() {
             onClipUpdated={updateClipInList}
             onClipDeleted={deleteClipFromList}
             onTagClick={handleAddTagFilter}
+            onRetry={refetch}
+            onOpenSettings={openSettings}
+            showBundledServerReason={useBundledServer}
           />
         </main>
 

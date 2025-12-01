@@ -1578,3 +1578,188 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* ============================================
+   Connection Error Page
+   ============================================ */
+.connection-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 40px 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.connection-error-content {
+  max-width: 420px;
+  text-align: center;
+}
+
+.connection-error-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-radius: 50%;
+  color: #dc2626;
+}
+
+.connection-error-icon svg {
+  width: 48px;
+  height: 48px;
+}
+
+.connection-error-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+}
+
+.connection-error-description {
+  font-size: 15px;
+  color: #6b7280;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.connection-error-reasons {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  text-align: left;
+}
+
+.connection-error-reasons li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.connection-error-reasons li:last-child {
+  margin-bottom: 0;
+}
+
+.connection-error-reasons .reason-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: #9ca3af;
+}
+
+.connection-error-details {
+  margin: 0 0 24px 0;
+  text-align: left;
+}
+
+.connection-error-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #6b7280;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.connection-error-details summary:hover {
+  background: #e5e7eb;
+}
+
+.connection-error-details[open] summary {
+  border-radius: 6px 6px 0 0;
+}
+
+.connection-error-details code {
+  display: block;
+  padding: 12px;
+  background: #1f2937;
+  color: #f87171;
+  border-radius: 0 0 6px 6px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  overflow-x: auto;
+  word-break: break-word;
+}
+
+.connection-error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.connection-error-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.connection-error-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.connection-error-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+}
+
+.connection-error-btn.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.connection-error-btn.primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.connection-error-btn.secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.connection-error-btn.secondary:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.connection-error-btn svg {
+  flex-shrink: 0;
+}
+
+.connection-error-btn .loading-spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.connection-error-hint {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
+  line-height: 1.5;
+}

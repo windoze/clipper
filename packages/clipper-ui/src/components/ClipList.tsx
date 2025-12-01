@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Clip } from "../types";
 import { ClipEntry } from "./ClipEntry";
+import { ConnectionError } from "./ConnectionError";
 import { useI18n } from "../i18n";
 
 interface ClipListProps {
@@ -14,6 +15,34 @@ interface ClipListProps {
   onClipUpdated?: (updatedClip: Clip) => void;
   onClipDeleted?: (clipId: string) => void;
   onTagClick?: (tag: string) => void;
+  onRetry?: () => void;
+  onOpenSettings?: () => void;
+  showBundledServerReason?: boolean;
+}
+
+// Helper to detect connection errors vs other errors
+function isConnectionError(error: string): boolean {
+  const connectionErrorPatterns = [
+    // Generic network/connection patterns
+    /fetch|network|connection|connect|refused|unreachable|timeout|econnrefused|enetunreach|ehostunreach|socket/i,
+    /failed to fetch/i,
+    /network error/i,
+    /connection refused/i,
+    /server is not running/i,
+    /could not connect/i,
+    // Rust/reqwest specific patterns
+    /http request failed/i,
+    /error sending request/i,
+    /dns error/i,
+    /no route to host/i,
+    /connection reset/i,
+    /broken pipe/i,
+    /connection closed/i,
+    /tcp connect error/i,
+    /hyper::/i,
+    /reqwest/i,
+  ];
+  return connectionErrorPatterns.some((pattern) => pattern.test(error));
 }
 
 export function ClipList({
@@ -27,6 +56,9 @@ export function ClipList({
   onClipUpdated,
   onClipDeleted,
   onTagClick,
+  onRetry,
+  onOpenSettings,
+  showBundledServerReason = false,
 }: ClipListProps) {
   const { t } = useI18n();
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -92,6 +124,18 @@ export function ClipList({
   }
 
   if (error) {
+    // Show friendly connection error page for connection-related errors
+    if (isConnectionError(error) && onRetry) {
+      return (
+        <ConnectionError
+          error={error}
+          onRetry={onRetry}
+          onOpenSettings={onOpenSettings}
+          showBundledServerReason={showBundledServerReason}
+        />
+      );
+    }
+    // Fall back to simple error message for other errors
     return (
       <div className="clip-list-status error">
         <span>{t("clipList.error", { error })}</span>

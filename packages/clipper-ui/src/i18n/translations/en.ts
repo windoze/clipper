@@ -103,6 +103,16 @@ export const en = {
   "toast.clipboardReadFailed": "Failed to read clipboard",
   "toast.wsAuthFailed": "WebSocket authentication failed",
 
+  // Connection Error
+  "connectionError.title": "Unable to Connect",
+  "connectionError.description": "We couldn't connect to the Clipper server. This could be due to:",
+  "connectionError.reason.serverDown": "The server is not running or is unreachable",
+  "connectionError.reason.networkIssue": "Network connectivity issues",
+  "connectionError.reason.wrongUrl": "Incorrect server URL in settings",
+  "connectionError.retry": "Try Again",
+  "connectionError.openSettings": "Open Settings",
+  "connectionError.hint": "If the problem persists, check if the server is running and verify your network connection.",
+
   // Authentication
   "auth.title": "Authentication Required",
   "auth.description": "This server requires authentication. Please enter your access token.",

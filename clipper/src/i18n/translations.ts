@@ -77,6 +77,10 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.shortcut.updated": "Shortcut updated",
     "settings.shortcut.error": "Failed to set shortcut",
 
+    // Connection Error - Tauri specific additions
+    "connectionError.reason.bundledServer": "The bundled server failed to start",
+    "connectionError.checkingServer": "Checking server...",
+
     // Extra Toast Messages
     "toast.clipReceived": "New clip received",
     "toast.clipsCleanedUp": "{count} old clips cleaned up",
@@ -160,6 +164,10 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.globalShortcut.recording": "请按下快捷键...",
     "settings.shortcut.updated": "快捷键已更新",
     "settings.shortcut.error": "设置快捷键失败",
+
+    // Connection Error - Tauri specific additions
+    "connectionError.reason.bundledServer": "内置服务器启动失败",
+    "connectionError.checkingServer": "检查服务器中...",
 
     // Extra Toast Messages
     "toast.clipReceived": "收到新剪贴",
