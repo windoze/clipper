@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::fs;
 
 const OLD_APP_IDENTIFIER: &str = "com.0d0a.clipper";
@@ -7,8 +7,8 @@ const OLD_APP_IDENTIFIER: &str = "com.0d0a.clipper";
 /// This runs once on first startup if old data exists and new location is empty.
 /// Data is moved (not copied) to avoid duplication.
 pub async fn migrate_from_old_location(
-    new_config_dir: &PathBuf,
-    new_data_dir: &PathBuf,
+    new_config_dir: &Path,
+    new_data_dir: &Path,
 ) -> Result<(), String> {
     // Get old locations based on platform
     let (old_config_dir, old_data_dir) = get_old_directories()?;
@@ -115,8 +115,7 @@ fn get_old_directories() -> Result<(PathBuf, PathBuf), String> {
 
     #[cfg(target_os = "windows")]
     {
-        let app_data =
-            dirs::data_dir().ok_or("Failed to get AppData directory")?;
+        let app_data = dirs::data_dir().ok_or("Failed to get AppData directory")?;
         let old_config = app_data.join(OLD_APP_IDENTIFIER);
         let old_data = old_config.clone(); // Windows uses same dir
         Ok((old_config, old_data))
@@ -218,10 +217,10 @@ async fn cleanup_empty_dir(dir: &PathBuf) {
     }
 
     // Check if directory is empty
-    if let Ok(mut entries) = fs::read_dir(dir).await {
-        if entries.next_entry().await.ok().flatten().is_none() {
-            // Directory is empty, remove it
-            let _ = fs::remove_dir(dir).await;
-        }
+    if let Ok(mut entries) = fs::read_dir(dir).await
+        && entries.next_entry().await.ok().flatten().is_none()
+    {
+        // Directory is empty, remove it
+        let _ = fs::remove_dir(dir).await;
     }
 }
