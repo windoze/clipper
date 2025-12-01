@@ -13,6 +13,19 @@ Clipper is a clipboard management system with seven main components:
 - **clipper** (Tauri): Desktop GUI application built with Tauri 2 + React + TypeScript
 - **clipper-slint**: Alternative GUI application built with Slint UI framework
 
+## Upgrading Version
+
+The version info is in following files:
+
+- `Cargo.toml` (workspace and each package)
+- `clipper-server/web/package.json` (Server web UI)
+- `clipper/src-tauri/package.json`
+- `clipper/src-tauri/tauri.conf.json`
+- `Dockerfile`
+- `README.md` and `README.zh-CN.md`
+
+All above files should be updated to keep consistent version.
+
 ## Build & Test Commands
 
 ### Building
