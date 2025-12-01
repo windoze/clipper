@@ -378,20 +378,37 @@
        ============================================ */
     .downloads-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
       margin-top: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .downloads-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .downloads-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .download-card {
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 24px;
+      border-radius: 10px;
+      padding: 16px 12px;
       text-align: center;
       text-decoration: none;
       color: var(--text-primary);
       transition: border-color 0.2s, transform 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100px;
     }
 
     .download-card:hover {
@@ -400,19 +417,83 @@
     }
 
     .download-icon {
-      font-size: 48px;
-      margin-bottom: 12px;
+      font-size: 32px;
+      margin-bottom: 8px;
+      line-height: 1;
+    }
+
+    .download-icon svg {
+      width: 32px;
+      height: 32px;
     }
 
     .download-card h4 {
-      font-size: 16px;
-      margin-bottom: 4px;
+      font-size: 14px;
+      margin-bottom: 2px;
       margin-top: 0;
     }
 
     .download-card span {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text-muted);
+    }
+
+    /* Download card with dropdown */
+    .download-card-wrapper {
+      position: relative;
+    }
+
+    .download-card-wrapper .download-card {
+      cursor: pointer;
+      height: 100%;
+    }
+
+    .download-card .dropdown-arrow {
+      font-size: 12px;
+      margin-left: 4px;
+      transition: transform 0.2s;
+    }
+
+    .download-card-wrapper.open .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+
+    .download-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-top: 4px;
+      padding: 8px 0;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .download-card-wrapper.open .download-dropdown {
+      display: block;
+    }
+
+    .download-dropdown a {
+      display: block;
+      padding: 10px 16px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: background 0.15s;
+    }
+
+    .download-dropdown a:hover {
+      background: var(--bg-primary);
+    }
+
+    .download-dropdown .dropdown-divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 8px 0;
     }
 
     /* ============================================
@@ -830,25 +911,43 @@
       <h2 data-i18n="download.title">Download</h2>
       <p data-i18n="download.intro">Download Clipper for your platform or access it through the web interface.</p>
 
-      <div class="downloads-grid">
-        <a href="https://github.com/windoze/clipper/releases/latest" class="download-card" target="_blank"
-          rel="noopener">
+      <div class="downloads-grid" id="downloads-grid">
+        <!-- macOS -->
+        <a id="download-macos-dmg" href="https://github.com/windoze/clipper/releases/latest" class="download-card" target="_blank" rel="noopener">
           <div class="download-icon">&#63743;</div>
           <h4>macOS</h4>
           <span>.dmg (Universal)</span>
         </a>
-        <a href="https://github.com/windoze/clipper/releases/latest" class="download-card" target="_blank"
-          rel="noopener">
-          <div class="download-icon">&#128187;</div>
-          <h4>Windows</h4>
-          <span>.msi / .exe</span>
-        </a>
-        <a href="https://github.com/windoze/clipper/releases/latest" class="download-card" target="_blank"
-          rel="noopener">
-          <div class="download-icon">&#128039;</div>
-          <h4>Linux</h4>
-          <span>.deb / .AppImage</span>
-        </a>
+        <!-- Windows -->
+        <div class="download-card-wrapper" id="download-windows">
+          <div class="download-card" onclick="toggleDropdown('download-windows')">
+            <div class="download-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg></div>
+            <h4>Windows</h4>
+            <span>x64 <span class="dropdown-arrow">&#9662;</span></span>
+          </div>
+          <div class="download-dropdown">
+            <a id="download-windows-msi" href="https://github.com/windoze/clipper/releases/latest">.msi (x64)</a>
+            <a id="download-windows-exe" href="https://github.com/windoze/clipper/releases/latest">.exe (x64)</a>
+          </div>
+        </div>
+        <!-- Linux -->
+        <div class="download-card-wrapper" id="download-linux">
+          <div class="download-card" onclick="toggleDropdown('download-linux')">
+            <div class="download-icon">&#128039;</div>
+            <h4>Linux</h4>
+            <span>x64 / ARM64 <span class="dropdown-arrow">&#9662;</span></span>
+          </div>
+          <div class="download-dropdown">
+            <a id="download-linux-amd64-appimage" href="https://github.com/windoze/clipper/releases/latest">.AppImage (x64)</a>
+            <a id="download-linux-amd64-deb" href="https://github.com/windoze/clipper/releases/latest">.deb (x64)</a>
+            <a id="download-linux-amd64-rpm" href="https://github.com/windoze/clipper/releases/latest">.rpm (x64)</a>
+            <div class="dropdown-divider"></div>
+            <a id="download-linux-arm64-appimage" href="https://github.com/windoze/clipper/releases/latest">.AppImage (ARM64)</a>
+            <a id="download-linux-arm64-deb" href="https://github.com/windoze/clipper/releases/latest">.deb (ARM64)</a>
+            <a id="download-linux-arm64-rpm" href="https://github.com/windoze/clipper/releases/latest">.rpm (ARM64)</a>
+          </div>
+        </div>
+        <!-- Docker -->
         <a href="https://hub.docker.com/r/windoze/clipper-server" class="download-card" target="_blank" rel="noopener">
           <div class="download-icon">&#128230;</div>
           <h4>Docker</h4>
@@ -879,7 +978,7 @@
           <tr>
             <td>Linux</td>
             <td data-i18n="download.linux.version">Ubuntu 20.04 or equivalent</td>
-            <td>x64</td>
+            <td data-i18n="download.linux.arch">x64 / ARM64</td>
           </tr>
         </tbody>
       </table>
@@ -1331,6 +1430,7 @@ clipper-server --bearer-token your-secret-token</code></pre>
         "download.macos.arch": "Universal (Intel + Apple Silicon) both hemispheres of the dreaming mind",
         "download.windows.version": "Win 10 (1809)+ the epoch of weeping windows",
         "download.linux.version": "Ubuntu 20.04 or whatever distro your soul murmurs",
+        "download.linux.arch": "x64 / ARM64 the twin pillars of machine consciousness",
         "manual.title": "Tome of esoteric practices",
         "manual.getting_started.title": "The beginner's descent into madness",
         "manual.getting_started.step1.title": "Install the spectre",
@@ -1531,6 +1631,7 @@ clipper-server --bearer-token your-secret-token</code></pre>
         "download.macos.arch": "双脑兼容（左脑和右脑都能做同样的梦）",
         "download.windows.version": "Win 10 (会流泪的窗户) 以上",
         "download.linux.version": "Ubuntu 20.04 或者会自言自语的那个版本",
+        "download.linux.arch": "x64 / ARM64 两种思维架构的双生子",
         "manual.title": "与影子共处的漫长指南",
         "manual.getting_started.title": "初学者的失忆练习",
         "manual.getting_started.step1.title": "喂它吃沉默",
@@ -1740,6 +1841,81 @@ clipper-server --bearer-token your-secret-token</code></pre>
         item.classList.toggle('open');
       });
     });
+
+    // Download dropdown toggle
+    function toggleDropdown(id) {
+      const wrapper = document.getElementById(id);
+      const isOpen = wrapper.classList.contains('open');
+
+      // Close all dropdowns first
+      document.querySelectorAll('.download-card-wrapper').forEach(w => {
+        w.classList.remove('open');
+      });
+
+      // Toggle the clicked one
+      if (!isOpen) {
+        wrapper.classList.add('open');
+      }
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.download-card-wrapper')) {
+        document.querySelectorAll('.download-card-wrapper').forEach(w => {
+          w.classList.remove('open');
+        });
+      }
+    });
+
+    // Fetch download links from GitHub releases API
+    async function updateDownloadLinks() {
+      const apiUrl = 'https://api.github.com/repos/windoze/clipper/releases/latest';
+
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          console.warn('Failed to fetch release info:', response.status);
+          return;
+        }
+
+        const release = await response.json();
+        const assets = release.assets || [];
+
+        // Mapping of element IDs to asset name patterns
+        const downloadMappings = {
+          'download-macos-dmg': /macos.*universal.*\.dmg$/i,
+          'download-windows-msi': /\.msi$/i,
+          'download-windows-exe': /-setup\.exe$/i,
+          'download-linux-amd64-deb': /amd64\.deb$/i,
+          'download-linux-amd64-appimage': /amd64\.AppImage$/i,
+          'download-linux-amd64-rpm': /amd64\.rpm$/i,
+          'download-linux-arm64-deb': /arm64\.deb$/i,
+          'download-linux-arm64-appimage': /arm64\.AppImage$/i,
+          'download-linux-arm64-rpm': /arm64\.rpm$/i,
+        };
+
+        // Update each download link
+        for (const [elementId, pattern] of Object.entries(downloadMappings)) {
+          const asset = assets.find(a => pattern.test(a.name));
+          const element = document.getElementById(elementId);
+
+          if (asset && element) {
+            element.href = asset.browser_download_url;
+            element.removeAttribute('target');
+            element.removeAttribute('rel');
+          } else if (element && !asset) {
+            // Hide download link if asset not found in release
+            element.style.display = 'none';
+          }
+        }
+      } catch (error) {
+        console.warn('Error fetching release info:', error);
+        // Keep fallback links to releases page
+      }
+    }
+
+    // Update download links on page load
+    document.addEventListener('DOMContentLoaded', updateDownloadLinks);
   </script>
 </body>
 

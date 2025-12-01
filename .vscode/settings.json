@@ -49,6 +49,7 @@
     "rlib",
     "rocksdb",
     "rustls",
+    "rustup",
     "selfhost",
     "serde",
     "Skia",
