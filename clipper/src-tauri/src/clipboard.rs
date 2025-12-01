@@ -278,3 +278,31 @@ pub fn set_clipboard_content(content: &str) -> Result<(), String> {
     let mut clipboard = Clipboard::new().map_err(|e| e.to_string())?;
     clipboard.set_text(content).map_err(|e| e.to_string())
 }
+
+/// Set image content to the system clipboard from PNG bytes
+pub fn set_clipboard_image(png_bytes: &[u8]) -> Result<(), String> {
+    use std::io::Cursor;
+
+    // Decode PNG bytes to get image dimensions and RGBA data
+    let img = image::ImageReader::new(Cursor::new(png_bytes))
+        .with_guessed_format()
+        .map_err(|e| format!("Failed to read image format: {}", e))?
+        .decode()
+        .map_err(|e| format!("Failed to decode image: {}", e))?;
+
+    let rgba = img.to_rgba8();
+    let (width, height) = rgba.dimensions();
+
+    // Create arboard ImageData
+    let image_data = arboard::ImageData {
+        width: width as usize,
+        height: height as usize,
+        bytes: rgba.into_raw().into(),
+    };
+
+    // Set to clipboard
+    let mut clipboard = Clipboard::new().map_err(|e| e.to_string())?;
+    clipboard
+        .set_image(image_data)
+        .map_err(|e| format!("Failed to set clipboard image: {}", e))
+}

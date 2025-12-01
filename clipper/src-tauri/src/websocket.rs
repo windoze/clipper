@@ -1,8 +1,15 @@
-use crate::clipboard::set_clipboard_content;
+use crate::clipboard::{set_clipboard_content, set_clipboard_image};
 use crate::state::AppState;
 use clipper_client::ClipNotification;
+use gethostname::gethostname;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc;
+
+/// Get the hostname tag in the format `$host:<hostname>`
+fn get_hostname_tag() -> String {
+    let hostname = gethostname().to_string_lossy().to_string();
+    format!("$host:{}", hostname)
+}
 
 /// Emit WebSocket connection status to frontend
 fn emit_ws_status(app: &AppHandle, connected: bool) {
@@ -51,12 +58,45 @@ pub async fn start_websocket_listener(app: AppHandle) {
                         Ok(Some(notification)) => {
                             match &notification {
                                 ClipNotification::NewClip { id, content, tags } => {
-                                    // Only update system clipboard for text clips, not images
-                                    // Image clips have the $image tag and their content is just a filename
+                                    // Check if this clip originated from this machine
+                                    let my_hostname_tag = get_hostname_tag();
+                                    let is_from_this_machine =
+                                        tags.iter().any(|t| t == &my_hostname_tag);
+
+                                    // Check if this is an image clip
                                     let is_image_clip = tags.iter().any(|t| t == "$image");
 
-                                    if !is_image_clip {
-                                        // Update system clipboard with new text content
+                                    if is_image_clip {
+                                        // For image clips from OTHER machines, download and set to clipboard
+                                        if !is_from_this_machine {
+                                            let client = state.client().clone();
+                                            let clip_id = id.clone();
+                                            // Download image in background and set to clipboard
+                                            tokio::spawn(async move {
+                                                match client.download_file(&clip_id).await {
+                                                    Ok(image_bytes) => {
+                                                        if let Err(e) =
+                                                            set_clipboard_image(&image_bytes)
+                                                        {
+                                                            eprintln!(
+                                                                "Failed to set clipboard image: {}",
+                                                                e
+                                                            );
+                                                        }
+                                                    }
+                                                    Err(e) => {
+                                                        eprintln!(
+                                                            "Failed to download image for clipboard: {}",
+                                                            e
+                                                        );
+                                                    }
+                                                }
+                                            });
+                                        }
+                                        // For image clips from THIS machine, don't touch clipboard
+                                        // (the image is already there)
+                                    } else {
+                                        // For text clips, update system clipboard
                                         if let Err(e) = set_clipboard_content(content) {
                                             eprintln!("Failed to set clipboard: {}", e);
                                         } else {
