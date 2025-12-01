@@ -1611,7 +1611,9 @@ dependencies = [
  "chrono",
  "clap",
  "clipper-client",
+ "dirs",
  "rustls",
+ "serde",
  "serde_json",
  "tokio",
 ]

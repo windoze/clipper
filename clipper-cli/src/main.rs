@@ -2,22 +2,24 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use clipper_client::{ClipperClient, SearchFilters};
+use std::path::PathBuf;
 use tokio::sync::mpsc;
+
+mod config;
 
 #[derive(Parser)]
 #[command(name = "clipper-cli")]
 #[command(about = "Command-line interface for Clipper", long_about = None)]
 struct Cli {
-    /// Server URL
-    #[arg(
-        short,
-        long,
-        default_value = "http://localhost:3000",
-        env = "CLIPPER_URL"
-    )]
-    url: String,
+    /// Path to config file (same format as Clipper desktop app settings.json)
+    #[arg(short, long, env = "CLIPPER_CONFIG")]
+    config: Option<PathBuf>,
 
-    /// Bearer token for authentication
+    /// Server URL (defaults to config file or Clipper desktop app config if available, otherwise http://localhost:3000)
+    #[arg(short, long, env = "CLIPPER_URL")]
+    url: Option<String>,
+
+    /// Bearer token for authentication (defaults to config file or Clipper desktop app config if available)
     #[arg(short, long, env = "CLIPPER_TOKEN")]
     token: Option<String>,
 
@@ -118,9 +120,31 @@ async fn main() -> Result<()> {
         .expect("Failed to install rustls crypto provider");
 
     let cli = Cli::parse();
-    let client = match cli.token {
-        Some(token) => ClipperClient::new_with_token(cli.url, token),
-        None => ClipperClient::new(cli.url),
+
+    // Load config from specified file, or fall back to Clipper desktop app config
+    // Priority: CLI arg --config > CLIPPER_CONFIG env > desktop app config
+    let file_config = if let Some(config_path) = &cli.config {
+        config::load_config_from_path(config_path)
+    } else {
+        config::load_desktop_config()
+    };
+
+    // Resolve URL: CLI arg > env var > config file > default
+    let url = cli.url.unwrap_or_else(|| {
+        file_config
+            .as_ref()
+            .map(|c| c.server_url.clone())
+            .unwrap_or_else(|| "http://localhost:3000".to_string())
+    });
+
+    // Resolve token: CLI arg > env var > config file > None
+    let token = cli
+        .token
+        .or_else(|| file_config.and_then(|c| c.token));
+
+    let client = match token {
+        Some(token) => ClipperClient::new_with_token(url, token),
+        None => ClipperClient::new(url),
     };
 
     match cli.command {
