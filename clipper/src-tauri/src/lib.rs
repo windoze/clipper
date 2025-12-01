@@ -1,6 +1,7 @@
 mod autolaunch;
 mod clipboard;
 mod commands;
+mod migration;
 mod server;
 mod settings;
 mod state;
@@ -144,8 +145,18 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_prevent_default::init())
         .setup(move |app| {
-            // Initialize settings manager
+            // Get directories for migration and settings
             let config_dir = get_app_config_dir(app.handle())?;
+            let data_dir = get_server_data_dir(app.handle())?;
+
+            // Run migration from old app identifier if needed
+            tauri::async_runtime::block_on(async {
+                if let Err(e) = migration::migrate_from_old_location(&config_dir, &data_dir).await {
+                    eprintln!("[clipper] Migration warning: {}", e);
+                }
+            });
+
+            // Initialize settings manager
             eprintln!("[clipper] Config directory: {}", config_dir.display());
             let settings_manager = SettingsManager::new(config_dir);
 
