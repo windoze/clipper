@@ -84,6 +84,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const [clearing, setClearing] = useState(false);
   const [localIpAddresses, setLocalIpAddresses] = useState<string[]>([]);
   const [togglingNetworkAccess, setTogglingNetworkAccess] = useState(false);
+  const [switchingServerMode, setSwitchingServerMode] = useState(false);
   // Password visibility toggles
   const [showBundledToken, setShowBundledToken] = useState(false);
   const [showExternalToken, setShowExternalToken] = useState(false);
@@ -278,6 +279,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     if (useBundled === settings.useBundledServer) return;
 
     setError(null);
+    setSwitchingServerMode(true);
     try {
       if (useBundled) {
         // Switch to bundled server
@@ -301,6 +303,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
       setSettings(loadedSettings);
     } catch (e) {
       setError(`Failed to switch server mode: ${e}`);
+    } finally {
+      setSwitchingServerMode(false);
     }
   };
 
@@ -641,28 +645,40 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
                 <h3>{t("settings.server")}</h3>
                 <div className="settings-field">
                   <label>{t("settings.serverMode")}</label>
-                  <div className="server-mode-selector">
+                  <div className={`server-mode-selector ${switchingServerMode ? "switching" : ""}`}>
                     <button
                       type="button"
                       className={`server-mode-option ${settings.useBundledServer ? "active" : ""}`}
                       onClick={() => handleServerModeChange(true)}
+                      disabled={switchingServerMode}
                     >
-                      <span className="server-mode-icon">&#9881;</span>
+                      {switchingServerMode && !settings.useBundledServer ? (
+                        <span className="server-mode-spinner"></span>
+                      ) : (
+                        <span className="server-mode-icon">&#9881;</span>
+                      )}
                       <span>{t("settings.serverMode.bundled")}</span>
                     </button>
                     <button
                       type="button"
                       className={`server-mode-option ${!settings.useBundledServer ? "active" : ""}`}
                       onClick={() => handleServerModeChange(false)}
+                      disabled={switchingServerMode}
                     >
-                      <span className="server-mode-icon">&#8599;</span>
+                      {switchingServerMode && settings.useBundledServer ? (
+                        <span className="server-mode-spinner"></span>
+                      ) : (
+                        <span className="server-mode-icon">&#8599;</span>
+                      )}
                       <span>{t("settings.serverMode.external")}</span>
                     </button>
                   </div>
                   <p className="settings-hint">
-                    {settings.useBundledServer
-                      ? t("settings.serverMode.hint.bundled")
-                      : t("settings.serverMode.hint.external")}
+                    {switchingServerMode
+                      ? t("settings.serverMode.switching")
+                      : settings.useBundledServer
+                        ? t("settings.serverMode.hint.bundled")
+                        : t("settings.serverMode.hint.external")}
                   </p>
                 </div>
 
