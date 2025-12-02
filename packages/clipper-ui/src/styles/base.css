@@ -2114,8 +2114,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
-  padding: 40px 20px;
+  min-height: 300px;
+  padding: 24px 20px;
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -2124,53 +2124,61 @@
   text-align: center;
 }
 
+.connection-error-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .connection-error-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100px;
-  height: 100px;
-  margin: 0 auto 24px;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
   background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
   border-radius: 50%;
   color: #dc2626;
 }
 
 .connection-error-icon svg {
-  width: 48px;
-  height: 48px;
+  width: 28px;
+  height: 28px;
 }
 
 .connection-error-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: #1f2937;
-  margin: 0 0 12px 0;
+  margin: 0;
 }
 
 .connection-error-description {
-  font-size: 15px;
+  font-size: 14px;
   color: #6b7280;
-  margin: 0 0 20px 0;
+  margin: 0 0 16px 0;
   line-height: 1.5;
 }
 
 .connection-error-reasons {
   list-style: none;
   padding: 0;
-  margin: 0 0 20px 0;
+  margin: 0 0 16px 0;
   text-align: left;
 }
 
 .connection-error-reasons li {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 8px 12px;
   background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
   color: #374151;
 }
 
@@ -2183,13 +2191,18 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   color: #9ca3af;
 }
 
+.connection-error-reasons .reason-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
 .connection-error-details {
-  margin: 0 0 24px 0;
+  margin: 0 0 16px 0;
   text-align: left;
 }
 
@@ -2226,18 +2239,18 @@
 
 .connection-error-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .connection-error-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -2286,8 +2299,8 @@
 }
 
 .connection-error-hint {
-  font-size: 13px;
+  font-size: 12px;
   color: #9ca3af;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.4;
 }

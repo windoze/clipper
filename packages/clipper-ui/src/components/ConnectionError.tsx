@@ -30,27 +30,27 @@ export function ConnectionError({
   return (
     <div className="connection-error">
       <div className="connection-error-content">
-        {/* Icon */}
-        <div className="connection-error-icon">
-          <svg
-            width="64"
-            height="64"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {/* Cloud with X */}
-            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-            <line x1="14" y1="11" x2="10" y2="15" />
-            <line x1="10" y1="11" x2="14" y2="15" />
-          </svg>
+        {/* Header with icon and title on same line */}
+        <div className="connection-error-header">
+          <div className="connection-error-icon">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {/* Cloud with X */}
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+              <line x1="14" y1="11" x2="10" y2="15" />
+              <line x1="10" y1="11" x2="14" y2="15" />
+            </svg>
+          </div>
+          <h2 className="connection-error-title">{t("connectionError.title")}</h2>
         </div>
-
-        {/* Title */}
-        <h2 className="connection-error-title">{t("connectionError.title")}</h2>
 
         {/* Description */}
         <p className="connection-error-description">
