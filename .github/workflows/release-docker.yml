@@ -130,4 +130,4 @@ jobs:
       - name: Inspect image
         id: inspect
         run: |
-          docker buildx imagetools inspect 'windoze/clipper-server:${{ needs.build-and-push-image.outputs.version_tag }}'
+          docker buildx imagetools inspect 'windoze/clipper-server:${{ steps.meta.outputs.version }}'
