@@ -2,7 +2,7 @@
 
 一款现代化、跨平台的剪贴板管理器，支持全文搜索、实时同步，拥有精美的桌面界面。
 
-![Version](https://img.shields.io/badge/version-0.12.0-blue)
+![Version](https://img.shields.io/badge/version-0.13.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
