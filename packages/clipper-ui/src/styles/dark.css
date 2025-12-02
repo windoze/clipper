@@ -96,6 +96,10 @@
   color: #adb5bd;
 }
 
+:root[data-theme="dark"] .date-input-group-active {
+  background-color: rgba(102, 126, 234, 0.15);
+}
+
 /* ============================================
    Scrollbar - Dark Theme
    ============================================ */
@@ -679,6 +683,10 @@
   :root:not([data-theme="light"]) .toggle-text,
   :root:not([data-theme="light"]) .date-input-group label {
     color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .date-input-group-active {
+    background-color: rgba(102, 126, 234, 0.15);
   }
 
   :root:not([data-theme="light"]) .clip-entry {

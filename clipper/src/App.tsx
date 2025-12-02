@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   useClips,
   useTheme,
@@ -346,7 +347,6 @@ function App() {
                 filterTags={filterTags}
                 onRemoveTag={handleRemoveTagFilter}
                 onClearAllTags={handleClearAllTags}
-                label={t("search.label")}
               />
               <DateFilter filters={filters} onChange={setFilters} />
               <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
@@ -486,7 +486,6 @@ function App() {
                 filterTags={filterTags}
                 onRemoveTag={handleRemoveTagFilter}
                 onClearAllTags={handleClearAllTags}
-                label={t("search.label")}
               />
               <DateFilter filters={filters} onChange={setFilters} />
               <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
@@ -511,6 +510,7 @@ function App() {
             onRetry={refetch}
             onOpenSettings={openSettings}
             showBundledServerReason={useBundledServer}
+            onOpenUrl={openUrl}
           />
         </main>
 

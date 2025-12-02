@@ -405,6 +405,7 @@ function App({ authToken }: AppProps) {
           onTagClick={handleAddTagFilter}
           onSetStartDate={handleSetStartDate}
           onSetEndDate={handleSetEndDate}
+          onOpenUrl={(url) => window.open(url, "_blank", "noopener,noreferrer")}
         />
       </main>
 

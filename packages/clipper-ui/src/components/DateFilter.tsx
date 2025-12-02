@@ -103,7 +103,7 @@ export function DateFilter({ filters, onChange }: DateFilterProps) {
 
   return (
     <div className="date-filter">
-      <div className="date-input-group">
+      <div className={`date-input-group${filters.start_date ? " date-input-group-active" : ""}`}>
         <label htmlFor="start-date">{t("filter.from")}</label>
         <input
           type="date"
@@ -121,7 +121,7 @@ export function DateFilter({ filters, onChange }: DateFilterProps) {
           </button>
         )}
       </div>
-      <div className="date-input-group">
+      <div className={`date-input-group${filters.end_date ? " date-input-group-active" : ""}`}>
         <label htmlFor="end-date">{t("filter.to")}</label>
         <input
           type="date"
