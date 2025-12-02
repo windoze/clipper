@@ -567,24 +567,30 @@
 .date-tag {
   display: inline-flex;
   align-items: center;
-  gap: 0;
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-  color: white;
-  padding: 3px 10px;
-  border-radius: 12px;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
   font-size: 11px;
-  font-weight: 500;
-  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
-  position: relative;
-  transition: padding 0.15s ease;
+  line-height: 1;
+  color: #495057;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .date-tag:hover {
-  padding: 3px 6px;
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.date-tag-icon {
+  flex-shrink: 0;
+  display: block;
 }
 
 .date-tag-text {
   white-space: nowrap;
+  line-height: 1;
 }
 
 .date-tag-arrow {
@@ -593,33 +599,33 @@
   justify-content: center;
   background: none;
   border: none;
-  color: white;
+  color: #495057;
   cursor: pointer;
   padding: 0;
-  width: 0;
-  height: 16px;
+  margin: 0;
   opacity: 0;
-  overflow: hidden;
-  transition: width 0.15s ease, opacity 0.15s ease, background 0.15s ease;
-  border-radius: 4px;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  border-radius: 2px;
 }
 
-.date-tag-arrow.visible {
-  width: 18px;
-  opacity: 0.8;
+.date-tag:hover .date-tag-arrow {
+  opacity: 0.6;
 }
 
 .date-tag-arrow:hover {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.1);
+  color: #212529;
 }
 
 .date-tag-arrow-left {
+  margin-left: -4px;
   margin-right: 2px;
 }
 
 .date-tag-arrow-right {
   margin-left: 2px;
+  margin-right: -4px;
 }
 
 .favorite-button {
@@ -692,6 +698,7 @@
   border: 1px solid #dee2e6;
   border-radius: 4px;
   font-size: 11px;
+  line-height: 1;
   color: #495057;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;

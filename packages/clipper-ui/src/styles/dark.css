@@ -152,6 +152,27 @@
   border-color: #5a5a5a;
 }
 
+/* Date Tag - Dark Theme */
+:root[data-theme="dark"] .date-tag {
+  background: #363636;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .date-tag:hover {
+  background: #404040;
+  border-color: #5a5a5a;
+}
+
+:root[data-theme="dark"] .date-tag-arrow {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .date-tag-arrow:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
 :root[data-theme="dark"] .language-selector-dropdown {
   background: #2d2d2d;
   border-color: #404040;
