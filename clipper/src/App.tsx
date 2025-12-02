@@ -5,6 +5,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   useClips,
   useTheme,
+  useSyntaxTheme,
   useI18n,
   useToast,
   SearchBox,
@@ -53,6 +54,7 @@ function App() {
 
   const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
   const { updateTheme } = useTheme();
+  const { setSyntaxTheme } = useSyntaxTheme();
   const { showToast } = useToast();
 
   // Track window maximized state for Windows and Linux
@@ -495,7 +497,7 @@ function App() {
           />
         </main>
 
-        <SettingsDialog isOpen={isSettingsOpen} onClose={closeSettings} onThemeChange={updateTheme} />
+        <SettingsDialog isOpen={isSettingsOpen} onClose={closeSettings} onThemeChange={updateTheme} onSyntaxThemeChange={setSyntaxTheme} />
       </div>
     </DropZone>
   );

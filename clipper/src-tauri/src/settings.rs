@@ -16,6 +16,17 @@ pub enum ThemePreference {
     Auto,
 }
 
+/// Syntax highlighting theme preference
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum SyntaxTheme {
+    #[default]
+    Github,
+    Monokai,
+    Dracula,
+    Nord,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
@@ -30,6 +41,9 @@ pub struct Settings {
     /// Theme preference: light, dark, or auto
     #[serde(default)]
     pub theme: ThemePreference,
+    /// Syntax highlighting theme for code snippets
+    #[serde(default)]
+    pub syntax_theme: SyntaxTheme,
     /// Server port for the bundled server (persisted across restarts)
     #[serde(default)]
     pub server_port: Option<u16>,
@@ -100,6 +114,7 @@ impl Default for Settings {
             open_on_startup: true,
             start_on_login: false,
             theme: ThemePreference::Auto,
+            syntax_theme: SyntaxTheme::Github,
             server_port: None,
             use_bundled_server: true,
             listen_on_all_interfaces: false,

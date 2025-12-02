@@ -6,8 +6,9 @@ import {
   useToast,
   supportedLanguages,
   languageNames,
+  SYNTAX_THEMES,
 } from "@unwritten-codes/clipper-ui";
-import type { Language } from "@unwritten-codes/clipper-ui";
+import type { Language, SyntaxTheme } from "@unwritten-codes/clipper-ui";
 
 export type ThemePreference = "light" | "dark" | "auto";
 
@@ -17,6 +18,7 @@ export interface Settings {
   openOnStartup: boolean;
   startOnLogin: boolean;
   theme: ThemePreference;
+  syntaxTheme: SyntaxTheme;
   useBundledServer: boolean;
   listenOnAllInterfaces: boolean;
   language: string | null;
@@ -47,9 +49,10 @@ interface SettingsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onThemeChange?: (theme: ThemePreference) => void;
+  onSyntaxThemeChange?: (theme: SyntaxTheme) => void;
 }
 
-export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialogProps) {
+export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeChange }: SettingsDialogProps) {
   const { t, language: currentLanguage, setLanguage } = useI18n();
   const { showToast } = useToast();
   // Detect platform for default shortcut
@@ -62,6 +65,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     openOnStartup: true,
     startOnLogin: false,
     theme: "auto",
+    syntaxTheme: "github",
     useBundledServer: true,
     listenOnAllInterfaces: false,
     language: null,
@@ -203,6 +207,11 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
     // Apply theme change immediately
     if (field === "theme" && typeof value === "string") {
       onThemeChange?.(value as ThemePreference);
+    }
+
+    // Apply syntax theme change immediately
+    if (field === "syntaxTheme" && typeof value === "string") {
+      onSyntaxThemeChange?.(value as SyntaxTheme);
     }
 
     // Save settings immediately
@@ -497,6 +506,25 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange }: SettingsDialo
                   </select>
                   <p className="settings-hint">
                     {t("settings.language.hint")}
+                  </p>
+                </div>
+
+                <div className="settings-field">
+                  <label htmlFor="syntaxTheme">{t("settings.syntaxTheme")}</label>
+                  <select
+                    id="syntaxTheme"
+                    value={settings.syntaxTheme}
+                    onChange={(e) => handleChange("syntaxTheme", e.target.value)}
+                    className="settings-select"
+                  >
+                    {SYNTAX_THEMES.map((theme) => (
+                      <option key={theme} value={theme}>
+                        {t(`settings.syntaxTheme.${theme}` as const)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="settings-hint">
+                    {t("settings.syntaxTheme.hint")}
                   </p>
                 </div>
 

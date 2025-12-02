@@ -40,5 +40,14 @@ export {
 export type { ToastType } from "./components";
 
 // Hooks
-export { useClips, useTheme, useCleanupConfig, CleanupConfigProvider } from "./hooks";
-export type { Theme, ResolvedTheme } from "./hooks";
+export {
+  useClips,
+  useTheme,
+  useCleanupConfig,
+  CleanupConfigProvider,
+  useSyntaxTheme,
+  useSyntaxThemeContext,
+  SyntaxThemeProvider,
+  SYNTAX_THEMES,
+} from "./hooks";
+export type { Theme, ResolvedTheme, SyntaxTheme } from "./hooks";

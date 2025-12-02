@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, DragEvent } from "react";
 import {
   useClips,
   useTheme,
+  useSyntaxTheme,
   useI18n,
   useToast,
   useApi,
@@ -42,6 +43,7 @@ function App({ authToken }: AppProps) {
 
   const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
   const { theme, updateTheme } = useTheme();
+  const { syntaxTheme, setSyntaxTheme } = useSyntaxTheme();
   const { showToast } = useToast();
   const api = useApi();
 
@@ -394,6 +396,8 @@ function App({ authToken }: AppProps) {
         onClose={closeSettings}
         theme={theme}
         onThemeChange={updateTheme}
+        syntaxTheme={syntaxTheme}
+        onSyntaxThemeChange={setSyntaxTheme}
       />
     </div>
   );

@@ -54,6 +54,12 @@ export const en = {
   "settings.theme.auto": "Auto",
   "settings.theme.hint":
     "Choose your preferred color theme. Auto follows your system settings.",
+  "settings.syntaxTheme": "Code Syntax Theme",
+  "settings.syntaxTheme.github": "GitHub",
+  "settings.syntaxTheme.monokai": "Monokai",
+  "settings.syntaxTheme.dracula": "Dracula",
+  "settings.syntaxTheme.nord": "Nord",
+  "settings.syntaxTheme.hint": "Choose the color theme for syntax highlighting in code snippets.",
   "settings.language": "Language",
   "settings.language.hint": "Choose your preferred language.",
   "settings.language.en": "English",

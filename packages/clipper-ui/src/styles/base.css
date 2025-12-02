@@ -704,82 +704,11 @@
 
 /* ============================================
    Syntax Highlighting (highlight.js)
+   Theme-aware syntax highlighting using data-syntax-theme attribute
    ============================================ */
 .clip-content.hljs {
   background: transparent;
   padding: 0;
-}
-
-/* Light theme syntax highlighting colors */
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-literal,
-.hljs-section,
-.hljs-link {
-  color: #d73a49;
-}
-
-.hljs-function .hljs-keyword {
-  color: #d73a49;
-}
-
-.hljs-string,
-.hljs-title,
-.hljs-name,
-.hljs-type,
-.hljs-attribute,
-.hljs-symbol,
-.hljs-bullet,
-.hljs-addition,
-.hljs-variable,
-.hljs-template-tag,
-.hljs-template-variable {
-  color: #032f62;
-}
-
-.hljs-comment,
-.hljs-quote,
-.hljs-deletion,
-.hljs-meta {
-  color: #6a737d;
-}
-
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-literal,
-.hljs-title,
-.hljs-section,
-.hljs-doctag,
-.hljs-type,
-.hljs-name,
-.hljs-strong {
-  font-weight: 600;
-}
-
-.hljs-number {
-  color: #005cc5;
-}
-
-.hljs-built_in,
-.hljs-class .hljs-title,
-.hljs-title.class_ {
-  color: #6f42c1;
-}
-
-.hljs-attr,
-.hljs-selector-id,
-.hljs-selector-class,
-.hljs-selector-attr,
-.hljs-selector-pseudo {
-  color: #6f42c1;
-}
-
-.hljs-tag {
-  color: #22863a;
-}
-
-.hljs-subst {
-  color: #24292e;
 }
 
 .hljs-emphasis {
@@ -788,6 +717,418 @@
 
 .hljs-strong {
   font-weight: 600;
+}
+
+/* ============================================
+   GitHub Theme (Light) - Default
+   ============================================ */
+:root[data-syntax-theme="github"] .hljs-keyword,
+:root[data-syntax-theme="github"] .hljs-selector-tag,
+:root[data-syntax-theme="github"] .hljs-literal,
+:root[data-syntax-theme="github"] .hljs-section,
+:root[data-syntax-theme="github"] .hljs-link {
+  color: #d73a49;
+}
+
+:root[data-syntax-theme="github"] .hljs-string,
+:root[data-syntax-theme="github"] .hljs-title,
+:root[data-syntax-theme="github"] .hljs-name,
+:root[data-syntax-theme="github"] .hljs-type,
+:root[data-syntax-theme="github"] .hljs-attribute,
+:root[data-syntax-theme="github"] .hljs-symbol,
+:root[data-syntax-theme="github"] .hljs-bullet,
+:root[data-syntax-theme="github"] .hljs-addition,
+:root[data-syntax-theme="github"] .hljs-variable,
+:root[data-syntax-theme="github"] .hljs-template-tag,
+:root[data-syntax-theme="github"] .hljs-template-variable {
+  color: #032f62;
+}
+
+:root[data-syntax-theme="github"] .hljs-comment,
+:root[data-syntax-theme="github"] .hljs-quote,
+:root[data-syntax-theme="github"] .hljs-deletion,
+:root[data-syntax-theme="github"] .hljs-meta {
+  color: #6a737d;
+}
+
+:root[data-syntax-theme="github"] .hljs-number {
+  color: #005cc5;
+}
+
+:root[data-syntax-theme="github"] .hljs-built_in,
+:root[data-syntax-theme="github"] .hljs-class .hljs-title,
+:root[data-syntax-theme="github"] .hljs-title.class_ {
+  color: #6f42c1;
+}
+
+:root[data-syntax-theme="github"] .hljs-attr,
+:root[data-syntax-theme="github"] .hljs-selector-id,
+:root[data-syntax-theme="github"] .hljs-selector-class,
+:root[data-syntax-theme="github"] .hljs-selector-attr,
+:root[data-syntax-theme="github"] .hljs-selector-pseudo {
+  color: #6f42c1;
+}
+
+:root[data-syntax-theme="github"] .hljs-tag {
+  color: #22863a;
+}
+
+:root[data-syntax-theme="github"] .hljs-subst {
+  color: #24292e;
+}
+
+/* GitHub Dark (for dark mode) */
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-keyword,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-selector-tag,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-literal,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-section,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-link {
+  color: #ff7b72;
+}
+
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-string,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-title,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-name,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-type,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-attribute,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-symbol,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-bullet,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-addition,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-variable,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-template-tag,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-template-variable {
+  color: #a5d6ff;
+}
+
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-comment,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-quote,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-deletion,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-meta {
+  color: #8b949e;
+}
+
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-number {
+  color: #79c0ff;
+}
+
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-built_in,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-class .hljs-title,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-title.class_ {
+  color: #d2a8ff;
+}
+
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-attr,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-selector-id,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-selector-class,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-selector-attr,
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-selector-pseudo {
+  color: #d2a8ff;
+}
+
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-tag {
+  color: #7ee787;
+}
+
+:root[data-theme="dark"][data-syntax-theme="github"] .hljs-subst {
+  color: #c9d1d9;
+}
+
+/* ============================================
+   Monokai Theme
+   ============================================ */
+:root[data-syntax-theme="monokai"] .hljs-keyword,
+:root[data-syntax-theme="monokai"] .hljs-selector-tag,
+:root[data-syntax-theme="monokai"] .hljs-literal,
+:root[data-syntax-theme="monokai"] .hljs-section,
+:root[data-syntax-theme="monokai"] .hljs-link {
+  color: #f92672;
+}
+
+:root[data-syntax-theme="monokai"] .hljs-string,
+:root[data-syntax-theme="monokai"] .hljs-title,
+:root[data-syntax-theme="monokai"] .hljs-name,
+:root[data-syntax-theme="monokai"] .hljs-attribute,
+:root[data-syntax-theme="monokai"] .hljs-symbol,
+:root[data-syntax-theme="monokai"] .hljs-bullet,
+:root[data-syntax-theme="monokai"] .hljs-addition {
+  color: #e6db74;
+}
+
+:root[data-syntax-theme="monokai"] .hljs-type,
+:root[data-syntax-theme="monokai"] .hljs-variable,
+:root[data-syntax-theme="monokai"] .hljs-template-tag,
+:root[data-syntax-theme="monokai"] .hljs-template-variable {
+  color: #66d9ef;
+}
+
+:root[data-syntax-theme="monokai"] .hljs-comment,
+:root[data-syntax-theme="monokai"] .hljs-quote,
+:root[data-syntax-theme="monokai"] .hljs-deletion,
+:root[data-syntax-theme="monokai"] .hljs-meta {
+  color: #75715e;
+}
+
+:root[data-syntax-theme="monokai"] .hljs-number {
+  color: #ae81ff;
+}
+
+:root[data-syntax-theme="monokai"] .hljs-built_in,
+:root[data-syntax-theme="monokai"] .hljs-class .hljs-title,
+:root[data-syntax-theme="monokai"] .hljs-title.class_ {
+  color: #a6e22e;
+}
+
+:root[data-syntax-theme="monokai"] .hljs-attr,
+:root[data-syntax-theme="monokai"] .hljs-selector-id,
+:root[data-syntax-theme="monokai"] .hljs-selector-class,
+:root[data-syntax-theme="monokai"] .hljs-selector-attr,
+:root[data-syntax-theme="monokai"] .hljs-selector-pseudo {
+  color: #a6e22e;
+}
+
+:root[data-syntax-theme="monokai"] .hljs-tag {
+  color: #f92672;
+}
+
+:root[data-syntax-theme="monokai"] .hljs-subst {
+  color: #f8f8f2;
+}
+
+/* ============================================
+   Dracula Theme
+   ============================================ */
+:root[data-syntax-theme="dracula"] .hljs-keyword,
+:root[data-syntax-theme="dracula"] .hljs-selector-tag,
+:root[data-syntax-theme="dracula"] .hljs-literal,
+:root[data-syntax-theme="dracula"] .hljs-section,
+:root[data-syntax-theme="dracula"] .hljs-link {
+  color: #ff79c6;
+}
+
+:root[data-syntax-theme="dracula"] .hljs-string,
+:root[data-syntax-theme="dracula"] .hljs-title,
+:root[data-syntax-theme="dracula"] .hljs-name,
+:root[data-syntax-theme="dracula"] .hljs-attribute,
+:root[data-syntax-theme="dracula"] .hljs-symbol,
+:root[data-syntax-theme="dracula"] .hljs-bullet,
+:root[data-syntax-theme="dracula"] .hljs-addition {
+  color: #f1fa8c;
+}
+
+:root[data-syntax-theme="dracula"] .hljs-type,
+:root[data-syntax-theme="dracula"] .hljs-variable,
+:root[data-syntax-theme="dracula"] .hljs-template-tag,
+:root[data-syntax-theme="dracula"] .hljs-template-variable {
+  color: #8be9fd;
+}
+
+:root[data-syntax-theme="dracula"] .hljs-comment,
+:root[data-syntax-theme="dracula"] .hljs-quote,
+:root[data-syntax-theme="dracula"] .hljs-deletion,
+:root[data-syntax-theme="dracula"] .hljs-meta {
+  color: #6272a4;
+}
+
+:root[data-syntax-theme="dracula"] .hljs-number {
+  color: #bd93f9;
+}
+
+:root[data-syntax-theme="dracula"] .hljs-built_in,
+:root[data-syntax-theme="dracula"] .hljs-class .hljs-title,
+:root[data-syntax-theme="dracula"] .hljs-title.class_ {
+  color: #50fa7b;
+}
+
+:root[data-syntax-theme="dracula"] .hljs-attr,
+:root[data-syntax-theme="dracula"] .hljs-selector-id,
+:root[data-syntax-theme="dracula"] .hljs-selector-class,
+:root[data-syntax-theme="dracula"] .hljs-selector-attr,
+:root[data-syntax-theme="dracula"] .hljs-selector-pseudo {
+  color: #50fa7b;
+}
+
+:root[data-syntax-theme="dracula"] .hljs-tag {
+  color: #ff79c6;
+}
+
+:root[data-syntax-theme="dracula"] .hljs-subst {
+  color: #f8f8f2;
+}
+
+/* ============================================
+   Nord Theme
+   ============================================ */
+:root[data-syntax-theme="nord"] .hljs-keyword,
+:root[data-syntax-theme="nord"] .hljs-selector-tag,
+:root[data-syntax-theme="nord"] .hljs-literal,
+:root[data-syntax-theme="nord"] .hljs-section,
+:root[data-syntax-theme="nord"] .hljs-link {
+  color: #81a1c1;
+}
+
+:root[data-syntax-theme="nord"] .hljs-string,
+:root[data-syntax-theme="nord"] .hljs-title,
+:root[data-syntax-theme="nord"] .hljs-name,
+:root[data-syntax-theme="nord"] .hljs-attribute,
+:root[data-syntax-theme="nord"] .hljs-symbol,
+:root[data-syntax-theme="nord"] .hljs-bullet,
+:root[data-syntax-theme="nord"] .hljs-addition {
+  color: #a3be8c;
+}
+
+:root[data-syntax-theme="nord"] .hljs-type,
+:root[data-syntax-theme="nord"] .hljs-variable,
+:root[data-syntax-theme="nord"] .hljs-template-tag,
+:root[data-syntax-theme="nord"] .hljs-template-variable {
+  color: #8fbcbb;
+}
+
+:root[data-syntax-theme="nord"] .hljs-comment,
+:root[data-syntax-theme="nord"] .hljs-quote,
+:root[data-syntax-theme="nord"] .hljs-deletion,
+:root[data-syntax-theme="nord"] .hljs-meta {
+  color: #616e88;
+}
+
+:root[data-syntax-theme="nord"] .hljs-number {
+  color: #b48ead;
+}
+
+:root[data-syntax-theme="nord"] .hljs-built_in,
+:root[data-syntax-theme="nord"] .hljs-class .hljs-title,
+:root[data-syntax-theme="nord"] .hljs-title.class_ {
+  color: #88c0d0;
+}
+
+:root[data-syntax-theme="nord"] .hljs-attr,
+:root[data-syntax-theme="nord"] .hljs-selector-id,
+:root[data-syntax-theme="nord"] .hljs-selector-class,
+:root[data-syntax-theme="nord"] .hljs-selector-attr,
+:root[data-syntax-theme="nord"] .hljs-selector-pseudo {
+  color: #8fbcbb;
+}
+
+:root[data-syntax-theme="nord"] .hljs-tag {
+  color: #81a1c1;
+}
+
+:root[data-syntax-theme="nord"] .hljs-subst {
+  color: #d8dee9;
+}
+
+/* ============================================
+   Default fallback (when no syntax theme is set)
+   Uses GitHub theme colors
+   ============================================ */
+:root:not([data-syntax-theme]) .hljs-keyword,
+:root:not([data-syntax-theme]) .hljs-selector-tag,
+:root:not([data-syntax-theme]) .hljs-literal,
+:root:not([data-syntax-theme]) .hljs-section,
+:root:not([data-syntax-theme]) .hljs-link {
+  color: #d73a49;
+}
+
+:root:not([data-syntax-theme]) .hljs-string,
+:root:not([data-syntax-theme]) .hljs-title,
+:root:not([data-syntax-theme]) .hljs-name,
+:root:not([data-syntax-theme]) .hljs-type,
+:root:not([data-syntax-theme]) .hljs-attribute,
+:root:not([data-syntax-theme]) .hljs-symbol,
+:root:not([data-syntax-theme]) .hljs-bullet,
+:root:not([data-syntax-theme]) .hljs-addition,
+:root:not([data-syntax-theme]) .hljs-variable,
+:root:not([data-syntax-theme]) .hljs-template-tag,
+:root:not([data-syntax-theme]) .hljs-template-variable {
+  color: #032f62;
+}
+
+:root:not([data-syntax-theme]) .hljs-comment,
+:root:not([data-syntax-theme]) .hljs-quote,
+:root:not([data-syntax-theme]) .hljs-deletion,
+:root:not([data-syntax-theme]) .hljs-meta {
+  color: #6a737d;
+}
+
+:root:not([data-syntax-theme]) .hljs-number {
+  color: #005cc5;
+}
+
+:root:not([data-syntax-theme]) .hljs-built_in,
+:root:not([data-syntax-theme]) .hljs-class .hljs-title,
+:root:not([data-syntax-theme]) .hljs-title.class_ {
+  color: #6f42c1;
+}
+
+:root:not([data-syntax-theme]) .hljs-attr,
+:root:not([data-syntax-theme]) .hljs-selector-id,
+:root:not([data-syntax-theme]) .hljs-selector-class,
+:root:not([data-syntax-theme]) .hljs-selector-attr,
+:root:not([data-syntax-theme]) .hljs-selector-pseudo {
+  color: #6f42c1;
+}
+
+:root:not([data-syntax-theme]) .hljs-tag {
+  color: #22863a;
+}
+
+:root:not([data-syntax-theme]) .hljs-subst {
+  color: #24292e;
+}
+
+/* Dark mode fallback */
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-keyword,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-selector-tag,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-literal,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-section,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-link {
+  color: #ff7b72;
+}
+
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-string,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-title,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-name,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-type,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-attribute,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-symbol,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-bullet,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-addition,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-variable,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-template-tag,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-template-variable {
+  color: #a5d6ff;
+}
+
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-comment,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-quote,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-deletion,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-meta {
+  color: #8b949e;
+}
+
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-number {
+  color: #79c0ff;
+}
+
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-built_in,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-class .hljs-title,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-title.class_ {
+  color: #d2a8ff;
+}
+
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-attr,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-selector-id,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-selector-class,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-selector-attr,
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-selector-pseudo {
+  color: #d2a8ff;
+}
+
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-tag {
+  color: #7ee787;
+}
+
+:root[data-theme="dark"]:not([data-syntax-theme]) .hljs-subst {
+  color: #c9d1d9;
 }
 
 /* ============================================

@@ -3,14 +3,17 @@ import {
   useI18n,
   languageNames,
   supportedLanguages,
+  SYNTAX_THEMES,
 } from "@unwritten-codes/clipper-ui";
-import type { Language, Theme } from "@unwritten-codes/clipper-ui";
+import type { Language, Theme, SyntaxTheme } from "@unwritten-codes/clipper-ui";
 
 interface SettingsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
+  syntaxTheme: SyntaxTheme;
+  onSyntaxThemeChange: (theme: SyntaxTheme) => void;
 }
 
 export function SettingsDialog({
@@ -18,18 +21,22 @@ export function SettingsDialog({
   onClose,
   theme,
   onThemeChange,
+  syntaxTheme,
+  onSyntaxThemeChange,
 }: SettingsDialogProps) {
   const { t, language, setLanguage } = useI18n();
   const [localTheme, setLocalTheme] = useState<Theme>(theme);
+  const [localSyntaxTheme, setLocalSyntaxTheme] = useState<SyntaxTheme>(syntaxTheme);
   const [localLanguage, setLocalLanguage] = useState<Language>(language);
 
   // Reset local state when dialog opens
   useEffect(() => {
     if (isOpen) {
       setLocalTheme(theme);
+      setLocalSyntaxTheme(syntaxTheme);
       setLocalLanguage(language);
     }
-  }, [isOpen, theme, language]);
+  }, [isOpen, theme, syntaxTheme, language]);
 
   // Handle ESC key
   useEffect(() => {
@@ -47,9 +54,10 @@ export function SettingsDialog({
 
   const handleSave = useCallback(() => {
     onThemeChange(localTheme);
+    onSyntaxThemeChange(localSyntaxTheme);
     setLanguage(localLanguage);
     onClose();
-  }, [localTheme, localLanguage, onThemeChange, setLanguage, onClose]);
+  }, [localTheme, localSyntaxTheme, localLanguage, onThemeChange, onSyntaxThemeChange, setLanguage, onClose]);
 
   if (!isOpen) return null;
 
@@ -112,6 +120,23 @@ export function SettingsDialog({
                 ))}
               </select>
               <p className="settings-hint">{t("settings.language.hint")}</p>
+            </div>
+
+            {/* Syntax Theme */}
+            <div className="settings-field">
+              <label>{t("settings.syntaxTheme")}</label>
+              <select
+                className="settings-select"
+                value={localSyntaxTheme}
+                onChange={(e) => setLocalSyntaxTheme(e.target.value as SyntaxTheme)}
+              >
+                {SYNTAX_THEMES.map((theme) => (
+                  <option key={theme} value={theme}>
+                    {t(`settings.syntaxTheme.${theme}` as const)}
+                  </option>
+                ))}
+              </select>
+              <p className="settings-hint">{t("settings.syntaxTheme.hint")}</p>
             </div>
           </div>
         </div>
