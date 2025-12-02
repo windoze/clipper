@@ -136,6 +136,12 @@ jobs:
             if [ -n "$DMG_PATH" ]; then
               cp "$DMG_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_macos_universal.dmg"
             fi
+            # Also include app.zip for users who prefer manual installation
+            APP_PATH=$(find target -path "*/bundle/macos/Clipper.app" -type d | head -1)
+            if [ -n "$APP_PATH" ]; then
+              APP_DIR=$(dirname "$APP_PATH")
+              (cd "$APP_DIR" && zip -r -y "$OLDPWD/release-artifacts/Clipper_${{ github.ref_name }}_macos_universal.app.zip" "Clipper.app")
+            fi
           elif [[ "${{ matrix.platform }}" == ubuntu* ]]; then
             DEB_PATH=$(find target -name "*.deb" -type f | head -1)
             RPM_PATH=$(find target -name "*.rpm" -type f | head -1)
