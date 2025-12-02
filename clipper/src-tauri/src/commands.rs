@@ -338,6 +338,10 @@ pub async fn switch_to_bundled_server(
         server_manager.start(&app).await?
     };
 
+    // Add a grace period to ensure the server is fully ready to accept connections
+    // The server's health check may pass before it's ready for WebSocket connections
+    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
     // Get token for bundled server - always use if set (server requires it when configured)
     let token = settings_manager.get_bundled_server_token();
 

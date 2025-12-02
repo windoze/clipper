@@ -78,12 +78,12 @@ impl ServerManager {
         }
 
         // For development, try relative to the executable
-        if let Ok(exe_path) = std::env::current_exe() {
-            if let Some(exe_dir) = exe_path.parent() {
-                let sidecar_path = exe_dir.join(&sidecar_name);
-                if sidecar_path.exists() {
-                    return Ok(sidecar_path);
-                }
+        if let Ok(exe_path) = std::env::current_exe()
+            && let Some(exe_dir) = exe_path.parent()
+        {
+            let sidecar_path = exe_dir.join(&sidecar_name);
+            if sidecar_path.exists() {
+                return Ok(sidecar_path);
             }
         }
 
@@ -354,10 +354,8 @@ impl ServerManager {
             std::thread::spawn(move || {
                 use std::io::{BufRead, BufReader};
                 let reader = BufReader::new(stdout);
-                for line in reader.lines() {
-                    if let Ok(line) = line {
-                        eprintln!("[clipper-server] {}", line);
-                    }
+                for line in reader.lines().map_while(Result::ok) {
+                    eprintln!("[clipper-server] {}", line);
                 }
             });
         }
@@ -366,10 +364,8 @@ impl ServerManager {
             std::thread::spawn(move || {
                 use std::io::{BufRead, BufReader};
                 let reader = BufReader::new(stderr);
-                for line in reader.lines() {
-                    if let Ok(line) = line {
-                        eprintln!("[clipper-server] {}", line);
-                    }
+                for line in reader.lines().map_while(Result::ok) {
+                    eprintln!("[clipper-server] {}", line);
                 }
             });
         }
@@ -486,11 +482,11 @@ impl Drop for ServerManager {
             *pipe_guard = None;
         }
         // Then kill the child process
-        if let Ok(mut child_guard) = self.child.try_lock() {
-            if let Some(mut child) = child_guard.take() {
-                let _ = child.kill();
-                let _ = child.wait();
-            }
+        if let Ok(mut child_guard) = self.child.try_lock()
+            && let Some(mut child) = child_guard.take()
+        {
+            let _ = child.kill();
+            let _ = child.wait();
         }
     }
 }
