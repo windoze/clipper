@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
+import hljs from "highlight.js";
 import { Clip, isFavorite, calculateAgeRatio } from "../types";
 import { ImagePopup } from "./ImagePopup";
 import { EditClipDialog } from "./EditClipDialog";
+import { LanguageSelector, LanguageId, LANGUAGES } from "./LanguageSelector";
 import { useI18n } from "../i18n";
 import { useToast } from "./Toast";
 import { useApi } from "../api";
@@ -35,6 +37,32 @@ const MAX_CONTENT_LENGTH = 200;
 
 // Minimum opacity to ensure readability (0.5 = 50%)
 const MIN_OPACITY = 0.5;
+
+// Try to detect language from content
+function detectLanguage(content: string): LanguageId {
+  // Try auto-detection with highlight.js
+  const result = hljs.highlightAuto(content, LANGUAGES.map(l => l.id).filter(id => id !== "plaintext"));
+  if (result.language && result.relevance > 5) {
+    return result.language as LanguageId;
+  }
+  return "plaintext";
+}
+
+// Escape HTML for safe rendering
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Truncate content
+function truncateContent(content: string): string {
+  if (content.length <= MAX_CONTENT_LENGTH) return content;
+  return content.substring(0, MAX_CONTENT_LENGTH) + "...";
+}
 
 export function ClipEntry({
   clip,
@@ -76,9 +104,42 @@ export function ClipEntry({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(() => detectLanguage(clip.content));
 
   const isImage = clip.file_attachment && isImageFile(clip.file_attachment);
   const isLongContent = clip.content.length > MAX_CONTENT_LENGTH;
+
+  // Generate highlighted HTML
+  const highlightedContent = useMemo(() => {
+    if (selectedLanguage === "plaintext") {
+      return null;
+    }
+    try {
+      const result = hljs.highlight(clip.content, { language: selectedLanguage });
+      return result.value;
+    } catch {
+      return null;
+    }
+  }, [clip.content, selectedLanguage]);
+
+  // Truncate highlighted content (preserving HTML structure is complex, so we use plain truncation for preview)
+  const displayContent = useMemo(() => {
+    const content = isExpanded ? clip.content : truncateContent(clip.content);
+    if (selectedLanguage === "plaintext" || !highlightedContent) {
+      return { __html: escapeHtml(content) };
+    }
+    // For highlighted content, we need to re-highlight the truncated version
+    if (!isExpanded && isLongContent) {
+      try {
+        const result = hljs.highlight(content.replace(/\.\.\.$/, ""), { language: selectedLanguage });
+        return { __html: result.value + (isLongContent ? "..." : "") };
+      } catch {
+        return { __html: escapeHtml(content) };
+      }
+    }
+    return { __html: highlightedContent };
+  }, [clip.content, selectedLanguage, highlightedContent, isExpanded, isLongContent]);
 
   // Get file URL for image clips
   useEffect(() => {
@@ -168,11 +229,6 @@ export function ClipEntry({
     }
   };
 
-  const truncateContent = (content: string): string => {
-    if (content.length <= MAX_CONTENT_LENGTH) return content;
-    return content.substring(0, MAX_CONTENT_LENGTH) + "...";
-  };
-
   const handleExpandToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsExpanded(!isExpanded);
@@ -191,6 +247,8 @@ export function ClipEntry({
         className={clipEntryClassName}
         style={ageStyle}
         onClick={handleCopy}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="clip-header">
           <span className="clip-date">{formatDate(clip.created_at)}</span>
@@ -241,8 +299,16 @@ export function ClipEntry({
             </div>
           </div>
         ) : (
-          <div className={`clip-content ${isExpanded ? "expanded" : ""}`}>
-            {isExpanded ? clip.content : truncateContent(clip.content)}
+          <div className="clip-content-wrapper">
+            <LanguageSelector
+              value={selectedLanguage}
+              onChange={setSelectedLanguage}
+              visible={isHovered}
+            />
+            <div
+              className={`clip-content ${isExpanded ? "expanded" : ""} ${selectedLanguage !== "plaintext" ? "hljs" : ""}`}
+              dangerouslySetInnerHTML={displayContent}
+            />
             {isLongContent && (
               <button
                 className="expand-button"

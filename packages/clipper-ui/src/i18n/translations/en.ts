@@ -23,6 +23,7 @@ export const en = {
   "clip.delete_confirm": "Are you sure you want to delete this clip?",
   "clip.expand": "Show more",
   "clip.collapse": "Show less",
+  "clip.selectLanguage": "Select syntax highlighting language",
 
   // Clip List
   "clipList.loading": "Loading clips...",

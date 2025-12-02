@@ -21,6 +21,7 @@ The version info is in following files:
 - `clipper-server/web/package.json` (Server web UI)
 - `clipper/src-tauri/package.json`
 - `clipper/src-tauri/tauri.conf.json`
+- `packages/clipper-ui/package.json`
 - `Dockerfile`
 - `README.md` and `README.zh-CN.md`
 

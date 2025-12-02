@@ -23,6 +23,7 @@ export const zh = {
   "clip.delete_confirm": "确定要删除这条剪贴吗？",
   "clip.expand": "展开",
   "clip.collapse": "收起",
+  "clip.selectLanguage": "选择语法高亮语言",
 
   // Clip List
   "clipList.loading": "加载剪贴中...",

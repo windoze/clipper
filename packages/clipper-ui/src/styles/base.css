@@ -574,6 +574,11 @@
   color: #ffc107;
 }
 
+/* Clip Content Wrapper */
+.clip-content-wrapper {
+  position: relative;
+}
+
 .clip-content {
   font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code", "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 13px;
@@ -602,6 +607,187 @@
 .expand-button:hover {
   text-decoration: underline;
   color: #0056b3;
+}
+
+/* ============================================
+   Language Selector
+   ============================================ */
+.language-selector {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+
+.language-selector.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.language-selector-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #495057;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.language-selector-button:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.language-selector-label {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.language-selector-arrow {
+  transition: transform 0.2s;
+}
+
+.language-selector-arrow.open {
+  transform: rotate(180deg);
+}
+
+.language-selector-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 300px;
+  overflow-y: auto;
+  min-width: 140px;
+  z-index: 100;
+}
+
+.language-selector-option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 12px;
+  color: #212529;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.language-selector-option:hover {
+  background: #f8f9fa;
+}
+
+.language-selector-option.selected {
+  background: #667eea;
+  color: white;
+}
+
+.language-selector-option.selected:hover {
+  background: #5a6fd6;
+}
+
+/* ============================================
+   Syntax Highlighting (highlight.js)
+   ============================================ */
+.clip-content.hljs {
+  background: transparent;
+  padding: 0;
+}
+
+/* Light theme syntax highlighting colors */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+  color: #d73a49;
+}
+
+.hljs-function .hljs-keyword {
+  color: #d73a49;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-name,
+.hljs-type,
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable {
+  color: #032f62;
+}
+
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: #6a737d;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-title,
+.hljs-section,
+.hljs-doctag,
+.hljs-type,
+.hljs-name,
+.hljs-strong {
+  font-weight: 600;
+}
+
+.hljs-number {
+  color: #005cc5;
+}
+
+.hljs-built_in,
+.hljs-class .hljs-title,
+.hljs-title.class_ {
+  color: #6f42c1;
+}
+
+.hljs-attr,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-selector-attr,
+.hljs-selector-pseudo {
+  color: #6f42c1;
+}
+
+.hljs-tag {
+  color: #22863a;
+}
+
+.hljs-subst {
+  color: #24292e;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 600;
 }
 
 /* ============================================

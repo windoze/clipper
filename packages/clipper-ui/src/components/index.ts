@@ -5,6 +5,8 @@ export { DateFilter } from "./DateFilter";
 export { EditClipDialog } from "./EditClipDialog";
 export { FavoriteToggle } from "./FavoriteToggle";
 export { ImagePopup } from "./ImagePopup";
+export { LanguageSelector, LANGUAGES } from "./LanguageSelector";
+export type { LanguageId } from "./LanguageSelector";
 export { SearchBox } from "./SearchBox";
 export { ToastProvider, useToast } from "./Toast";
 export type { ToastType } from "./Toast";
