@@ -119,6 +119,21 @@ function App({ authToken }: AppProps) {
     }));
   }, [setFilters]);
 
+  // Date filter handlers for DateTag component
+  const handleSetStartDate = useCallback((isoDate: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      start_date: isoDate,
+    }));
+  }, [setFilters]);
+
+  const handleSetEndDate = useCallback((isoDate: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      end_date: isoDate,
+    }));
+  }, [setFilters]);
+
   // File drop handlers
   const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -388,6 +403,8 @@ function App({ authToken }: AppProps) {
           onClipUpdated={updateClipInList}
           onClipDeleted={deleteClipFromList}
           onTagClick={handleAddTagFilter}
+          onSetStartDate={handleSetStartDate}
+          onSetEndDate={handleSetEndDate}
         />
       </main>
 

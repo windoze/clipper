@@ -229,6 +229,21 @@ function App() {
     }));
   }, [setFilters]);
 
+  // Date filter handlers for DateTag component
+  const handleSetStartDate = useCallback((isoDate: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      start_date: isoDate,
+    }));
+  }, [setFilters]);
+
+  const handleSetEndDate = useCallback((isoDate: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      end_date: isoDate,
+    }));
+  }, [setFilters]);
+
   return (
     <DropZone>
       <div className={`app ${os}`}>
@@ -491,6 +506,8 @@ function App() {
             onClipUpdated={updateClipInList}
             onClipDeleted={deleteClipFromList}
             onTagClick={handleAddTagFilter}
+            onSetStartDate={handleSetStartDate}
+            onSetEndDate={handleSetEndDate}
             onRetry={refetch}
             onOpenSettings={openSettings}
             showBundledServerReason={useBundledServer}

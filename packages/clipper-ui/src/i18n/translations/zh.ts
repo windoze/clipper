@@ -25,6 +25,10 @@ export const zh = {
   "clip.collapse": "收起",
   "clip.selectLanguage": "选择语法高亮语言",
 
+  // Date Tag
+  "dateTag.setStartDate": "从此日期开始筛选",
+  "dateTag.setEndDate": "筛选到此日期",
+
   // Clip List
   "clipList.loading": "加载剪贴中...",
   "clipList.error": "错误：{error}",

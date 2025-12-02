@@ -524,7 +524,6 @@
   border: 1px solid #e9ecef;
   border-radius: 8px;
   padding: 12px;
-  cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -551,9 +550,76 @@
   margin-bottom: 8px;
 }
 
+.clip-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .clip-date {
   font-size: 12px;
   color: #6c757d;
+}
+
+/* ============================================
+   Date Tag (clickable date filter)
+   ============================================ */
+.date-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
+  position: relative;
+  transition: padding 0.15s ease;
+}
+
+.date-tag:hover {
+  padding: 3px 6px;
+}
+
+.date-tag-text {
+  white-space: nowrap;
+}
+
+.date-tag-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+  width: 0;
+  height: 16px;
+  opacity: 0;
+  overflow: hidden;
+  transition: width 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+  border-radius: 4px;
+}
+
+.date-tag-arrow.visible {
+  width: 18px;
+  opacity: 0.8;
+}
+
+.date-tag-arrow:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.date-tag-arrow-left {
+  margin-right: 2px;
+}
+
+.date-tag-arrow-right {
+  margin-left: 2px;
 }
 
 .favorite-button {
@@ -613,18 +679,8 @@
    Language Selector
    ============================================ */
 .language-selector {
-  position: absolute;
-  top: 0;
-  right: 0;
+  position: relative;
   z-index: 10;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s, visibility 0.2s;
-}
-
-.language-selector.visible {
-  opacity: 1;
-  visibility: visible;
 }
 
 .language-selector-button {
@@ -1655,6 +1711,24 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.copy-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #adb5bd;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.copy-button:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
 }
 
 .edit-button {

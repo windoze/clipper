@@ -15,6 +15,8 @@ interface ClipListProps {
   onClipUpdated?: (updatedClip: Clip) => void;
   onClipDeleted?: (clipId: string) => void;
   onTagClick?: (tag: string) => void;
+  onSetStartDate?: (isoDate: string) => void;
+  onSetEndDate?: (isoDate: string) => void;
   onRetry?: () => void;
   onOpenSettings?: () => void;
   showBundledServerReason?: boolean;
@@ -56,6 +58,8 @@ export function ClipList({
   onClipUpdated,
   onClipDeleted,
   onTagClick,
+  onSetStartDate,
+  onSetEndDate,
   onRetry,
   onOpenSettings,
   showBundledServerReason = false,
@@ -161,6 +165,8 @@ export function ClipList({
           onClipUpdated={onClipUpdated}
           onClipDeleted={onClipDeleted}
           onTagClick={onTagClick}
+          onSetStartDate={onSetStartDate}
+          onSetEndDate={onSetEndDate}
         />
       ))}
 

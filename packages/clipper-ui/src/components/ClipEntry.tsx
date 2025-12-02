@@ -4,6 +4,7 @@ import { Clip, isFavorite, calculateAgeRatio } from "../types";
 import { ImagePopup } from "./ImagePopup";
 import { EditClipDialog } from "./EditClipDialog";
 import { LanguageSelector, LanguageId, LANGUAGES } from "./LanguageSelector";
+import { DateTag } from "./DateTag";
 import { useI18n } from "../i18n";
 import { useToast } from "./Toast";
 import { useApi } from "../api";
@@ -15,6 +16,8 @@ interface ClipEntryProps {
   onClipUpdated?: (updatedClip: Clip) => void;
   onClipDeleted?: (clipId: string) => void;
   onTagClick?: (tag: string) => void;
+  onSetStartDate?: (isoDate: string) => void;
+  onSetEndDate?: (isoDate: string) => void;
 }
 
 // Image file extensions
@@ -70,6 +73,8 @@ export function ClipEntry({
   onClipUpdated,
   onClipDeleted,
   onTagClick,
+  onSetStartDate,
+  onSetEndDate,
 }: ClipEntryProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
@@ -104,7 +109,6 @@ export function ClipEntry({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(() => detectLanguage(clip.content));
 
   const isImage = clip.file_attachment && isImageFile(clip.file_attachment);
@@ -153,19 +157,8 @@ export function ClipEntry({
     }
   }, [clip.id, isImage, api]);
 
-  const formatDate = (dateStr: string): string => {
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleString();
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const handleCopy = async () => {
-    // Don't copy if this is an image clip
-    if (isImage) return;
-
+  const handleCopyClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await api.copyToClipboard(clip.content);
       showToast(t("toast.clipCopied"));
@@ -246,13 +239,44 @@ export function ClipEntry({
       <div
         className={clipEntryClassName}
         style={ageStyle}
-        onClick={handleCopy}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="clip-header">
-          <span className="clip-date">{formatDate(clip.created_at)}</span>
+          <div className="clip-header-left">
+            <DateTag
+              dateStr={clip.created_at}
+              onSetStartDate={onSetStartDate}
+              onSetEndDate={onSetEndDate}
+            />
+            {!isImage && (
+              <LanguageSelector
+                value={selectedLanguage}
+                onChange={setSelectedLanguage}
+                visible={true}
+              />
+            )}
+          </div>
           <div className="clip-actions">
+            {!isImage && (
+              <button
+                className="copy-button"
+                onClick={handleCopyClick}
+                title={t("tooltip.copy")}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            )}
             <button
               className="edit-button"
               onClick={handleEditClick}
@@ -300,11 +324,6 @@ export function ClipEntry({
           </div>
         ) : (
           <div className="clip-content-wrapper">
-            <LanguageSelector
-              value={selectedLanguage}
-              onChange={setSelectedLanguage}
-              visible={isHovered}
-            />
             <div
               className={`clip-content ${isExpanded ? "expanded" : ""} ${selectedLanguage !== "plaintext" ? "hljs" : ""}`}
               dangerouslySetInnerHTML={displayContent}

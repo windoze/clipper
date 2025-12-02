@@ -2,6 +2,7 @@ export { ClipEntry } from "./ClipEntry";
 export { ClipList } from "./ClipList";
 export { ConnectionError } from "./ConnectionError";
 export { DateFilter } from "./DateFilter";
+export { DateTag } from "./DateTag";
 export { EditClipDialog } from "./EditClipDialog";
 export { FavoriteToggle } from "./FavoriteToggle";
 export { ImagePopup } from "./ImagePopup";

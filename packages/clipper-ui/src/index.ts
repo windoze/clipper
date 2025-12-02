@@ -30,6 +30,7 @@ export {
   ClipList,
   ConnectionError,
   DateFilter,
+  DateTag,
   EditClipDialog,
   FavoriteToggle,
   ImagePopup,

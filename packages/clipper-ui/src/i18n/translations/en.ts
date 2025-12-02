@@ -25,6 +25,10 @@ export const en = {
   "clip.collapse": "Show less",
   "clip.selectLanguage": "Select syntax highlighting language",
 
+  // Date Tag
+  "dateTag.setStartDate": "Filter from this date",
+  "dateTag.setEndDate": "Filter until this date",
+
   // Clip List
   "clipList.loading": "Loading clips...",
   "clipList.error": "Error: {error}",
