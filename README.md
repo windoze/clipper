@@ -31,7 +31,7 @@ English | [简体中文](README.zh-CN.md)
 
 Download the latest release for your platform from the [Releases](https://github.com/user/clipper/releases) page.
 
-> **Note:** The binaries are not code-signed. See [Unsigned Binaries](#unsigned-binaries) for platform-specific instructions to run the app.
+> **Note:** macOS binaries are signed and notarized. Windows and Linux binaries are not code-signed. See [Platform Notes](#platform-notes) for platform-specific instructions.
 
 ### Build from Source
 
@@ -339,32 +339,15 @@ clipper/
     └── src/
 ```
 
-## Unsigned Binaries
-
-The release binaries are **not code-signed**, which means your operating system may show security warnings when you first run the application. This is normal for open-source software distributed outside official app stores.
+## Platform Notes
 
 ### macOS
 
-macOS will show a warning that the app "cannot be opened because the developer cannot be verified."
+macOS binaries are **signed and notarized** by Apple. On first launch, macOS may show a dialog saying the app is from an identified developer - click **"Open"** to proceed.
 
-**Workaround:**
-
-1. **Right-click method** (recommended):
-   - Right-click (or Control-click) on Clipper.app
-   - Select "Open" from the context menu
-   - Click "Open" in the dialog that appears
-   - The app will be remembered and open normally from now on
-
-2. **System Preferences method**:
-   - Try to open the app normally (it will be blocked)
-   - Open **System Settings** > **Privacy & Security**
-   - Scroll down to find the message about Clipper being blocked
-   - Click "Open Anyway"
-
-3. **Terminal method** (removes quarantine flag):
-   ```bash
-   xattr -cr /Applications/Clipper.app
-   ```
+Available formats:
+- **DMG** - Disk image with drag-to-install interface
+- **app.zip** - Compressed app bundle for manual installation
 
 ### Windows
 
