@@ -227,6 +227,14 @@ export function ClipEntry({
     setIsExpanded(!isExpanded);
   };
 
+  // Handle click on the clip entry itself - toggle expand/collapse for long content
+  const handleEntryClick = () => {
+    // Only toggle if content is long (not for images)
+    if (isLongContent && !isImage) {
+      setIsExpanded(!isExpanded);
+    }
+  };
+
   // Build class names including aging class if applicable
   const clipEntryClassName = [
     "clip-entry",
@@ -239,6 +247,7 @@ export function ClipEntry({
       <div
         className={clipEntryClassName}
         style={ageStyle}
+        onClick={handleEntryClick}
       >
         <div className="clip-header">
           <div className="clip-header-left">

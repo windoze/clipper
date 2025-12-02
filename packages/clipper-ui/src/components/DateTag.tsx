@@ -18,22 +18,43 @@ export function DateTag({ dateStr, onSetStartDate, onSetEndDate }: DateTagProps)
     }
   };
 
+  /**
+   * Set the start date filter to the beginning of the day (local time) for this clip's date.
+   *
+   * The dateStr is an ISO string (UTC) from the clip's created_at field.
+   * We convert it to the local date and set the filter to local midnight of that day.
+   * This ensures the filter uses local timezone semantics consistent with DateFilter.
+   */
   const handleSetStartDate = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onSetStartDate) {
-      // Set start of day for the start date
+      // Parse the clip's timestamp
       const date = new Date(dateStr);
+      // Set to start of day in local timezone (local midnight)
       date.setHours(0, 0, 0, 0);
+      // Convert to UTC ISO string for the server
       onSetStartDate(date.toISOString());
     }
   };
 
+  /**
+   * Set the end date filter to include the entire day (local time) for this clip's date.
+   *
+   * The dateStr is an ISO string (UTC) from the clip's created_at field.
+   * We convert it to the local date and set the filter to local midnight of the NEXT day.
+   * This uses exclusive end boundary semantics consistent with DateFilter.
+   */
   const handleSetEndDate = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onSetEndDate) {
-      // Set end of day for the end date
+      // Parse the clip's timestamp
       const date = new Date(dateStr);
-      date.setHours(23, 59, 59, 999);
+      // Set to start of day in local timezone
+      date.setHours(0, 0, 0, 0);
+      // Add one day to get the exclusive end boundary (start of next day)
+      // This ensures all clips from the selected date are included
+      date.setDate(date.getDate() + 1);
+      // Convert to UTC ISO string for the server
       onSetEndDate(date.toISOString());
     }
   };
