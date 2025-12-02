@@ -361,6 +361,8 @@ pub async fn switch_to_bundled_server(
 }
 
 /// Switch to using an external server
+/// Returns Ok(None) if the server is reachable, or Ok(Some(error_message)) if unreachable
+/// The switch always happens regardless of connectivity
 #[tauri::command]
 pub async fn switch_to_external_server(
     app: tauri::AppHandle,
@@ -368,7 +370,7 @@ pub async fn switch_to_external_server(
     settings_manager: State<'_, SettingsManager>,
     state: State<'_, AppState>,
     server_url: String,
-) -> Result<(), String> {
+) -> Result<Option<String>, String> {
     use tauri::Emitter;
 
     eprintln!(
@@ -385,7 +387,7 @@ pub async fn switch_to_external_server(
     let token = settings_manager.get_external_server_token();
 
     // Update the client to use the external server URL with token
-    state.set_server_url_with_token(&server_url, token);
+    state.set_server_url_with_token(&server_url, token.clone());
 
     // Update settings to remember this choice and the external URL
     let mut settings = settings_manager.get();
@@ -397,7 +399,46 @@ pub async fn switch_to_external_server(
     let _ = app.emit("server-switched", ());
 
     eprintln!("[clipper] Switched to external server at {}", server_url);
-    Ok(())
+
+    // Check if the external server is reachable (but don't block the switch)
+    let connection_error = check_server_reachable(&server_url, token.as_deref()).await;
+
+    if let Some(ref err) = connection_error {
+        eprintln!(
+            "[clipper] Warning: External server is not reachable: {}",
+            err
+        );
+    }
+
+    Ok(connection_error)
+}
+
+/// Check if a server is reachable by calling its health endpoint
+/// Returns None if reachable, Some(error_message) if not
+async fn check_server_reachable(server_url: &str, token: Option<&str>) -> Option<String> {
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => return Some(format!("Failed to create HTTP client: {}", e)),
+    };
+
+    let health_url = format!("{}/health", server_url.trim_end_matches('/'));
+
+    let mut request = client.get(&health_url);
+    if let Some(t) = token {
+        request = request.header("Authorization", format!("Bearer {}", t));
+    }
+
+    match request.send().await {
+        Ok(response) if response.status().is_success() => None,
+        Ok(response) => Some(format!(
+            "Server returned error status: {}",
+            response.status()
+        )),
+        Err(e) => Some(format!("Cannot connect to server: {}", e)),
+    }
 }
 
 /// Get all local IP addresses for the machine

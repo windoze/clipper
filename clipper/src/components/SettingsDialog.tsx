@@ -230,9 +230,14 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     );
     if (externalServerChanged) {
       try {
-        await invoke("switch_to_external_server", { serverUrl: settings.serverAddress });
+        // switch_to_external_server returns null if connected, or an error message if not
+        const connectionError = await invoke<string | null>("switch_to_external_server", { serverUrl: settings.serverAddress });
         setServerUrl(settings.serverAddress);
-        showToast(t("toast.serverConnected"));
+        if (connectionError) {
+          showToast(connectionError, "error");
+        } else {
+          showToast(t("toast.serverConnected"));
+        }
       } catch (e) {
         console.error("Failed to reconnect to server:", e);
       }
@@ -281,9 +286,14 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
         showToast(t("toast.serverStarted"));
       } else {
         // Switch to external server
-        await invoke("switch_to_external_server", { serverUrl: settings.serverAddress });
+        // Returns null if connected successfully, or an error message if unreachable
+        const connectionError = await invoke<string | null>("switch_to_external_server", { serverUrl: settings.serverAddress });
         setServerUrl(settings.serverAddress);
-        showToast(t("toast.serverConnected"));
+        if (connectionError) {
+          showToast(connectionError, "error");
+        } else {
+          showToast(t("toast.serverConnected"));
+        }
       }
       // Reload settings from backend to ensure frontend is in sync
       // This is important because the switch commands update settings on the backend
