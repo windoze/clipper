@@ -80,6 +80,9 @@ ring = { version = "0.17", optional = true }
 # Secure storage (optional)
 keyring = { version = "3", optional = true }
 
+# Cross-platform pipe support for parent process monitoring
+os_pipe = "1"
+
 [[bin]]
 name = "clipper-server"
 path = "src/main.rs"

@@ -1,14 +1,21 @@
 use crate::settings::SettingsManager;
 use std::path::PathBuf;
+use std::process::{Child, Stdio};
 use tauri::{AppHandle, Manager};
-use tauri_plugin_shell::ShellExt;
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tokio::sync::{Mutex, RwLock};
+
+#[cfg(unix)]
+use std::os::unix::io::IntoRawFd;
+
+#[cfg(windows)]
+use std::os::windows::io::IntoRawHandle;
 
 /// Manages the bundled clipper-server sidecar process
 pub struct ServerManager {
     /// The server process child handle
-    child: Mutex<Option<CommandChild>>,
+    child: Mutex<Option<Child>>,
+    /// The write end of the parent monitor pipe (kept alive while server runs)
+    _pipe_writer: Mutex<Option<os_pipe::PipeWriter>>,
     /// The port the server is running on
     port: RwLock<Option<u16>>,
     /// The base URL of the server
@@ -27,6 +34,7 @@ impl ServerManager {
 
         Self {
             child: Mutex::new(None),
+            _pipe_writer: Mutex::new(None),
             port: RwLock::new(None),
             server_url: RwLock::new(None),
             db_path,
@@ -37,6 +45,86 @@ impl ServerManager {
     /// Check if a port is available
     fn is_port_available(port: u16) -> bool {
         std::net::TcpListener::bind(("127.0.0.1", port)).is_ok()
+    }
+
+    /// Find the sidecar binary path
+    /// Tauri stores sidecars next to the main executable with target triple suffix
+    fn find_sidecar_path(app: &AppHandle) -> Result<PathBuf, String> {
+        let resource_dir = app
+            .path()
+            .resource_dir()
+            .map_err(|e| format!("Failed to get resource dir: {}", e))?;
+
+        // Get target triple for the sidecar name
+        let target_triple = Self::get_target_triple();
+
+        // Sidecar binary name with target triple
+        let sidecar_name = if cfg!(windows) {
+            format!("clipper-server-{}.exe", target_triple)
+        } else {
+            format!("clipper-server-{}", target_triple)
+        };
+
+        // Try resource_dir first (production builds)
+        let sidecar_path = resource_dir.join(&sidecar_name);
+        if sidecar_path.exists() {
+            return Ok(sidecar_path);
+        }
+
+        // Try resource_dir/binaries (some Tauri configurations)
+        let sidecar_path = resource_dir.join("binaries").join(&sidecar_name);
+        if sidecar_path.exists() {
+            return Ok(sidecar_path);
+        }
+
+        // For development, try relative to the executable
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                let sidecar_path = exe_dir.join(&sidecar_name);
+                if sidecar_path.exists() {
+                    return Ok(sidecar_path);
+                }
+            }
+        }
+
+        // Try the binaries directory in development
+        let dev_path = PathBuf::from("binaries").join(&sidecar_name);
+        if dev_path.exists() {
+            return Ok(dev_path);
+        }
+
+        Err(format!(
+            "Sidecar binary not found. Looked for '{}' in resource_dir: {:?}",
+            sidecar_name, resource_dir
+        ))
+    }
+
+    /// Get the target triple for the current platform
+    fn get_target_triple() -> &'static str {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        {
+            "aarch64-apple-darwin"
+        }
+        #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+        {
+            "x86_64-apple-darwin"
+        }
+        #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+        {
+            "x86_64-unknown-linux-gnu"
+        }
+        #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+        {
+            "aarch64-unknown-linux-gnu"
+        }
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        {
+            "x86_64-pc-windows-msvc"
+        }
+        #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
+        {
+            "aarch64-pc-windows-msvc"
+        }
     }
 
     /// Get the server URL if the server is running
@@ -172,19 +260,124 @@ impl ServerManager {
             args.push(token.clone());
         }
 
-        // Spawn the sidecar process
-        let sidecar_command = app
-            .shell()
-            .sidecar("clipper-server")
-            .map_err(|e| format!("Failed to create sidecar command: {}", e))?
-            .args(&args);
+        // Create a pipe for parent process monitoring
+        // The child will monitor the read-end; when parent exits, the pipe closes
+        let (pipe_reader, pipe_writer) =
+            os_pipe::pipe().map_err(|e| format!("Failed to create monitor pipe: {}", e))?;
 
-        let (mut rx, child) = sidecar_command
+        // Get the raw handle/fd to pass to the child
+        #[cfg(unix)]
+        let pipe_handle = {
+            use std::os::unix::io::AsRawFd;
+            pipe_reader.as_raw_fd() as u64
+        };
+
+        #[cfg(windows)]
+        let pipe_handle = {
+            use std::os::windows::io::AsRawHandle;
+            pipe_reader.as_raw_handle() as u64
+        };
+
+        // Add the parent pipe handle argument
+        args.push("--parent-pipe-handle".to_string());
+        args.push(pipe_handle.to_string());
+
+        // Find the sidecar binary path
+        let sidecar_path = Self::find_sidecar_path(app)?;
+        eprintln!("[clipper-server] Sidecar path: {:?}", sidecar_path);
+
+        // Spawn the server process using std::process::Command
+        // This gives us control over handle inheritance
+        let mut command = std::process::Command::new(&sidecar_path);
+        command
+            .args(&args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+
+        // On Unix, we need to prevent the pipe from being closed on exec
+        // and pass it to the child. The fd is inherited by default.
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            // The pipe_reader fd will be inherited by the child process
+            // We need to keep it open until after spawn
+            let fd = pipe_reader.into_raw_fd();
+            // Update args with the actual fd value (in case it changed)
+            let args_len = args.len();
+            args[args_len - 1] = fd.to_string();
+            // Rebuild command with updated args
+            command = std::process::Command::new(&sidecar_path);
+            command
+                .args(&args)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped());
+
+            // Pre-exec hook to ensure the fd is not closed on exec
+            unsafe {
+                command.pre_exec(move || {
+                    // Clear the close-on-exec flag for the pipe fd
+                    let flags = libc::fcntl(fd, libc::F_GETFD);
+                    if flags != -1 {
+                        libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC);
+                    }
+                    Ok(())
+                });
+            }
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            // On Windows, we need to make the handle inheritable
+            // The pipe from os_pipe should already be inheritable
+            let handle = pipe_reader.into_raw_handle();
+            // Update args with the actual handle value
+            let args_len = args.len();
+            args[args_len - 1] = (handle as u64).to_string();
+            // Rebuild command with updated args
+            command = std::process::Command::new(&sidecar_path);
+            command
+                .args(&args)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped());
+            // CREATE_NO_WINDOW to avoid console window popup
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            command.creation_flags(CREATE_NO_WINDOW);
+        }
+
+        let mut child = command
             .spawn()
             .map_err(|e| format!("Failed to spawn server: {}", e))?;
 
-        // Store the child process
+        // Spawn tasks to forward stdout/stderr
+        if let Some(stdout) = child.stdout.take() {
+            std::thread::spawn(move || {
+                use std::io::{BufRead, BufReader};
+                let reader = BufReader::new(stdout);
+                for line in reader.lines() {
+                    if let Ok(line) = line {
+                        eprintln!("[clipper-server] {}", line);
+                    }
+                }
+            });
+        }
+
+        if let Some(stderr) = child.stderr.take() {
+            std::thread::spawn(move || {
+                use std::io::{BufRead, BufReader};
+                let reader = BufReader::new(stderr);
+                for line in reader.lines() {
+                    if let Ok(line) = line {
+                        eprintln!("[clipper-server] {}", line);
+                    }
+                }
+            });
+        }
+
+        // Store the child process and pipe writer
+        // The pipe writer must be kept alive - when it's dropped, the pipe closes
         *self.child.lock().await = Some(child);
+        *self._pipe_writer.lock().await = Some(pipe_writer);
 
         // Store the port and URL
         let server_url = format!("http://127.0.0.1:{}", port);
@@ -195,33 +388,6 @@ impl ServerManager {
         if let Err(e) = settings_manager.set_server_port(port).await {
             eprintln!("[clipper-server] Warning: Failed to save port: {}", e);
         }
-
-        // Spawn a task to monitor the server output
-        tauri::async_runtime::spawn(async move {
-            while let Some(event) = rx.recv().await {
-                match event {
-                    CommandEvent::Stdout(line_bytes) => {
-                        let line = String::from_utf8_lossy(&line_bytes);
-                        eprintln!("[clipper-server] {}", line);
-                    }
-                    CommandEvent::Stderr(line_bytes) => {
-                        let line = String::from_utf8_lossy(&line_bytes);
-                        eprintln!("[clipper-server] {}", line);
-                    }
-                    CommandEvent::Error(err) => {
-                        eprintln!("[clipper-server] Error: {}", err);
-                    }
-                    CommandEvent::Terminated(payload) => {
-                        eprintln!(
-                            "[clipper-server] Terminated with code: {:?}, signal: {:?}",
-                            payload.code, payload.signal
-                        );
-                        break;
-                    }
-                    _ => {}
-                }
-            }
-        });
 
         // Wait a bit for the server to start
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
@@ -253,12 +419,18 @@ impl ServerManager {
 
     /// Stop the server gracefully
     pub async fn stop(&self) -> Result<(), String> {
+        // Drop the pipe writer first - this signals the child that parent is shutting down
+        // But we also need to kill it explicitly for immediate shutdown
+        *self._pipe_writer.lock().await = None;
+
         let mut child_guard = self.child.lock().await;
-        if let Some(child) = child_guard.take() {
+        if let Some(mut child) = child_guard.take() {
             // Kill the process
             child
                 .kill()
                 .map_err(|e| format!("Failed to kill server: {}", e))?;
+            // Wait for the process to exit
+            let _ = child.wait();
             eprintln!("[clipper-server] Server stopped");
 
             // Wait for the process to fully terminate and port to be released
@@ -309,10 +481,16 @@ impl Drop for ServerManager {
     fn drop(&mut self) {
         // Try to stop the server synchronously on drop
         // This is a best-effort cleanup
-        if let Ok(mut child_guard) = self.child.try_lock()
-            && let Some(child) = child_guard.take()
-        {
-            let _ = child.kill();
+        // First drop the pipe writer to signal the child
+        if let Ok(mut pipe_guard) = self._pipe_writer.try_lock() {
+            *pipe_guard = None;
+        }
+        // Then kill the child process
+        if let Ok(mut child_guard) = self.child.try_lock() {
+            if let Some(mut child) = child_guard.take() {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
         }
     }
 }

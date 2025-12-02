@@ -44,6 +44,12 @@ reqwest = { version = "0.12", default-features = false, features = [
 local-ip-address = "0.6"
 gethostname = "1"
 
+# Cross-platform pipe support for server process monitoring
+os_pipe = "1"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-single-instance = "2"
 

@@ -56,6 +56,16 @@ async fn main() {
     // Parse command line arguments
     let cli = Cli::parse();
 
+    // Start parent process monitor if running in bundled mode
+    // This must be done early before the cli is consumed
+    let parent_shutdown_rx = if let Some(handle) = cli.parent_pipe_handle {
+        let rx = clipper_server::parent_monitor::init_shutdown_channel();
+        clipper_server::parent_monitor::start_parent_monitor(handle);
+        Some(rx)
+    } else {
+        None
+    };
+
     // Load configuration from all sources
     let config = ServerConfig::load(cli).unwrap_or_else(|err| {
         eprintln!("Failed to load configuration: {}", err);
@@ -159,27 +169,36 @@ async fn main() {
     // Start the server(s)
     #[cfg(feature = "tls")]
     if config.tls.enabled {
-        start_with_tls(config, app, {
-            #[cfg(feature = "acme")]
+        start_with_tls(
+            config,
+            app,
             {
-                acme_manager
-            }
-            #[cfg(not(feature = "acme"))]
-            {
-                None::<()>
-            }
-        })
+                #[cfg(feature = "acme")]
+                {
+                    acme_manager
+                }
+                #[cfg(not(feature = "acme"))]
+                {
+                    None::<()>
+                }
+            },
+            parent_shutdown_rx,
+        )
         .await;
     } else {
-        start_http_only(config, app).await;
+        start_http_only(config, app, parent_shutdown_rx).await;
     }
 
     #[cfg(not(feature = "tls"))]
-    start_http_only(config, app).await;
+    start_http_only(config, app, parent_shutdown_rx).await;
 }
 
 /// Start HTTP-only server (no TLS).
-async fn start_http_only(config: ServerConfig, app: Router) {
+async fn start_http_only(
+    config: ServerConfig,
+    app: Router,
+    parent_shutdown_rx: Option<tokio::sync::broadcast::Receiver<()>>,
+) {
     let addr = config.socket_addr().unwrap_or_else(|err| {
         eprintln!("Invalid listen address: {}", err);
         std::process::exit(1);
@@ -195,15 +214,19 @@ async fn start_http_only(config: ServerConfig, app: Router) {
     tracing::info!("HTTP server listening on {}", addr);
 
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(shutdown_signal(parent_shutdown_rx))
         .await
         .expect("Server failed");
 }
 
 /// Start server with TLS support.
 #[cfg(feature = "tls")]
-async fn start_with_tls<T>(config: ServerConfig, app: Router, acme_manager: Option<T>)
-where
+async fn start_with_tls<T>(
+    config: ServerConfig,
+    app: Router,
+    acme_manager: Option<T>,
+    parent_shutdown_rx: Option<tokio::sync::broadcast::Receiver<()>>,
+) where
     T: std::any::Any + Send + Sync + 'static,
 {
     #[cfg(feature = "acme")]
@@ -280,7 +303,18 @@ where
 
     tracing::info!("HTTPS server listening on {}", tls_addr);
 
+    // Create a handle for graceful shutdown
+    let handle = axum_server::Handle::new();
+    let shutdown_handle = handle.clone();
+
+    // Spawn shutdown signal listener
+    tokio::spawn(async move {
+        shutdown_signal(parent_shutdown_rx).await;
+        shutdown_handle.graceful_shutdown(Some(std::time::Duration::from_secs(10)));
+    });
+
     axum_server::bind_rustls(tls_addr, rustls_config)
+        .handle(handle)
         .serve(app.into_make_service())
         .await
         .expect("HTTPS server failed");
@@ -561,7 +595,7 @@ async fn serve_index_html_from_fs(web_dir: &str, _uri: Uri) -> Result<Response<B
     }
 }
 
-async fn shutdown_signal() {
+async fn shutdown_signal(parent_shutdown_rx: Option<tokio::sync::broadcast::Receiver<()>>) {
     let ctrl_c = async {
         tokio::signal::ctrl_c()
             .await
@@ -579,10 +613,23 @@ async fn shutdown_signal() {
     #[cfg(not(unix))]
     let terminate = std::future::pending::<()>();
 
-    tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
-    }
+    let parent_exit = async {
+        if let Some(mut rx) = parent_shutdown_rx {
+            let _ = rx.recv().await;
+        } else {
+            std::future::pending::<()>().await;
+        }
+    };
 
-    tracing::info!("Shutdown signal received, starting graceful shutdown");
+    tokio::select! {
+        _ = ctrl_c => {
+            tracing::info!("Received Ctrl+C, starting graceful shutdown");
+        },
+        _ = terminate => {
+            tracing::info!("Received terminate signal, starting graceful shutdown");
+        },
+        _ = parent_exit => {
+            tracing::info!("Parent process exited, starting graceful shutdown");
+        },
+    }
 }

@@ -3,6 +3,7 @@ pub mod auth;
 pub mod cleanup;
 pub mod config;
 pub mod error;
+pub mod parent_monitor;
 pub mod state;
 pub mod websocket;
 

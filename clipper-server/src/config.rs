@@ -96,6 +96,11 @@ pub struct Cli {
     /// Maximum upload size in megabytes (default: 10)
     #[arg(long, env = "CLIPPER_MAX_UPLOAD_SIZE_MB")]
     pub max_upload_size_mb: Option<u64>,
+
+    // Hidden option for parent process monitoring (used by bundled server in Tauri app)
+    /// Pipe handle from parent process for lifecycle monitoring (internal use only)
+    #[arg(long, hide = true)]
+    pub parent_pipe_handle: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
