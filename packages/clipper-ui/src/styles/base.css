@@ -575,11 +575,12 @@
 }
 
 .clip-content {
-  font-size: 14px;
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code", "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
   color: #212529;
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .clip-content.expanded {
