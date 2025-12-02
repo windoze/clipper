@@ -29,11 +29,6 @@ jobs:
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Get tag or commit id
-        id: get-version-id
-        uses: iawia002/get-tag-or-commit-id@v1
-        with:
-          length: 7 # Optional: to get a short commit ID
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Log in to Docker Hub
@@ -69,8 +64,6 @@ jobs:
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
-      - id: set_output
-        run: echo "version_tag=${{ steps.get-version-id.outputs.id }}" >> "$GITHUB_OUTPUT"
 
   merge-manifests:
     name: Merge Docker manifests
