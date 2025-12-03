@@ -285,10 +285,12 @@ export function createRestApiClient(
     },
 
     getFileUrl(clipId: string): string {
-      // Include token in URL for file downloads if set
+      // Include token in URL as query parameter for authenticated file access
+      // This is needed for <img src> tags which can't set Authorization headers
       const url = `${baseUrl}/clips/${clipId}/file`;
-      // Note: For authenticated file downloads, we'd need to handle this differently
-      // (e.g., fetch with headers and create blob URL), but for now just return the URL
+      if (token) {
+        return `${url}?token=${encodeURIComponent(token)}`;
+      }
       return url;
     },
 

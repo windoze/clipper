@@ -12,6 +12,36 @@ const scriptDir = __dirname;
 const clipperDir = path.dirname(scriptDir);
 const projectRoot = path.dirname(clipperDir);
 
+// Path to server web UI
+const serverWebDir = path.join(projectRoot, "clipper-server", "web");
+const serverWebDistDir = path.join(serverWebDir, "dist");
+
+// Build the server web UI if not already built (only needs to be done once)
+function buildServerWebUI() {
+  if (fs.existsSync(serverWebDistDir)) {
+    console.log("Server web UI already built, skipping...");
+    return;
+  }
+
+  console.log("Building server web UI for embed-web feature...");
+
+  // Install dependencies
+  console.log("Installing web UI dependencies...");
+  execSync("npm install", {
+    cwd: serverWebDir,
+    stdio: "inherit",
+  });
+
+  // Build the web UI
+  console.log("Building web UI...");
+  execSync("npm run build", {
+    cwd: serverWebDir,
+    stdio: "inherit",
+  });
+
+  console.log("Server web UI built successfully.");
+}
+
 // Get target triple(s) from environment or argument
 // Can be comma-separated for universal builds (e.g., "aarch64-apple-darwin,x86_64-apple-darwin")
 function getTargetTriples() {
@@ -56,8 +86,8 @@ function buildForTarget(targetTriple) {
     return sourceBinary;
   }
 
-  // Build clipper-server with explicit target
-  const cargoArgs = ["build", "--release", "-p", "clipper-server", "--target", targetTriple];
+  // Build clipper-server with explicit target and embed-web feature
+  const cargoArgs = ["build", "--release", "-p", "clipper-server", "--target", targetTriple, "--features", "embed-web"];
 
   console.log(`Running: cargo ${cargoArgs.join(" ")}`);
   execSync(`cargo ${cargoArgs.join(" ")}`, {
@@ -78,6 +108,9 @@ function createUniversalBinary(binaries, outputPath) {
 }
 
 function main() {
+  // Build web UI first (only once, even for universal binary)
+  buildServerWebUI();
+
   const targetTriples = getTargetTriples();
   const binariesDir = path.join(clipperDir, "src-tauri", "binaries");
 
