@@ -2426,3 +2426,46 @@
   margin: 0;
   line-height: 1.4;
 }
+
+/* Update Section Styles */
+.settings-update-ready {
+  font-weight: 600;
+  color: #10b981;
+  margin: 0 0 12px 0;
+}
+
+.settings-update-available {
+  font-weight: 600;
+  color: #f59e0b;
+  margin: 0 0 8px 0;
+}
+
+.settings-update-notes {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 12px 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.settings-update-notes pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #495057;
+  font-family: inherit;
+}
+
+.settings-notice {
+  background: #fff3cd;
+  color: #856404;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 12px;
+}

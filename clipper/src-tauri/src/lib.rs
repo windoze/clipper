@@ -144,6 +144,8 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_prevent_default::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(move |app| {
             // Get directories for migration and settings
             let config_dir = get_app_config_dir(app.handle())?;
@@ -437,6 +439,8 @@ pub fn run() {
             commands::get_websocket_status,
             commands::get_server_info,
             commands::get_max_upload_size_bytes,
+            commands::check_for_updates,
+            commands::install_update,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

@@ -569,3 +569,75 @@ pub async fn get_server_info(state: State<'_, AppState>) -> Result<ServerInfo, S
 pub fn get_max_upload_size_bytes(state: State<'_, AppState>) -> u64 {
     state.get_max_upload_size_bytes()
 }
+
+// ============ Updater Commands ============
+
+/// Information about an available update
+#[derive(Debug, Clone, Serialize)]
+pub struct UpdateInfo {
+    pub version: String,
+    pub current_version: String,
+    pub body: Option<String>,
+    pub date: Option<String>,
+}
+
+/// Check for available updates
+/// Returns Some(UpdateInfo) if an update is available, None if already up to date
+#[tauri::command]
+pub async fn check_for_updates(app: tauri::AppHandle) -> Result<Option<UpdateInfo>, String> {
+    use tauri_plugin_updater::UpdaterExt;
+
+    let updater = app.updater().map_err(|e| e.to_string())?;
+
+    match updater.check().await {
+        Ok(Some(update)) => {
+            let current_version = app.package_info().version.to_string();
+            Ok(Some(UpdateInfo {
+                version: update.version.clone(),
+                current_version,
+                body: update.body.clone(),
+                date: update.date.map(|d| d.to_string()),
+            }))
+        }
+        Ok(None) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Download and install the available update
+/// This will download the update and prompt the user to restart
+#[tauri::command]
+pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::Emitter;
+    use tauri_plugin_updater::UpdaterExt;
+
+    let updater = app.updater().map_err(|e| e.to_string())?;
+
+    match updater.check().await {
+        Ok(Some(update)) => {
+            // Emit progress events during download
+            let app_handle = app.clone();
+            update
+                .download_and_install(
+                    |chunk_length, content_length| {
+                        let progress = content_length.map(|total| {
+                            (chunk_length as f64 / total as f64 * 100.0) as u32
+                        });
+                        let _ = app_handle.emit("update-download-progress", progress);
+                    },
+                    || {
+                        let _ = app_handle.emit("update-download-finished", ());
+                    },
+                )
+                .await
+                .map_err(|e| e.to_string())?;
+
+            // Emit event that update is ready and app needs restart
+            let _ = app.emit("update-ready", ());
+
+            Ok(())
+        }
+        Ok(None) => Err("No update available".to_string()),
+        Err(e) => Err(e.to_string()),
+    }
+}

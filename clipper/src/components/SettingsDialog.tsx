@@ -45,6 +45,13 @@ interface ServerInfo {
   };
 }
 
+interface UpdateInfo {
+  version: string;
+  current_version: string;
+  body: string | null;
+  date: string | null;
+}
+
 interface SettingsDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -104,6 +111,12 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
   const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
   const shortcutInputRef = useRef<HTMLDivElement>(null);
+  // Update state
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [updateReady, setUpdateReady] = useState(false);
 
   // Load settings when dialog opens
   useEffect(() => {
@@ -431,6 +444,65 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const cancelRecordingShortcut = () => {
     setIsRecordingShortcut(false);
     setRecordedKeys([]);
+  };
+
+  // Check for updates
+  const handleCheckForUpdates = async () => {
+    setCheckingForUpdates(true);
+    setUpdateError(null);
+    setUpdateInfo(null);
+    try {
+      const info = await invoke<UpdateInfo | null>("check_for_updates");
+      setUpdateInfo(info);
+      if (info) {
+        showToast(t("toast.updateAvailable").replace("{version}", info.version));
+      }
+    } catch (e) {
+      setUpdateError(String(e));
+    } finally {
+      setCheckingForUpdates(false);
+    }
+  };
+
+  // Install update
+  const handleInstallUpdate = async () => {
+    setInstallingUpdate(true);
+    setUpdateError(null);
+    try {
+      await invoke("install_update");
+      // The update-ready event will be emitted by the backend
+    } catch (e) {
+      setUpdateError(String(e));
+      setInstallingUpdate(false);
+    }
+  };
+
+  // Listen for update events
+  useEffect(() => {
+    const unlistenUpdateReady = listen("update-ready", () => {
+      setInstallingUpdate(false);
+      setUpdateReady(true);
+      showToast(t("toast.updateDownloaded"));
+    });
+
+    return () => {
+      unlistenUpdateReady.then((fn) => fn());
+    };
+  }, [showToast, t]);
+
+  // Restart to apply update
+  const handleRestartToUpdate = async () => {
+    try {
+      // The app will restart automatically after download_and_install
+      // For now, we can use process.relaunch if available
+      const { relaunch } = await import("@tauri-apps/plugin-process");
+      await relaunch();
+    } catch (e) {
+      console.error("Failed to restart:", e);
+      // Fallback: just close the app
+      const { exit } = await import("@tauri-apps/plugin-process");
+      await exit(0);
+    }
   };
 
   // Format shortcut for display (replace Ctrl/Command based on platform)
@@ -1003,6 +1075,68 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
                   </div>
                 </div>
               )}
+
+              <div className="settings-section">
+                <h3>{t("settings.updates")}</h3>
+                <div className="settings-field">
+                  {updateReady ? (
+                    <>
+                      <p className="settings-update-ready">
+                        {t("settings.updates.restartRequired")}
+                      </p>
+                      <button
+                        type="button"
+                        className="settings-btn primary"
+                        onClick={handleRestartToUpdate}
+                      >
+                        {t("settings.updates.restartNow")}
+                      </button>
+                    </>
+                  ) : updateInfo ? (
+                    <>
+                      <p className="settings-update-available">
+                        {t("settings.updates.available")}
+                      </p>
+                      <p className="settings-hint">
+                        {t("settings.updates.available.hint")
+                          .replace("{version}", updateInfo.version)
+                          .replace("{currentVersion}", updateInfo.current_version)}
+                      </p>
+                      {updateInfo.body && (
+                        <div className="settings-update-notes">
+                          <pre>{updateInfo.body}</pre>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        className="settings-btn primary"
+                        onClick={handleInstallUpdate}
+                        disabled={installingUpdate}
+                      >
+                        {installingUpdate
+                          ? t("settings.updates.downloading")
+                          : t("settings.updates.downloadAndInstall")}
+                      </button>
+                    </>
+                  ) : checkingForUpdates ? (
+                    <p className="settings-hint">{t("settings.updates.checking")}</p>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="settings-btn secondary"
+                        onClick={handleCheckForUpdates}
+                        disabled={checkingForUpdates}
+                      >
+                        {t("settings.updates.checkForUpdates")}
+                      </button>
+                      {updateError && (
+                        <p className="settings-error">{t("settings.updates.error")}: {updateError}</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
             </>
           )}
         </div>

@@ -1114,4 +1114,18 @@
   :root:not([data-theme="light"]) .connection-error-hint {
     color: #6b7280;
   }
+
+  :root:not([data-theme="light"]) .settings-update-notes {
+    background: #2a2a2a;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .settings-update-notes pre {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .settings-notice {
+    background: #433920;
+    color: #fbbf24;
+  }
 }

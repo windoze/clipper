@@ -99,6 +99,24 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.maxUploadSize": "Maximum Upload Size (MB)",
     "settings.maxUploadSize.hint": "Maximum file size allowed for uploads. Larger files will be rejected.",
     "settings.maxUploadSize.externalHint": "This value is configured on the external server and cannot be changed here.",
+
+    // Updates
+    "settings.updates": "Updates",
+    "settings.updates.checkForUpdates": "Check for Updates",
+    "settings.updates.checking": "Checking for updates...",
+    "settings.updates.upToDate": "You're up to date!",
+    "settings.updates.upToDate.hint": "Current version: {version}",
+    "settings.updates.available": "Update Available",
+    "settings.updates.available.hint": "Version {version} is available. You're currently on {currentVersion}.",
+    "settings.updates.downloadAndInstall": "Download & Install",
+    "settings.updates.downloading": "Downloading...",
+    "settings.updates.installing": "Installing...",
+    "settings.updates.restartRequired": "Update ready! Restart to apply.",
+    "settings.updates.restartNow": "Restart Now",
+    "settings.updates.error": "Failed to check for updates",
+    "settings.updates.installError": "Failed to install update",
+    "toast.updateAvailable": "Update available: v{version}",
+    "toast.updateDownloaded": "Update downloaded. Restart to apply.",
   },
   zh: {
     // Startup
@@ -197,5 +215,23 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.maxUploadSize": "最大上传大小 (MB)",
     "settings.maxUploadSize.hint": "允许上传的最大文件大小。超过此大小的文件将被拒绝。",
     "settings.maxUploadSize.externalHint": "此值在外部服务器上配置，无法在此处更改。",
+
+    // Updates
+    "settings.updates": "更新",
+    "settings.updates.checkForUpdates": "检查更新",
+    "settings.updates.checking": "正在检查更新...",
+    "settings.updates.upToDate": "已是最新版本！",
+    "settings.updates.upToDate.hint": "当前版本：{version}",
+    "settings.updates.available": "有可用更新",
+    "settings.updates.available.hint": "版本 {version} 可用。当前版本为 {currentVersion}。",
+    "settings.updates.downloadAndInstall": "下载并安装",
+    "settings.updates.downloading": "下载中...",
+    "settings.updates.installing": "安装中...",
+    "settings.updates.restartRequired": "更新就绪！重启以应用。",
+    "settings.updates.restartNow": "立即重启",
+    "settings.updates.error": "检查更新失败",
+    "settings.updates.installError": "安装更新失败",
+    "toast.updateAvailable": "有可用更新：v{version}",
+    "toast.updateDownloaded": "更新已下载。重启以应用。",
   },
 };

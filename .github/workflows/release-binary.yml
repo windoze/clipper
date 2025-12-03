@@ -111,6 +111,9 @@ jobs:
           APPLE_ID: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_ID || '' }}
           APPLE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_PASSWORD || '' }}
           APPLE_TEAM_ID: ${{ matrix.platform == 'macos-latest' && secrets.APPLE_TEAM_ID || '' }}
+          # Updater signing keys (for auto-update functionality)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: clipper
           tauriScript: npx tauri
@@ -142,6 +145,15 @@ jobs:
               APP_DIR=$(dirname "$APP_PATH")
               (cd "$APP_DIR" && zip -r -y "$OLDPWD/release-artifacts/Clipper_${{ github.ref_name }}_macos_universal.app.zip" "Clipper.app")
             fi
+            # Copy updater artifacts (tar.gz and signature)
+            UPDATER_TAR=$(find target -name "*.tar.gz" -path "*/bundle/*" -type f | head -1)
+            UPDATER_SIG=$(find target -name "*.tar.gz.sig" -path "*/bundle/*" -type f | head -1)
+            if [ -n "$UPDATER_TAR" ]; then
+              cp "$UPDATER_TAR" "release-artifacts/Clipper_${{ github.ref_name }}_macos_universal.app.tar.gz"
+            fi
+            if [ -n "$UPDATER_SIG" ]; then
+              cp "$UPDATER_SIG" "release-artifacts/Clipper_${{ github.ref_name }}_macos_universal.app.tar.gz.sig"
+            fi
           elif [[ "${{ matrix.platform }}" == ubuntu* ]]; then
             DEB_PATH=$(find target -name "*.deb" -type f | head -1)
             RPM_PATH=$(find target -name "*.rpm" -type f | head -1)
@@ -155,6 +167,15 @@ jobs:
             if [ -n "$APPIMAGE_PATH" ]; then
               cp "$APPIMAGE_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_${{ matrix.arch }}.AppImage"
             fi
+            # Copy updater artifacts (tar.gz and signature)
+            UPDATER_TAR=$(find target -name "*.tar.gz" -path "*/bundle/*" -type f | head -1)
+            UPDATER_SIG=$(find target -name "*.tar.gz.sig" -path "*/bundle/*" -type f | head -1)
+            if [ -n "$UPDATER_TAR" ]; then
+              cp "$UPDATER_TAR" "release-artifacts/Clipper_${{ github.ref_name }}_linux_${{ matrix.arch }}.AppImage.tar.gz"
+            fi
+            if [ -n "$UPDATER_SIG" ]; then
+              cp "$UPDATER_SIG" "release-artifacts/Clipper_${{ github.ref_name }}_linux_${{ matrix.arch }}.AppImage.tar.gz.sig"
+            fi
           elif [ "${{ matrix.platform }}" == "windows-latest" ]; then
             MSI_PATH=$(find target -name "*.msi" -type f | head -1)
             NSIS_PATH=$(find target -name "*-setup.exe" -type f | head -1)
@@ -163,6 +184,15 @@ jobs:
             fi
             if [ -n "$NSIS_PATH" ]; then
               cp "$NSIS_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.exe"
+            fi
+            # Copy updater artifacts (nsis.zip and signature)
+            UPDATER_ZIP=$(find target -name "*-setup.nsis.zip" -type f | head -1)
+            UPDATER_SIG=$(find target -name "*-setup.nsis.zip.sig" -type f | head -1)
+            if [ -n "$UPDATER_ZIP" ]; then
+              cp "$UPDATER_ZIP" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.nsis.zip"
+            fi
+            if [ -n "$UPDATER_SIG" ]; then
+              cp "$UPDATER_SIG" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.nsis.zip.sig"
             fi
           fi
           ls -la release-artifacts/
@@ -189,6 +219,66 @@ jobs:
 
       - name: List artifacts
         run: ls -la artifacts/
+
+      - name: Generate latest.json for auto-updater
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION_NUM="${VERSION#v}"  # Remove 'v' prefix
+          RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          REPO_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}"
+
+          # Read signatures from .sig files
+          MACOS_SIG=""
+          LINUX_AMD64_SIG=""
+          LINUX_ARM64_SIG=""
+          WINDOWS_SIG=""
+
+          if [ -f "artifacts/Clipper_${VERSION}_macos_universal.app.tar.gz.sig" ]; then
+            MACOS_SIG=$(cat "artifacts/Clipper_${VERSION}_macos_universal.app.tar.gz.sig")
+          fi
+          if [ -f "artifacts/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz.sig" ]; then
+            LINUX_AMD64_SIG=$(cat "artifacts/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz.sig")
+          fi
+          if [ -f "artifacts/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz.sig" ]; then
+            LINUX_ARM64_SIG=$(cat "artifacts/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz.sig")
+          fi
+          if [ -f "artifacts/Clipper_${VERSION}_x64-setup.nsis.zip.sig" ]; then
+            WINDOWS_SIG=$(cat "artifacts/Clipper_${VERSION}_x64-setup.nsis.zip.sig")
+          fi
+
+          # Create latest.json
+          cat > artifacts/latest.json << EOF
+          {
+            "version": "${VERSION_NUM}",
+            "notes": "See the release notes at https://github.com/${{ github.repository }}/releases/tag/${VERSION}",
+            "pub_date": "${RELEASE_DATE}",
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": "${MACOS_SIG}",
+                "url": "${REPO_URL}/Clipper_${VERSION}_macos_universal.app.tar.gz"
+              },
+              "darwin-x86_64": {
+                "signature": "${MACOS_SIG}",
+                "url": "${REPO_URL}/Clipper_${VERSION}_macos_universal.app.tar.gz"
+              },
+              "linux-x86_64": {
+                "signature": "${LINUX_AMD64_SIG}",
+                "url": "${REPO_URL}/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz"
+              },
+              "linux-aarch64": {
+                "signature": "${LINUX_ARM64_SIG}",
+                "url": "${REPO_URL}/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz"
+              },
+              "windows-x86_64": {
+                "signature": "${WINDOWS_SIG}",
+                "url": "${REPO_URL}/Clipper_${VERSION}_x64-setup.nsis.zip"
+              }
+            }
+          }
+          EOF
+
+          echo "Generated latest.json:"
+          cat artifacts/latest.json
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
