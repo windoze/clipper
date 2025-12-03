@@ -134,6 +134,17 @@ jobs:
         shell: bash
         run: |
           mkdir -p release-artifacts
+
+          # Debug: List all files in target directory that might be relevant
+          echo "=== Debug: Searching for all potential artifacts ==="
+          echo "Looking for .tar.gz files:"
+          find target -name "*.tar.gz" -type f 2>/dev/null || true
+          echo "Looking for .sig files:"
+          find target -name "*.sig" -type f 2>/dev/null || true
+          echo "Looking for .nsis.zip files:"
+          find target -name "*.nsis.zip" -type f 2>/dev/null || true
+          echo "=== End debug output ==="
+
           if [ "${{ matrix.platform }}" == "macos-latest" ]; then
             DMG_PATH=$(find target -name "*.dmg" -type f | head -1)
             if [ -n "$DMG_PATH" ]; then
@@ -146,14 +157,22 @@ jobs:
               (cd "$APP_DIR" && zip -r -y "$OLDPWD/release-artifacts/Clipper_${{ github.ref_name }}_macos_universal.app.zip" "Clipper.app")
             fi
             # Copy updater artifacts (tar.gz and signature)
-            UPDATER_TAR=$(find target -name "*.tar.gz" -path "*/bundle/*" -type f | head -1)
-            UPDATER_SIG=$(find target -name "*.tar.gz.sig" -path "*/bundle/*" -type f | head -1)
+            # Tauri generates .app.tar.gz for macOS updater
+            UPDATER_TAR=$(find target -name "*.app.tar.gz" -type f | head -1)
+            UPDATER_SIG=$(find target -name "*.app.tar.gz.sig" -type f | head -1)
             if [ -n "$UPDATER_TAR" ]; then
+              echo "Found macOS updater tar.gz: $UPDATER_TAR"
               cp "$UPDATER_TAR" "release-artifacts/Clipper_${{ github.ref_name }}_macos_universal.app.tar.gz"
+            else
+              echo "WARNING: macOS updater tar.gz not found"
             fi
             if [ -n "$UPDATER_SIG" ]; then
+              echo "Found macOS updater signature: $UPDATER_SIG"
               cp "$UPDATER_SIG" "release-artifacts/Clipper_${{ github.ref_name }}_macos_universal.app.tar.gz.sig"
+            else
+              echo "WARNING: macOS updater signature not found"
             fi
+
           elif [[ "${{ matrix.platform }}" == ubuntu* ]]; then
             DEB_PATH=$(find target -name "*.deb" -type f | head -1)
             RPM_PATH=$(find target -name "*.rpm" -type f | head -1)
@@ -167,15 +186,23 @@ jobs:
             if [ -n "$APPIMAGE_PATH" ]; then
               cp "$APPIMAGE_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_${{ matrix.arch }}.AppImage"
             fi
-            # Copy updater artifacts (tar.gz and signature)
-            UPDATER_TAR=$(find target -name "*.tar.gz" -path "*/bundle/*" -type f | head -1)
-            UPDATER_SIG=$(find target -name "*.tar.gz.sig" -path "*/bundle/*" -type f | head -1)
+            # Copy updater artifacts (AppImage.tar.gz and signature)
+            # Tauri generates AppImage.tar.gz for Linux updater
+            UPDATER_TAR=$(find target -name "*.AppImage.tar.gz" -type f | head -1)
+            UPDATER_SIG=$(find target -name "*.AppImage.tar.gz.sig" -type f | head -1)
             if [ -n "$UPDATER_TAR" ]; then
+              echo "Found Linux updater tar.gz: $UPDATER_TAR"
               cp "$UPDATER_TAR" "release-artifacts/Clipper_${{ github.ref_name }}_linux_${{ matrix.arch }}.AppImage.tar.gz"
+            else
+              echo "WARNING: Linux updater tar.gz not found"
             fi
             if [ -n "$UPDATER_SIG" ]; then
+              echo "Found Linux updater signature: $UPDATER_SIG"
               cp "$UPDATER_SIG" "release-artifacts/Clipper_${{ github.ref_name }}_linux_${{ matrix.arch }}.AppImage.tar.gz.sig"
+            else
+              echo "WARNING: Linux updater signature not found"
             fi
+
           elif [ "${{ matrix.platform }}" == "windows-latest" ]; then
             MSI_PATH=$(find target -name "*.msi" -type f | head -1)
             NSIS_PATH=$(find target -name "*-setup.exe" -type f | head -1)
@@ -186,15 +213,23 @@ jobs:
               cp "$NSIS_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.exe"
             fi
             # Copy updater artifacts (nsis.zip and signature)
-            UPDATER_ZIP=$(find target -name "*-setup.nsis.zip" -type f | head -1)
-            UPDATER_SIG=$(find target -name "*-setup.nsis.zip.sig" -type f | head -1)
+            UPDATER_ZIP=$(find target -name "*.nsis.zip" -type f | head -1)
+            UPDATER_SIG=$(find target -name "*.nsis.zip.sig" -type f | head -1)
             if [ -n "$UPDATER_ZIP" ]; then
+              echo "Found Windows updater zip: $UPDATER_ZIP"
               cp "$UPDATER_ZIP" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.nsis.zip"
+            else
+              echo "WARNING: Windows updater zip not found"
             fi
             if [ -n "$UPDATER_SIG" ]; then
+              echo "Found Windows updater signature: $UPDATER_SIG"
               cp "$UPDATER_SIG" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.nsis.zip.sig"
+            else
+              echo "WARNING: Windows updater signature not found"
             fi
           fi
+
+          echo "=== Final artifacts ==="
           ls -la release-artifacts/
 
       - name: Upload release artifacts
@@ -227,6 +262,12 @@ jobs:
           RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           REPO_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}"
 
+          # Debug: List all downloaded artifacts
+          echo "=== Downloaded artifacts ==="
+          ls -la artifacts/
+          echo "=== Signature files ==="
+          ls -la artifacts/*.sig 2>/dev/null || echo "No .sig files found"
+
           # Read signatures from .sig files
           MACOS_SIG=""
           LINUX_AMD64_SIG=""
@@ -235,49 +276,56 @@ jobs:
 
           if [ -f "artifacts/Clipper_${VERSION}_macos_universal.app.tar.gz.sig" ]; then
             MACOS_SIG=$(cat "artifacts/Clipper_${VERSION}_macos_universal.app.tar.gz.sig")
+            echo "Found macOS signature"
+          else
+            echo "Missing macOS signature: artifacts/Clipper_${VERSION}_macos_universal.app.tar.gz.sig"
           fi
           if [ -f "artifacts/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz.sig" ]; then
             LINUX_AMD64_SIG=$(cat "artifacts/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz.sig")
+            echo "Found Linux amd64 signature"
+          else
+            echo "Missing Linux amd64 signature: artifacts/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz.sig"
           fi
           if [ -f "artifacts/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz.sig" ]; then
             LINUX_ARM64_SIG=$(cat "artifacts/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz.sig")
+            echo "Found Linux arm64 signature"
+          else
+            echo "Missing Linux arm64 signature: artifacts/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz.sig"
           fi
           if [ -f "artifacts/Clipper_${VERSION}_x64-setup.nsis.zip.sig" ]; then
             WINDOWS_SIG=$(cat "artifacts/Clipper_${VERSION}_x64-setup.nsis.zip.sig")
+            echo "Found Windows signature"
+          else
+            echo "Missing Windows signature: artifacts/Clipper_${VERSION}_x64-setup.nsis.zip.sig"
           fi
 
-          # Create latest.json
-          cat > artifacts/latest.json << EOF
-          {
-            "version": "${VERSION_NUM}",
-            "notes": "See the release notes at https://github.com/${{ github.repository }}/releases/tag/${VERSION}",
-            "pub_date": "${RELEASE_DATE}",
-            "platforms": {
-              "darwin-aarch64": {
-                "signature": "${MACOS_SIG}",
-                "url": "${REPO_URL}/Clipper_${VERSION}_macos_universal.app.tar.gz"
-              },
-              "darwin-x86_64": {
-                "signature": "${MACOS_SIG}",
-                "url": "${REPO_URL}/Clipper_${VERSION}_macos_universal.app.tar.gz"
-              },
-              "linux-x86_64": {
-                "signature": "${LINUX_AMD64_SIG}",
-                "url": "${REPO_URL}/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz"
-              },
-              "linux-aarch64": {
-                "signature": "${LINUX_ARM64_SIG}",
-                "url": "${REPO_URL}/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz"
-              },
-              "windows-x86_64": {
-                "signature": "${WINDOWS_SIG}",
-                "url": "${REPO_URL}/Clipper_${VERSION}_x64-setup.nsis.zip"
+          # Create latest.json using jq for proper JSON generation
+          jq -n \
+            --arg version "$VERSION_NUM" \
+            --arg notes "See the release notes at https://github.com/${{ github.repository }}/releases/tag/${VERSION}" \
+            --arg pub_date "$RELEASE_DATE" \
+            --arg macos_sig "$MACOS_SIG" \
+            --arg macos_url "${REPO_URL}/Clipper_${VERSION}_macos_universal.app.tar.gz" \
+            --arg linux_amd64_sig "$LINUX_AMD64_SIG" \
+            --arg linux_amd64_url "${REPO_URL}/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz" \
+            --arg linux_arm64_sig "$LINUX_ARM64_SIG" \
+            --arg linux_arm64_url "${REPO_URL}/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz" \
+            --arg windows_sig "$WINDOWS_SIG" \
+            --arg windows_url "${REPO_URL}/Clipper_${VERSION}_x64-setup.nsis.zip" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                "darwin-aarch64": { signature: $macos_sig, url: $macos_url },
+                "darwin-x86_64": { signature: $macos_sig, url: $macos_url },
+                "linux-x86_64": { signature: $linux_amd64_sig, url: $linux_amd64_url },
+                "linux-aarch64": { signature: $linux_arm64_sig, url: $linux_arm64_url },
+                "windows-x86_64": { signature: $windows_sig, url: $windows_url }
               }
-            }
-          }
-          EOF
+            }' > artifacts/latest.json
 
-          echo "Generated latest.json:"
+          echo "=== Generated latest.json ==="
           cat artifacts/latest.json
 
       - name: Create Release
