@@ -48,7 +48,8 @@ impl ServerManager {
     }
 
     /// Find the sidecar binary path
-    /// Tauri stores sidecars next to the main executable with target triple suffix
+    /// Tauri places sidecars in Contents/MacOS/ on macOS (plain name in production,
+    /// with target triple suffix during development)
     fn find_sidecar_path(app: &AppHandle) -> Result<PathBuf, String> {
         let resource_dir = app
             .path()
@@ -56,49 +57,61 @@ impl ServerManager {
             .map_err(|e| format!("Failed to get resource dir: {}", e))?;
 
         // Get possible target triples for the sidecar name
-        // On macOS, we check for universal binary first, then architecture-specific
         let target_triples = Self::get_target_triples();
 
+        // Build list of possible sidecar names to try
+        // Production builds use plain name, development builds use target triple suffix
+        let mut sidecar_names: Vec<String> = vec![];
+
+        // Plain name first (production builds)
+        if cfg!(windows) {
+            sidecar_names.push("clipper-server.exe".to_string());
+        } else {
+            sidecar_names.push("clipper-server".to_string());
+        }
+
+        // Then try with target triple suffix (development builds)
         for target_triple in &target_triples {
-            // Sidecar binary name with target triple
-            let sidecar_name = if cfg!(windows) {
-                format!("clipper-server-{}.exe", target_triple)
+            if cfg!(windows) {
+                sidecar_names.push(format!("clipper-server-{}.exe", target_triple));
             } else {
-                format!("clipper-server-{}", target_triple)
-            };
-
-            // Try resource_dir first (production builds)
-            let sidecar_path = resource_dir.join(&sidecar_name);
-            if sidecar_path.exists() {
-                return Ok(sidecar_path);
+                sidecar_names.push(format!("clipper-server-{}", target_triple));
             }
+        }
 
-            // Try resource_dir/binaries (some Tauri configurations)
-            let sidecar_path = resource_dir.join("binaries").join(&sidecar_name);
-            if sidecar_path.exists() {
-                return Ok(sidecar_path);
-            }
-
-            // For development, try relative to the executable
+        for sidecar_name in &sidecar_names {
+            // Try next to the main executable (Contents/MacOS/ on macOS)
             if let Ok(exe_path) = std::env::current_exe()
                 && let Some(exe_dir) = exe_path.parent()
             {
-                let sidecar_path = exe_dir.join(&sidecar_name);
+                let sidecar_path = exe_dir.join(sidecar_name);
                 if sidecar_path.exists() {
                     return Ok(sidecar_path);
                 }
             }
 
-            // Try the binaries directory in development
-            let dev_path = PathBuf::from("binaries").join(&sidecar_name);
+            // Try resource_dir (some Tauri configurations)
+            let sidecar_path = resource_dir.join(sidecar_name);
+            if sidecar_path.exists() {
+                return Ok(sidecar_path);
+            }
+
+            // Try resource_dir/binaries
+            let sidecar_path = resource_dir.join("binaries").join(sidecar_name);
+            if sidecar_path.exists() {
+                return Ok(sidecar_path);
+            }
+
+            // Try the binaries directory in development (CWD)
+            let dev_path = PathBuf::from("binaries").join(sidecar_name);
             if dev_path.exists() {
                 return Ok(dev_path);
             }
         }
 
         Err(format!(
-            "Sidecar binary not found. Looked for targets {:?} in resource_dir: {:?}",
-            target_triples, resource_dir
+            "Sidecar binary not found. Looked for {:?} in exe_dir and resource_dir: {:?}",
+            sidecar_names, resource_dir
         ))
     }
 
