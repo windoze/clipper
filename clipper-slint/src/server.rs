@@ -467,13 +467,12 @@ pub fn get_local_ip_addresses() -> Vec<String> {
     }
 
     // Fallback: try to get the local IP
-    if addresses.is_empty() {
-        if let Ok(ip) = local_ip_address::local_ip() {
-            if let std::net::IpAddr::V4(ipv4) = ip {
-                if !ipv4.is_loopback() {
-                    addresses.push(ipv4.to_string());
-                }
-            }
+    if addresses.is_empty()
+        && let Ok(ip) = local_ip_address::local_ip()
+        && let std::net::IpAddr::V4(ipv4) = ip
+    {
+        if !ipv4.is_loopback() {
+            addresses.push(ipv4.to_string());
         }
     }
 
