@@ -70,8 +70,8 @@ function getTargetTriples() {
   return [hostTuple];
 }
 
-// Build for a single target and return the path to the binary
-function buildForTarget(targetTriple) {
+// Build clipper-server for a single target and return the path to the binary
+function buildServerForTarget(targetTriple) {
   console.log(`Building clipper-server for target: ${targetTriple}`);
 
   const isWindows = targetTriple.includes("windows");
@@ -88,6 +88,34 @@ function buildForTarget(targetTriple) {
 
   // Build clipper-server with explicit target and embed-web feature
   const cargoArgs = ["build", "--release", "-p", "clipper-server", "--target", targetTriple, "--features", "embed-web"];
+
+  console.log(`Running: cargo ${cargoArgs.join(" ")}`);
+  execSync(`cargo ${cargoArgs.join(" ")}`, {
+    cwd: projectRoot,
+    stdio: "inherit",
+  });
+
+  return sourceBinary;
+}
+
+// Build clipper-cli for a single target and return the path to the binary
+function buildCliForTarget(targetTriple) {
+  console.log(`Building clipper-cli for target: ${targetTriple}`);
+
+  const isWindows = targetTriple.includes("windows");
+  const binaryName = isWindows ? "clipper-cli.exe" : "clipper-cli";
+
+  // Binary is always in target/{triple}/release/ when using --target
+  const sourceBinary = path.join(projectRoot, "target", targetTriple, "release", binaryName);
+
+  // Skip building if binary already exists
+  if (fs.existsSync(sourceBinary)) {
+    console.log(`Binary already exists: ${sourceBinary}, skipping build`);
+    return sourceBinary;
+  }
+
+  // Build clipper-cli with explicit target
+  const cargoArgs = ["build", "--release", "-p", "clipper-cli", "--target", targetTriple];
 
   console.log(`Running: cargo ${cargoArgs.join(" ")}`);
   execSync(`cargo ${cargoArgs.join(" ")}`, {
@@ -123,11 +151,11 @@ function main() {
     targetTriples.includes("x86_64-apple-darwin");
 
   if (isMacOSUniversal) {
-    // Build both architectures separately
-    const builtBinaries = [];
+    // Build both architectures separately for clipper-server
+    const builtServerBinaries = [];
     for (const target of targetTriples) {
-      const sourceBinary = buildForTarget(target);
-      builtBinaries.push(sourceBinary);
+      const sourceBinary = buildServerForTarget(target);
+      builtServerBinaries.push(sourceBinary);
 
       // Also copy individual arch binaries (needed during Tauri's cargo build phase)
       const destBinaryName = `clipper-server-${target}`;
@@ -137,22 +165,47 @@ function main() {
     }
 
     // Create universal binary with lipo (needed during Tauri's bundle phase)
-    const universalBinaryPath = path.join(binariesDir, "clipper-server-universal-apple-darwin");
-    createUniversalBinary(builtBinaries, universalBinaryPath);
+    const universalServerPath = path.join(binariesDir, "clipper-server-universal-apple-darwin");
+    createUniversalBinary(builtServerBinaries, universalServerPath);
+
+    // Build both architectures separately for clipper-cli
+    const builtCliBinaries = [];
+    for (const target of targetTriples) {
+      const sourceBinary = buildCliForTarget(target);
+      builtCliBinaries.push(sourceBinary);
+
+      // Also copy individual arch binaries (needed during Tauri's cargo build phase)
+      const destBinaryName = `clipper-cli-${target}`;
+      const destBinary = path.join(binariesDir, destBinaryName);
+      fs.copyFileSync(sourceBinary, destBinary);
+      console.log(`Copied clipper-cli to: ${destBinary}`);
+    }
+
+    // Create universal binary with lipo (needed during Tauri's bundle phase)
+    const universalCliPath = path.join(binariesDir, "clipper-cli-universal-apple-darwin");
+    createUniversalBinary(builtCliBinaries, universalCliPath);
   } else {
     // Single target build (Linux, Windows, or single macOS arch)
     const targetTriple = targetTriples[0];
     const isWindows = targetTriple.includes("windows");
-    const sourceBinary = buildForTarget(targetTriple);
 
-    const destBinaryName = isWindows
+    // Build and copy clipper-server
+    const sourceServerBinary = buildServerForTarget(targetTriple);
+    const destServerBinaryName = isWindows
       ? `clipper-server-${targetTriple}.exe`
       : `clipper-server-${targetTriple}`;
-    const destBinary = path.join(binariesDir, destBinaryName);
+    const destServerBinary = path.join(binariesDir, destServerBinaryName);
+    fs.copyFileSync(sourceServerBinary, destServerBinary);
+    console.log(`Copied clipper-server to: ${destServerBinary}`);
 
-    // Copy binary
-    fs.copyFileSync(sourceBinary, destBinary);
-    console.log(`Copied clipper-server to: ${destBinary}`);
+    // Build and copy clipper-cli
+    const sourceCliBinary = buildCliForTarget(targetTriple);
+    const destCliBinaryName = isWindows
+      ? `clipper-cli-${targetTriple}.exe`
+      : `clipper-cli-${targetTriple}`;
+    const destCliBinary = path.join(binariesDir, destCliBinaryName);
+    fs.copyFileSync(sourceCliBinary, destCliBinary);
+    console.log(`Copied clipper-cli to: ${destCliBinary}`);
   }
 }
 
