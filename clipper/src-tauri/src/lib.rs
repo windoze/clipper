@@ -9,6 +9,7 @@ mod tray;
 mod tray_i18n;
 mod websocket;
 
+use log::{error, info, warn};
 use server::{ServerManager, get_server_data_dir};
 use settings::{SettingsManager, get_app_config_dir};
 use state::AppState;
@@ -126,7 +127,27 @@ pub fn parse_shortcut(shortcut_str: &str) -> Option<Shortcut> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
-        // Single instance plugin must be registered FIRST
+        // Log plugin should be registered early to capture all logs
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Stdout,
+                ))
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("clipper".into()),
+                    },
+                ))
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Webview,
+                ))
+                .level(log::LevelFilter::Info)
+                // Rotate logs when they reach 1MB, keep only one backup file
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
+                .max_file_size(1_000_000) // 1MB per file
+                .build(),
+        )
+        // Single instance plugin must be registered FIRST (after log)
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             // When a second instance is launched, show the existing window
             if let Some(window) = app.get_webview_window("main") {
@@ -154,12 +175,12 @@ pub fn run() {
             // Run migration from old app identifier if needed
             tauri::async_runtime::block_on(async {
                 if let Err(e) = migration::migrate_from_old_location(&config_dir, &data_dir).await {
-                    eprintln!("[clipper] Migration warning: {}", e);
+                    warn!("Migration warning: {}", e);
                 }
             });
 
             // Initialize settings manager
-            eprintln!("[clipper] Config directory: {}", config_dir.display());
+            info!("Config directory: {}", config_dir.display());
             let settings_manager = SettingsManager::new(config_dir);
 
             // Load settings synchronously during setup
@@ -167,7 +188,7 @@ pub fn run() {
             let settings_manager_clone = settings_manager.clone();
             tauri::async_runtime::block_on(async move {
                 if let Err(e) = settings_manager_clone.init().await {
-                    eprintln!("Failed to load settings: {}", e);
+                    error!("Failed to load settings: {}", e);
                 }
             });
 
@@ -190,11 +211,11 @@ pub fn run() {
                 let url = tauri::async_runtime::block_on(async {
                     match server_manager.start(&app_handle_for_server).await {
                         Ok(url) => {
-                            eprintln!("Bundled server started at: {}", url);
+                            info!("Bundled server started at: {}", url);
                             url
                         }
                         Err(e) => {
-                            eprintln!(
+                            error!(
                                 "Failed to start bundled server: {}. Falling back to settings.",
                                 e
                             );
@@ -207,7 +228,7 @@ pub fn run() {
             } else {
                 let external_url = settings_manager.get().server_address.clone();
                 let external_token = settings_manager.get_external_server_token();
-                eprintln!("Using external server at: {}", external_url);
+                info!("Using external server at: {}", external_url);
                 (external_url, external_token)
             };
 
@@ -232,7 +253,7 @@ pub fn run() {
             let settings_for_tray = settings_manager.get();
             let tray_language = settings_for_tray.language.as_deref().unwrap_or("en");
             if let Err(e) = tray::setup_tray(app.handle(), tray_language) {
-                eprintln!("Failed to setup tray: {}", e);
+                error!("Failed to setup tray: {}", e);
             }
 
             // Start clipboard monitoring
@@ -293,7 +314,7 @@ pub fn run() {
 
             // Register the shortcut
             if let Err(e) = app.global_shortcut().register(shortcut) {
-                eprintln!(
+                error!(
                     "Failed to register global shortcut '{}': {}",
                     shortcut_str, e
                 );
@@ -327,7 +348,7 @@ pub fn run() {
                             let metadata = match tokio::fs::metadata(&path).await {
                                 Ok(m) => m,
                                 Err(e) => {
-                                    eprintln!("Failed to read file metadata: {}", e);
+                                    log::error!("Failed to read file metadata: {}", e);
                                     let _ = app.emit(
                                         "file-upload-error",
                                         serde_json::json!({
@@ -341,7 +362,7 @@ pub fn run() {
 
                             if metadata.len() > MAX_FILE_SIZE {
                                 let size_mb = metadata.len() as f64 / (1024.0 * 1024.0);
-                                eprintln!(
+                                log::warn!(
                                     "File too large: {} ({:.1} MB, max {} MB)",
                                     path.display(),
                                     size_mb,
@@ -384,7 +405,7 @@ pub fn run() {
                                             let _ = app.emit("clip-created", &clip);
                                         }
                                         Err(e) => {
-                                            eprintln!("Failed to upload dropped file: {}", e);
+                                            log::error!("Failed to upload dropped file: {}", e);
                                             let _ = app.emit(
                                                 "file-upload-error",
                                                 serde_json::json!({
@@ -396,7 +417,7 @@ pub fn run() {
                                     }
                                 }
                                 Err(e) => {
-                                    eprintln!("Failed to read dropped file: {}", e);
+                                    log::error!("Failed to read dropped file: {}", e);
                                     let _ = app.emit(
                                         "file-upload-error",
                                         serde_json::json!({
@@ -452,7 +473,7 @@ pub fn run() {
             let server_manager = app_handle.state::<ServerManager>();
             tauri::async_runtime::block_on(async {
                 if let Err(e) = server_manager.stop().await {
-                    eprintln!("Failed to stop bundled server: {}", e);
+                    log::error!("Failed to stop bundled server: {}", e);
                 }
             });
         }
