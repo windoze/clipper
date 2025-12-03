@@ -336,7 +336,7 @@ impl ServerManager {
             // Make the handle inheritable using SetHandleInformation
             const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
             let result = unsafe {
-                windows_sys::Win32::System::Console::SetHandleInformation(
+                windows_sys::Win32::Foundation::SetHandleInformation(
                     handle as _,
                     HANDLE_FLAG_INHERIT,
                     HANDLE_FLAG_INHERIT,
