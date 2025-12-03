@@ -297,7 +297,7 @@ impl ServerManager {
         // On Unix, we need to prevent the pipe from being closed on exec
         // and pass it to the child. The fd is inherited by default.
         #[cfg(unix)]
-        {
+        let pipe_reader_fd = {
             use std::os::unix::process::CommandExt;
             // The pipe_reader fd will be inherited by the child process
             // We need to keep it open until after spawn
@@ -323,10 +323,11 @@ impl ServerManager {
                     Ok(())
                 });
             }
-        }
+            fd
+        };
 
         #[cfg(windows)]
-        {
+        let pipe_reader_handle = {
             use std::os::windows::process::CommandExt;
             // On Windows, we need to make the handle inheritable
             // The pipe from os_pipe should already be inheritable
@@ -343,11 +344,26 @@ impl ServerManager {
             // CREATE_NO_WINDOW to avoid console window popup
             const CREATE_NO_WINDOW: u32 = 0x08000000;
             command.creation_flags(CREATE_NO_WINDOW);
-        }
+            handle
+        };
 
         let mut child = command
             .spawn()
             .map_err(|e| format!("Failed to spawn server: {}", e))?;
+
+        // Close the parent's copy of the pipe read end after spawning.
+        // The child has inherited this fd/handle, so we must close our copy.
+        // Otherwise, the pipe won't signal EOF when the parent exits (because
+        // there would still be an open read end in the parent process).
+        #[cfg(unix)]
+        unsafe {
+            libc::close(pipe_reader_fd);
+        }
+
+        #[cfg(windows)]
+        unsafe {
+            windows_sys::Win32::Foundation::CloseHandle(pipe_reader_handle as _);
+        }
 
         // Spawn tasks to forward stdout/stderr
         if let Some(stdout) = child.stdout.take() {
