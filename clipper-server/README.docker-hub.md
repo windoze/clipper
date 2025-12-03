@@ -77,6 +77,14 @@ When `CLIPPER_BEARER_TOKEN` is set, all API requests require authentication:
 - **Web UI**: Login screen appears automatically when authentication is required
 - **File downloads**: Use `?token=<token>` query parameter for direct file links
 
+### Upload Limits
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLIPPER_MAX_UPLOAD_SIZE_MB` | `10` | Maximum file upload size in megabytes |
+
+Files exceeding the limit will be rejected with a `413 Payload Too Large` error.
+
 ## Usage Examples
 
 ### Basic HTTP
@@ -147,6 +155,17 @@ curl -H "Authorization: Bearer your-secret-token" http://localhost:3000/clips
 
 # Using query parameter
 curl "http://localhost:3000/clips?token=your-secret-token"
+```
+
+### With Custom Upload Limit
+
+```bash
+docker run -d \
+  --name clipper \
+  -p 3000:3000 \
+  -v clipper-data:/data \
+  -e CLIPPER_MAX_UPLOAD_SIZE_MB=100 \
+  windoze/clipper-server
 ```
 
 ## Docker Compose
