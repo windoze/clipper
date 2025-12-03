@@ -329,9 +329,25 @@ impl ServerManager {
         #[cfg(windows)]
         let pipe_reader_handle = {
             use std::os::windows::process::CommandExt;
-            // On Windows, we need to make the handle inheritable
-            // The pipe from os_pipe should already be inheritable
+            // On Windows, we need to make the handle inheritable explicitly
+            // os_pipe creates non-inheritable handles by default
             let handle = pipe_reader.into_raw_handle();
+
+            // Make the handle inheritable using SetHandleInformation
+            const HANDLE_FLAG_INHERIT: u32 = 0x00000001;
+            let result = unsafe {
+                windows_sys::Win32::System::Console::SetHandleInformation(
+                    handle as _,
+                    HANDLE_FLAG_INHERIT,
+                    HANDLE_FLAG_INHERIT,
+                )
+            };
+            if result == 0 {
+                eprintln!(
+                    "[clipper-server] Warning: Failed to make pipe handle inheritable"
+                );
+            }
+
             // Update args with the actual handle value
             let args_len = args.len();
             args[args_len - 1] = (handle as u64).to_string();
