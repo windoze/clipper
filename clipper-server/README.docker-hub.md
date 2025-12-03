@@ -69,7 +69,13 @@ Access the Web UI at `http://localhost:3000`
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLIPPER_BEARER_TOKEN` | - | Bearer token for authentication (if set, all requests require auth) |
+| `CLIPPER_BEARER_TOKEN` | - | Bearer token for API authentication |
+
+When `CLIPPER_BEARER_TOKEN` is set, all API requests require authentication:
+- **REST API**: Include `Authorization: Bearer <token>` header or `?token=<token>` query parameter
+- **WebSocket**: Send `{"type": "auth", "token": "<token>"}` message after connecting
+- **Web UI**: Login screen appears automatically when authentication is required
+- **File downloads**: Use `?token=<token>` query parameter for direct file links
 
 ## Usage Examples
 
@@ -133,9 +139,15 @@ docker run -d \
   windoze/clipper-server
 ```
 
-When authentication is enabled, all API requests must include:
-- `Authorization: Bearer your-secret-token` header, OR
-- `?token=your-secret-token` query parameter
+Example API call with authentication:
+
+```bash
+# Using Authorization header
+curl -H "Authorization: Bearer your-secret-token" http://localhost:3000/clips
+
+# Using query parameter
+curl "http://localhost:3000/clips?token=your-secret-token"
+```
 
 ## Docker Compose
 
@@ -192,7 +204,23 @@ volumes:
 
 ## WebSocket
 
-Connect to `ws://localhost:3000/ws` for real-time updates:
+Connect to `ws://localhost:3000/ws` for real-time updates.
+
+### Authentication
+
+When authentication is enabled, send an auth message immediately after connecting:
+
+```json
+{ "type": "auth", "token": "your-secret-token" }
+```
+
+The server will respond with:
+
+```json
+{ "type": "auth_result", "success": true }
+```
+
+### Notification Messages
 
 ```json
 { "type": "new_clip", "id": "abc123", "content": "...", "tags": [] }
