@@ -55,75 +55,86 @@ impl ServerManager {
             .resource_dir()
             .map_err(|e| format!("Failed to get resource dir: {}", e))?;
 
-        // Get target triple for the sidecar name
-        let target_triple = Self::get_target_triple();
+        // Get possible target triples for the sidecar name
+        // On macOS, we check for universal binary first, then architecture-specific
+        let target_triples = Self::get_target_triples();
 
-        // Sidecar binary name with target triple
-        let sidecar_name = if cfg!(windows) {
-            format!("clipper-server-{}.exe", target_triple)
-        } else {
-            format!("clipper-server-{}", target_triple)
-        };
+        for target_triple in &target_triples {
+            // Sidecar binary name with target triple
+            let sidecar_name = if cfg!(windows) {
+                format!("clipper-server-{}.exe", target_triple)
+            } else {
+                format!("clipper-server-{}", target_triple)
+            };
 
-        // Try resource_dir first (production builds)
-        let sidecar_path = resource_dir.join(&sidecar_name);
-        if sidecar_path.exists() {
-            return Ok(sidecar_path);
-        }
-
-        // Try resource_dir/binaries (some Tauri configurations)
-        let sidecar_path = resource_dir.join("binaries").join(&sidecar_name);
-        if sidecar_path.exists() {
-            return Ok(sidecar_path);
-        }
-
-        // For development, try relative to the executable
-        if let Ok(exe_path) = std::env::current_exe()
-            && let Some(exe_dir) = exe_path.parent()
-        {
-            let sidecar_path = exe_dir.join(&sidecar_name);
+            // Try resource_dir first (production builds)
+            let sidecar_path = resource_dir.join(&sidecar_name);
             if sidecar_path.exists() {
                 return Ok(sidecar_path);
             }
-        }
 
-        // Try the binaries directory in development
-        let dev_path = PathBuf::from("binaries").join(&sidecar_name);
-        if dev_path.exists() {
-            return Ok(dev_path);
+            // Try resource_dir/binaries (some Tauri configurations)
+            let sidecar_path = resource_dir.join("binaries").join(&sidecar_name);
+            if sidecar_path.exists() {
+                return Ok(sidecar_path);
+            }
+
+            // For development, try relative to the executable
+            if let Ok(exe_path) = std::env::current_exe()
+                && let Some(exe_dir) = exe_path.parent()
+            {
+                let sidecar_path = exe_dir.join(&sidecar_name);
+                if sidecar_path.exists() {
+                    return Ok(sidecar_path);
+                }
+            }
+
+            // Try the binaries directory in development
+            let dev_path = PathBuf::from("binaries").join(&sidecar_name);
+            if dev_path.exists() {
+                return Ok(dev_path);
+            }
         }
 
         Err(format!(
-            "Sidecar binary not found. Looked for '{}' in resource_dir: {:?}",
-            sidecar_name, resource_dir
+            "Sidecar binary not found. Looked for targets {:?} in resource_dir: {:?}",
+            target_triples, resource_dir
         ))
     }
 
-    /// Get the target triple for the current platform
-    fn get_target_triple() -> &'static str {
+    /// Get possible target triples for the current platform
+    /// Returns a list of triples to try, in order of preference
+    /// On macOS, includes universal binary first, then architecture-specific
+    fn get_target_triples() -> Vec<&'static str> {
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         {
-            "aarch64-apple-darwin"
+            vec![
+                "universal-apple-darwin",
+                "aarch64-apple-darwin",
+            ]
         }
         #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
         {
-            "x86_64-apple-darwin"
+            vec![
+                "universal-apple-darwin",
+                "x86_64-apple-darwin",
+            ]
         }
         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
         {
-            "x86_64-unknown-linux-gnu"
+            vec!["x86_64-unknown-linux-gnu"]
         }
         #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
         {
-            "aarch64-unknown-linux-gnu"
+            vec!["aarch64-unknown-linux-gnu"]
         }
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
         {
-            "x86_64-pc-windows-msvc"
+            vec!["x86_64-pc-windows-msvc"]
         }
         #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
         {
-            "aarch64-pc-windows-msvc"
+            vec!["aarch64-pc-windows-msvc"]
         }
     }
 
