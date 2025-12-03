@@ -458,10 +458,11 @@ pub fn get_local_ip_addresses() -> Vec<String> {
     if let Ok(interfaces) = local_ip_address::list_afinet_netifas() {
         for (_, ip) in interfaces {
             // Only include IPv4 addresses that aren't loopback
-            if let std::net::IpAddr::V4(ipv4) = ip {
-                if !ipv4.is_loopback() && !ipv4.is_link_local() {
-                    addresses.push(ipv4.to_string());
-                }
+            if let std::net::IpAddr::V4(ipv4) = ip
+                && !ipv4.is_loopback()
+                && !ipv4.is_link_local()
+            {
+                addresses.push(ipv4.to_string());
             }
         }
     }
@@ -470,10 +471,9 @@ pub fn get_local_ip_addresses() -> Vec<String> {
     if addresses.is_empty()
         && let Ok(ip) = local_ip_address::local_ip()
         && let std::net::IpAddr::V4(ipv4) = ip
+        && !ipv4.is_loopback()
     {
-        if !ipv4.is_loopback() {
-            addresses.push(ipv4.to_string());
-        }
+        addresses.push(ipv4.to_string());
     }
 
     addresses
