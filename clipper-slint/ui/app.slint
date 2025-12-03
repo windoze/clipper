@@ -65,11 +65,15 @@ component SettingsDialog inherits Rectangle {
     in-out property <int> current-theme-index;
     in-out property <bool> use-bundled-server;
     in property <string> external-server-url;
+    in-out property <bool> listen-on-all-interfaces;
+    in property <string> local-ip-addresses;
 
     callback close();
     callback theme-changed(int);
     callback server-mode-changed(bool);
     callback external-url-changed(string);
+    callback listen-on-all-changed(bool);
+    callback clear-all-data();
     callback save-settings();
 
     property <[string]> theme-options: ["Light", "Dark", "Auto"];
@@ -88,7 +92,7 @@ component SettingsDialog inherits Rectangle {
             x: (parent.width - self.width) / 2;
             y: (parent.height - self.height) / 2;
             width: 450px;
-            height: 380px;
+            height: 520px;
             background: theme.surface;
             border-radius: 12px;
             border-color: theme.border;
@@ -190,6 +194,64 @@ component SettingsDialog inherits Rectangle {
                     }
                 }
 
+                // LAN access toggle (only shown when using bundled server)
+                if use-bundled-server: VerticalBox {
+                    spacing: 8px;
+                    Text {
+                        text: "Network Access";
+                        font-size: 14px;
+                        font-weight: 500;
+                        color: theme.text-primary;
+                    }
+                    HorizontalBox {
+                        spacing: 12px;
+                        Switch {
+                            checked: listen-on-all-interfaces;
+                            toggled => {
+                                listen-on-all-changed(self.checked);
+                            }
+                        }
+                        Text {
+                            text: listen-on-all-interfaces ? "LAN Access Enabled" : "Localhost Only";
+                            font-size: 14px;
+                            color: theme.text-secondary;
+                            vertical-alignment: center;
+                        }
+                    }
+                    if listen-on-all-interfaces && local-ip-addresses != "": Text {
+                        text: "Available at: " + local-ip-addresses;
+                        font-size: 12px;
+                        color: theme.accent;
+                    }
+                    Text {
+                        text: listen-on-all-interfaces ? "Other devices on your network can access" : "Only accessible from this computer";
+                        font-size: 12px;
+                        color: theme.text-muted;
+                    }
+                }
+
+                // Clear all data (only shown when using bundled server)
+                if use-bundled-server: VerticalBox {
+                    spacing: 8px;
+                    Text {
+                        text: "Data Management";
+                        font-size: 14px;
+                        font-weight: 500;
+                        color: theme.text-primary;
+                    }
+                    Button {
+                        text: "Clear All Data";
+                        clicked => {
+                            clear-all-data();
+                        }
+                    }
+                    Text {
+                        text: "This will delete all clips and restart the server";
+                        font-size: 12px;
+                        color: theme.text-muted;
+                    }
+                }
+
                 // Spacer
                 Rectangle {
                     vertical-stretch: 1;
@@ -245,6 +307,8 @@ export component App inherits Window {
     in-out property <bool> settings-visible: false;
     in-out property <bool> use-bundled-server: true;
     in-out property <string> external-server-url: "http://localhost:3000";
+    in-out property <bool> listen-on-all-interfaces: false;
+    in-out property <string> local-ip-addresses: "";
 
     callback search-text-changed(string);
     callback start-date-changed(string);
@@ -258,6 +322,8 @@ export component App inherits Window {
     callback theme-changed(int);
     callback server-mode-changed(bool);
     callback external-url-changed(string);
+    callback listen-on-all-changed(bool);
+    callback clear-all-data();
     callback save-settings();
 
     VerticalBox {
@@ -400,6 +466,8 @@ export component App inherits Window {
         current-theme-index <=> root.theme-mode;
         use-bundled-server <=> root.use-bundled-server;
         external-server-url: root.external-server-url;
+        listen-on-all-interfaces <=> root.listen-on-all-interfaces;
+        local-ip-addresses: root.local-ip-addresses;
 
         close => {
             root.settings-visible = false;
@@ -416,6 +484,14 @@ export component App inherits Window {
         external-url-changed(url) => {
             root.external-server-url = url;
             root.external-url-changed(url);
+        }
+
+        listen-on-all-changed(enabled) => {
+            root.listen-on-all-changed(enabled);
+        }
+
+        clear-all-data => {
+            root.clear-all-data();
         }
 
         save-settings => {

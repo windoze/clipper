@@ -36,6 +36,26 @@ pub struct Settings {
     /// UI theme (light, dark, auto)
     #[serde(default)]
     pub theme: Theme,
+
+    /// Whether auto-cleanup is enabled
+    #[serde(default)]
+    pub cleanup_enabled: bool,
+
+    /// Retention period in days for auto-cleanup
+    #[serde(default = "default_cleanup_retention_days")]
+    pub cleanup_retention_days: u32,
+
+    /// Bearer token for bundled server authentication (used when listen_on_all_interfaces is true)
+    #[serde(default)]
+    pub bundled_server_token: Option<String>,
+
+    /// Bearer token for external server authentication
+    #[serde(default)]
+    pub external_server_token: Option<String>,
+
+    /// Maximum upload size in megabytes
+    #[serde(default = "default_max_upload_size_mb")]
+    pub max_upload_size_mb: u64,
 }
 
 fn default_use_bundled_server() -> bool {
@@ -46,6 +66,14 @@ fn default_external_server_url() -> String {
     "http://localhost:3000".to_string()
 }
 
+fn default_cleanup_retention_days() -> u32 {
+    30
+}
+
+fn default_max_upload_size_mb() -> u64 {
+    10
+}
+
 impl Default for Settings {
     fn default() -> Self {
         Self {
@@ -54,6 +82,11 @@ impl Default for Settings {
             server_port: None,
             listen_on_all_interfaces: false,
             theme: Theme::default(),
+            cleanup_enabled: false,
+            cleanup_retention_days: default_cleanup_retention_days(),
+            bundled_server_token: None,
+            external_server_token: None,
+            max_upload_size_mb: default_max_upload_size_mb(),
         }
     }
 }
@@ -167,6 +200,71 @@ impl SettingsManager {
         {
             let mut settings = self.settings.write().unwrap();
             settings.theme = theme;
+        }
+        self.save()
+    }
+
+    pub fn get_cleanup_enabled(&self) -> bool {
+        self.settings.read().unwrap().cleanup_enabled
+    }
+
+    #[allow(dead_code)]
+    pub fn set_cleanup_enabled(&self, value: bool) -> Result<()> {
+        {
+            let mut settings = self.settings.write().unwrap();
+            settings.cleanup_enabled = value;
+        }
+        self.save()
+    }
+
+    pub fn get_cleanup_retention_days(&self) -> u32 {
+        self.settings.read().unwrap().cleanup_retention_days
+    }
+
+    #[allow(dead_code)]
+    pub fn set_cleanup_retention_days(&self, days: u32) -> Result<()> {
+        {
+            let mut settings = self.settings.write().unwrap();
+            settings.cleanup_retention_days = days;
+        }
+        self.save()
+    }
+
+    pub fn get_bundled_server_token(&self) -> Option<String> {
+        self.settings.read().unwrap().bundled_server_token.clone()
+    }
+
+    #[allow(dead_code)]
+    pub fn set_bundled_server_token(&self, token: Option<String>) -> Result<()> {
+        {
+            let mut settings = self.settings.write().unwrap();
+            settings.bundled_server_token = token;
+        }
+        self.save()
+    }
+
+    pub fn get_external_server_token(&self) -> Option<String> {
+        self.settings.read().unwrap().external_server_token.clone()
+    }
+
+    #[allow(dead_code)]
+    pub fn set_external_server_token(&self, token: Option<String>) -> Result<()> {
+        {
+            let mut settings = self.settings.write().unwrap();
+            settings.external_server_token = token;
+        }
+        self.save()
+    }
+
+    pub fn get_max_upload_size_mb(&self) -> u64 {
+        self.settings.read().unwrap().max_upload_size_mb
+    }
+
+    #[allow(dead_code)]
+    pub fn set_max_upload_size_mb(&self, mb: u64) -> Result<()> {
+        {
+            let mut settings = self.settings.write().unwrap();
+            settings.max_upload_size_mb = mb;
         }
         self.save()
     }

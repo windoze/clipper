@@ -5,15 +5,46 @@ use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::collections::HashMap;
 use std::env;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex, Weak as ArcWeak};
+use std::sync::{Arc, Mutex, RwLock, Weak as ArcWeak};
 
 mod server;
 mod settings;
 
-use server::ServerManager;
+use server::{ServerManager, get_local_ip_addresses};
 use settings::{SettingsManager, Theme};
 
 slint::include_modules!();
+
+/// Manages the client connection state that can be updated at runtime
+struct ClientState {
+    client: RwLock<ClipperClient>,
+}
+
+impl ClientState {
+    fn new(url: String, token: Option<String>) -> Self {
+        let client = if let Some(t) = token {
+            ClipperClient::new_with_token(url, t)
+        } else {
+            ClipperClient::new(url)
+        };
+        Self {
+            client: RwLock::new(client),
+        }
+    }
+
+    fn update(&self, url: String, token: Option<String>) {
+        let client = if let Some(t) = token {
+            ClipperClient::new_with_token(url, t)
+        } else {
+            ClipperClient::new(url)
+        };
+        *self.client.write().unwrap() = client;
+    }
+
+    fn get(&self) -> ClipperClient {
+        self.client.read().unwrap().clone()
+    }
+}
 
 const PAGE_SIZE: usize = 200;
 const FAVORITE_TAG: &str = "$favorite";
@@ -25,7 +56,7 @@ fn main() -> Result<()> {
     let settings = Arc::new(SettingsManager::new().context("Failed to initialize settings")?);
 
     // Determine server URL based on settings
-    let (base_url, server_manager) = if settings.is_bundled_server() {
+    let (base_url, token, server_manager) = if settings.is_bundled_server() {
         // Start the bundled server
         eprintln!("[clipper-slint] Starting bundled server...");
         let server_manager = Arc::new(
@@ -33,20 +64,21 @@ fn main() -> Result<()> {
                 .map_err(|e| anyhow!("Failed to create server manager: {}", e))?,
         );
 
-        let url = runtime
+        let result = runtime
             .block_on(server_manager.start())
             .map_err(|e| anyhow!("Failed to start bundled server: {}", e))?;
 
-        eprintln!("[clipper-slint] Bundled server started at {}", url);
-        (url, Some(server_manager))
+        eprintln!("[clipper-slint] Bundled server started at {}", result.url);
+        (result.url, result.token, Some(server_manager))
     } else {
         // Use external server URL from environment or settings
         let url = env::var("CLIPPER_URL").unwrap_or_else(|_| settings.get_external_server_url());
+        let token = settings.get_external_server_token();
         eprintln!("[clipper-slint] Using external server at {}", url);
-        (url, None)
+        (url, token, None)
     };
 
-    let client = ClipperClient::new(base_url);
+    let client_state = Arc::new(ClientState::new(base_url, token));
 
     let app = App::new().map_err(|e| anyhow!("Failed to initialize UI: {e}"))?;
 
@@ -71,9 +103,18 @@ fn main() -> Result<()> {
         // Set server settings
         app.set_use_bundled_server(settings.is_bundled_server());
         app.set_external_server_url(settings.get_external_server_url().into());
+        app.set_listen_on_all_interfaces(settings.get_listen_on_all_interfaces());
+
+        // Set local IP addresses for LAN access display
+        let ips = get_local_ip_addresses();
+        app.set_local_ip_addresses(ips.join(", ").into());
     }
 
-    let controller = AppController::new(client, runtime.handle().clone(), app.as_weak());
+    let controller = AppController::new(
+        Arc::clone(&client_state),
+        runtime.handle().clone(),
+        app.as_weak(),
+    );
 
     // Settings callbacks
     {
@@ -84,6 +125,7 @@ fn main() -> Result<()> {
             if let Some(app) = app_weak.upgrade() {
                 app.set_use_bundled_server(settings_clone.is_bundled_server());
                 app.set_external_server_url(settings_clone.get_external_server_url().into());
+                app.set_listen_on_all_interfaces(settings_clone.get_listen_on_all_interfaces());
             }
         });
     }
@@ -136,6 +178,99 @@ fn main() -> Result<()> {
     {
         app.on_save_settings(move || {
             eprintln!("[clipper-slint] Settings saved");
+        });
+    }
+
+    // Toggle listen on all interfaces (LAN access)
+    {
+        let settings_clone = Arc::clone(&settings);
+        let server_manager_clone = server_manager.clone();
+        let client_state_clone = Arc::clone(&client_state);
+        let app_weak = app.as_weak();
+        let runtime_handle = runtime.handle().clone();
+        app.on_listen_on_all_changed(move |value| {
+            if let Err(e) = settings_clone.set_listen_on_all_interfaces(value) {
+                eprintln!("[clipper-slint] Failed to save listen setting: {}", e);
+                return;
+            }
+
+            // Restart bundled server if running to apply the change
+            if let Some(ref server_manager) = server_manager_clone {
+                let sm = Arc::clone(server_manager);
+                let client_state = Arc::clone(&client_state_clone);
+                let app_weak = app_weak.clone();
+                runtime_handle.spawn(async move {
+                    match sm.restart().await {
+                        Ok(result) => {
+                            client_state.update(result.url.clone(), result.token);
+                            eprintln!(
+                                "[clipper-slint] Server restarted with new network settings at {}",
+                                result.url
+                            );
+                            // Update UI
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(app) = app_weak.upgrade() {
+                                    app.set_status_text("Server restarted".into());
+                                }
+                            });
+                        }
+                        Err(e) => {
+                            eprintln!("[clipper-slint] Failed to restart server: {}", e);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // Clear all data
+    {
+        let server_manager_clone = server_manager.clone();
+        let client_state_clone = Arc::clone(&client_state);
+        let app_weak = app.as_weak();
+        let runtime_handle = runtime.handle().clone();
+        let controller_clone = controller.clone();
+        app.on_clear_all_data(move || {
+            if let Some(ref server_manager) = server_manager_clone {
+                let sm = Arc::clone(server_manager);
+                let client_state = Arc::clone(&client_state_clone);
+                let app_weak = app_weak.clone();
+                let controller = controller_clone.clone();
+                runtime_handle.spawn(async move {
+                    // Stop server first
+                    if let Err(e) = sm.stop().await {
+                        eprintln!("[clipper-slint] Failed to stop server: {}", e);
+                        return;
+                    }
+
+                    // Clear data
+                    if let Err(e) = sm.clear_data().await {
+                        eprintln!("[clipper-slint] Failed to clear data: {}", e);
+                        // Try to restart anyway
+                    }
+
+                    // Restart server
+                    match sm.start().await {
+                        Ok(result) => {
+                            client_state.update(result.url.clone(), result.token);
+                            eprintln!("[clipper-slint] Server restarted after clearing data");
+                            // Update UI and reload clips
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(app) = app_weak.upgrade() {
+                                    app.set_status_text("All data cleared".into());
+                                }
+                            });
+                            // Reload clips on a separate task
+                            controller.load_clips();
+                        }
+                        Err(e) => {
+                            eprintln!("[clipper-slint] Failed to restart server: {}", e);
+                        }
+                    }
+                });
+            } else {
+                eprintln!("[clipper-slint] Cannot clear data: not using bundled server");
+            }
         });
     }
 
@@ -241,7 +376,7 @@ struct PreparedFilters {
 }
 
 struct AppController {
-    client: ClipperClient,
+    client_state: Arc<ClientState>,
     runtime: tokio::runtime::Handle,
     ui: slint::Weak<App>,
     filters: Mutex<FilterState>,
@@ -250,12 +385,12 @@ struct AppController {
 
 impl AppController {
     fn new(
-        client: ClipperClient,
+        client_state: Arc<ClientState>,
         runtime: tokio::runtime::Handle,
         ui: slint::Weak<App>,
     ) -> Arc<Self> {
         Arc::new(Self {
-            client,
+            client_state,
             runtime,
             ui,
             filters: Mutex::new(FilterState::default()),
@@ -279,7 +414,7 @@ impl AppController {
 
         update_status(&self.ui, SharedString::from("Loading clips..."));
 
-        let client = self.client.clone();
+        let client = self.client_state.get();
         let ui = self.ui.clone();
         let cache = self.cache.clone();
         let query = prepared.query;
@@ -377,7 +512,7 @@ impl AppController {
 
         update_status(&self.ui, SharedString::from("Updating favorite..."));
 
-        let client = self.client.clone();
+        let client = self.client_state.get();
         let ui = self.ui.clone();
         let cache = self.cache.clone();
         let weak_self: ArcWeak<Self> = Arc::downgrade(self);

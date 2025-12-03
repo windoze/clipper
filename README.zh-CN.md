@@ -58,7 +58,7 @@ clipper/
 ├── clipper-client/      # Rust 客户端库
 ├── clipper-cli/         # 命令行界面
 ├── clipper/             # 桌面应用 (Tauri 2 + React + TypeScript)
-├── clipper-slint/       # 备选 GUI (Slint UI)
+├── clipper-slint/       # 备选 GUI (Slint UI，未完成)
 └── packages/clipper-ui/ # 共享的 React UI 组件
 ```
 

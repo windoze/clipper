@@ -29,6 +29,12 @@ pub struct ServerManager {
     server_binary: PathBuf,
 }
 
+/// Result of a server operation that may include URL and token
+pub struct ServerStartResult {
+    pub url: String,
+    pub token: Option<String>,
+}
+
 impl ServerManager {
     /// Create a new server manager
     pub fn new(settings: Arc<SettingsManager>) -> Result<Self, String> {
@@ -68,7 +74,7 @@ impl ServerManager {
     }
 
     /// Internal method to spawn the server process
-    async fn spawn_server(&self) -> Result<String, String> {
+    async fn spawn_server(&self) -> Result<ServerStartResult, String> {
         // Try to reuse saved port, or pick a new one
         let port = if let Some(saved_port) = self.settings.get_server_port() {
             if Self::is_port_available(saved_port) {
@@ -111,23 +117,69 @@ impl ServerManager {
         } else {
             "127.0.0.1"
         };
+
+        // Get cleanup settings
+        let cleanup_enabled = self.settings.get_cleanup_enabled();
+        let cleanup_retention_days = self.settings.get_cleanup_retention_days();
+
+        // Get bundled server token for authentication
+        let bundled_server_token = self.settings.get_bundled_server_token();
+
+        // Get max upload size setting
+        let max_upload_size_mb = self.settings.get_max_upload_size_mb();
+
+        // Log all parameters
         eprintln!(
-            "[clipper-server] Binding to {} (listen_on_all_interfaces: {})",
-            listen_addr, listen_on_all
+            "[clipper-server] Starting bundled server with parameters:\n  \
+             db_path: {}\n  \
+             storage_path: {}\n  \
+             listen_addr: {}\n  \
+             port: {}\n  \
+             cleanup_enabled: {}\n  \
+             cleanup_retention_days: {}\n  \
+             auth_enabled: {}\n  \
+             max_upload_size_mb: {}",
+            db_path_str,
+            storage_path_str,
+            listen_addr,
+            port,
+            cleanup_enabled,
+            cleanup_retention_days,
+            bundled_server_token.is_some(),
+            max_upload_size_mb
         );
+
+        // Build args list
+        let mut args = vec![
+            "--db-path".to_string(),
+            db_path_str,
+            "--storage-path".to_string(),
+            storage_path_str,
+            "--listen-addr".to_string(),
+            listen_addr.to_string(),
+            "--port".to_string(),
+            port.to_string(),
+        ];
+
+        // Add cleanup args
+        args.push("--cleanup-enabled".to_string());
+        args.push(cleanup_enabled.to_string());
+        args.push("--cleanup-retention-days".to_string());
+        args.push(cleanup_retention_days.to_string());
+
+        // Add max upload size
+        args.push("--max-upload-size-mb".to_string());
+        args.push(max_upload_size_mb.to_string());
+
+        // Add bearer token if set
+        if let Some(ref token) = bundled_server_token {
+            args.push("--bearer-token".to_string());
+            args.push(token.clone());
+        }
 
         // Spawn the server process
         let mut child = Command::new(&self.server_binary)
-            .args([
-                "--db-path",
-                &db_path_str,
-                "--storage-path",
-                &storage_path_str,
-                "--listen-addr",
-                listen_addr,
-                "--port",
-                &port.to_string(),
-            ])
+            .args(&args)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true) // Ensures child is killed when handle is dropped
@@ -173,7 +225,10 @@ impl ServerManager {
             });
         }
 
-        Ok(server_url)
+        Ok(ServerStartResult {
+            url: server_url,
+            token: bundled_server_token,
+        })
     }
 
     /// Wait for the server to become healthy
@@ -206,22 +261,23 @@ impl ServerManager {
     }
 
     /// Start the bundled server and begin monitoring for restarts
-    pub async fn start(self: &Arc<Self>) -> Result<String, String> {
+    pub async fn start(self: &Arc<Self>) -> Result<ServerStartResult, String> {
         // Check if already running
         if self.is_running().await
             && let Some(url) = self.server_url().await
         {
-            return Ok(url);
+            let token = self.settings.get_bundled_server_token();
+            return Ok(ServerStartResult { url, token });
         }
 
         // Clear shutdown flag
         self.shutdown.store(false, Ordering::SeqCst);
 
         // Spawn the server
-        let server_url = self.spawn_server().await?;
+        let result = self.spawn_server().await?;
 
         // Wait for health
-        self.wait_for_health(&server_url).await;
+        self.wait_for_health(&result.url).await;
 
         // Spawn background task to monitor and restart
         let manager = Arc::clone(self);
@@ -229,7 +285,40 @@ impl ServerManager {
             manager.monitor_loop().await;
         });
 
-        Ok(server_url)
+        Ok(result)
+    }
+
+    /// Restart the server (stop and start)
+    pub async fn restart(self: &Arc<Self>) -> Result<ServerStartResult, String> {
+        eprintln!("[clipper-server] Restarting server...");
+        self.stop().await?;
+        self.start().await
+    }
+
+    /// Clear all data (database and storage) - server must be stopped first
+    pub async fn clear_data(&self) -> Result<(), String> {
+        // Ensure server is stopped
+        if self.is_running().await {
+            return Err("Server must be stopped before clearing data".to_string());
+        }
+
+        // Remove database directory
+        if self.db_path.exists() {
+            tokio::fs::remove_dir_all(&self.db_path)
+                .await
+                .map_err(|e| format!("Failed to remove database directory: {}", e))?;
+            eprintln!("[clipper-server] Database directory cleared");
+        }
+
+        // Remove storage directory
+        if self.storage_path.exists() {
+            tokio::fs::remove_dir_all(&self.storage_path)
+                .await
+                .map_err(|e| format!("Failed to remove storage directory: {}", e))?;
+            eprintln!("[clipper-server] Storage directory cleared");
+        }
+
+        Ok(())
     }
 
     /// Background loop that monitors the server and restarts if needed
@@ -291,9 +380,9 @@ impl ServerManager {
 
                 // Attempt to restart
                 match self.spawn_server().await {
-                    Ok(url) => {
-                        self.wait_for_health(&url).await;
-                        eprintln!("[clipper-server] Server restarted at {}", url);
+                    Ok(result) => {
+                        self.wait_for_health(&result.url).await;
+                        eprintln!("[clipper-server] Server restarted at {}", result.url);
                     }
                     Err(e) => {
                         eprintln!("[clipper-server] Failed to restart server: {}", e);
@@ -359,6 +448,36 @@ pub fn get_data_dir() -> Result<PathBuf, String> {
         .ok_or("Failed to get data directory")?
         .join(APP_NAME);
     Ok(data_dir)
+}
+
+/// Get local IP addresses for LAN access display
+pub fn get_local_ip_addresses() -> Vec<String> {
+    let mut addresses = Vec::new();
+
+    // Try to get local network interfaces
+    if let Ok(interfaces) = local_ip_address::list_afinet_netifas() {
+        for (_, ip) in interfaces {
+            // Only include IPv4 addresses that aren't loopback
+            if let std::net::IpAddr::V4(ipv4) = ip {
+                if !ipv4.is_loopback() && !ipv4.is_link_local() {
+                    addresses.push(ipv4.to_string());
+                }
+            }
+        }
+    }
+
+    // Fallback: try to get the local IP
+    if addresses.is_empty() {
+        if let Ok(ip) = local_ip_address::local_ip() {
+            if let std::net::IpAddr::V4(ipv4) = ip {
+                if !ipv4.is_loopback() {
+                    addresses.push(ipv4.to_string());
+                }
+            }
+        }
+    }
+
+    addresses
 }
 
 /// Find the clipper-server binary

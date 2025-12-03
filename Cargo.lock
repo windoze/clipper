@@ -1689,6 +1689,7 @@ dependencies = [
  "chrono",
  "clipper-client",
  "dirs",
+ "local-ip-address",
  "portpicker",
  "reqwest",
  "serde",

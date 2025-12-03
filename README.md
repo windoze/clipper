@@ -58,7 +58,7 @@ clipper/
 ├── clipper-client/      # Rust client library
 ├── clipper-cli/         # Command-line interface
 ├── clipper/             # Desktop app (Tauri 2 + React + TypeScript)
-├── clipper-slint/       # Alternative GUI (Slint UI)
+├── clipper-slint/       # Alternative GUI (Slint UI, WIP)
 └── packages/clipper-ui/ # Shared React UI components
 ```
 
