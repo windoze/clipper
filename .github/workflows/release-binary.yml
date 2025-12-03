@@ -186,21 +186,14 @@ jobs:
             if [ -n "$APPIMAGE_PATH" ]; then
               cp "$APPIMAGE_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_${{ matrix.arch }}.AppImage"
             fi
-            # Copy updater artifacts (AppImage.tar.gz and signature)
-            # Tauri generates AppImage.tar.gz for Linux updater
-            UPDATER_TAR=$(find target -name "*.AppImage.tar.gz" -type f | head -1)
-            UPDATER_SIG=$(find target -name "*.AppImage.tar.gz.sig" -type f | head -1)
-            if [ -n "$UPDATER_TAR" ]; then
-              echo "Found Linux updater tar.gz: $UPDATER_TAR"
-              cp "$UPDATER_TAR" "release-artifacts/Clipper_${{ github.ref_name }}_linux_${{ matrix.arch }}.AppImage.tar.gz"
-            else
-              echo "WARNING: Linux updater tar.gz not found"
-            fi
+            # Copy updater signature for the .AppImage file
+            # Tauri generates *.AppImage.sig for Linux updater when TAURI_SIGNING_PRIVATE_KEY is set
+            UPDATER_SIG=$(find target -name "*.AppImage.sig" -type f | head -1)
             if [ -n "$UPDATER_SIG" ]; then
               echo "Found Linux updater signature: $UPDATER_SIG"
-              cp "$UPDATER_SIG" "release-artifacts/Clipper_${{ github.ref_name }}_linux_${{ matrix.arch }}.AppImage.tar.gz.sig"
+              cp "$UPDATER_SIG" "release-artifacts/Clipper_${{ github.ref_name }}_${{ matrix.arch }}.AppImage.sig"
             else
-              echo "WARNING: Linux updater signature not found"
+              echo "WARNING: Linux updater signature not found - will sign manually in publish step"
             fi
 
           elif [ "${{ matrix.platform }}" == "windows-latest" ]; then
@@ -212,20 +205,14 @@ jobs:
             if [ -n "$NSIS_PATH" ]; then
               cp "$NSIS_PATH" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.exe"
             fi
-            # Copy updater artifacts (nsis.zip and signature)
-            UPDATER_ZIP=$(find target -name "*.nsis.zip" -type f | head -1)
-            UPDATER_SIG=$(find target -name "*.nsis.zip.sig" -type f | head -1)
-            if [ -n "$UPDATER_ZIP" ]; then
-              echo "Found Windows updater zip: $UPDATER_ZIP"
-              cp "$UPDATER_ZIP" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.nsis.zip"
-            else
-              echo "WARNING: Windows updater zip not found"
-            fi
+            # Copy updater signature for the .exe file
+            # Tauri generates *-setup.exe.sig for Windows updater when TAURI_SIGNING_PRIVATE_KEY is set
+            UPDATER_SIG=$(find target -name "*-setup.exe.sig" -type f | head -1)
             if [ -n "$UPDATER_SIG" ]; then
               echo "Found Windows updater signature: $UPDATER_SIG"
-              cp "$UPDATER_SIG" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.nsis.zip.sig"
+              cp "$UPDATER_SIG" "release-artifacts/Clipper_${{ github.ref_name }}_x64-setup.exe.sig"
             else
-              echo "WARNING: Windows updater signature not found"
+              echo "WARNING: Windows updater signature not found - will sign manually in publish step"
             fi
           fi
 
@@ -255,6 +242,42 @@ jobs:
       - name: List artifacts
         run: ls -la artifacts/
 
+      - name: Setup Node.js for signing
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Sign updater artifacts if missing signatures
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          VERSION="${{ github.ref_name }}"
+
+          # Install Tauri CLI for signing
+          npm install -g @tauri-apps/cli
+
+          # Sign Linux amd64 if signature is missing
+          if [ -f "artifacts/Clipper_${VERSION}_amd64.AppImage" ] && [ ! -f "artifacts/Clipper_${VERSION}_amd64.AppImage.sig" ]; then
+            echo "Signing Linux amd64 updater artifact..."
+            npx tauri signer sign "artifacts/Clipper_${VERSION}_amd64.AppImage" --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+          fi
+
+          # Sign Linux arm64 if signature is missing
+          if [ -f "artifacts/Clipper_${VERSION}_arm64.AppImage" ] && [ ! -f "artifacts/Clipper_${VERSION}_arm64.AppImage.sig" ]; then
+            echo "Signing Linux arm64 updater artifact..."
+            npx tauri signer sign "artifacts/Clipper_${VERSION}_arm64.AppImage" --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+          fi
+
+          # Sign Windows if signature is missing
+          if [ -f "artifacts/Clipper_${VERSION}_x64-setup.exe" ] && [ ! -f "artifacts/Clipper_${VERSION}_x64-setup.exe.sig" ]; then
+            echo "Signing Windows updater artifact..."
+            npx tauri signer sign "artifacts/Clipper_${VERSION}_x64-setup.exe" --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+          fi
+
+          echo "=== Signature files after signing ==="
+          ls -la artifacts/*.sig 2>/dev/null || echo "No .sig files found"
+
       - name: Generate latest.json for auto-updater
         run: |
           VERSION="${{ github.ref_name }}"
@@ -280,23 +303,23 @@ jobs:
           else
             echo "Missing macOS signature: artifacts/Clipper_${VERSION}_macos_universal.app.tar.gz.sig"
           fi
-          if [ -f "artifacts/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz.sig" ]; then
-            LINUX_AMD64_SIG=$(cat "artifacts/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz.sig")
+          if [ -f "artifacts/Clipper_${VERSION}_amd64.AppImage.sig" ]; then
+            LINUX_AMD64_SIG=$(cat "artifacts/Clipper_${VERSION}_amd64.AppImage.sig")
             echo "Found Linux amd64 signature"
           else
-            echo "Missing Linux amd64 signature: artifacts/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz.sig"
+            echo "Missing Linux amd64 signature: artifacts/Clipper_${VERSION}_amd64.AppImage.sig"
           fi
-          if [ -f "artifacts/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz.sig" ]; then
-            LINUX_ARM64_SIG=$(cat "artifacts/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz.sig")
+          if [ -f "artifacts/Clipper_${VERSION}_arm64.AppImage.sig" ]; then
+            LINUX_ARM64_SIG=$(cat "artifacts/Clipper_${VERSION}_arm64.AppImage.sig")
             echo "Found Linux arm64 signature"
           else
-            echo "Missing Linux arm64 signature: artifacts/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz.sig"
+            echo "Missing Linux arm64 signature: artifacts/Clipper_${VERSION}_arm64.AppImage.sig"
           fi
-          if [ -f "artifacts/Clipper_${VERSION}_x64-setup.nsis.zip.sig" ]; then
-            WINDOWS_SIG=$(cat "artifacts/Clipper_${VERSION}_x64-setup.nsis.zip.sig")
+          if [ -f "artifacts/Clipper_${VERSION}_x64-setup.exe.sig" ]; then
+            WINDOWS_SIG=$(cat "artifacts/Clipper_${VERSION}_x64-setup.exe.sig")
             echo "Found Windows signature"
           else
-            echo "Missing Windows signature: artifacts/Clipper_${VERSION}_x64-setup.nsis.zip.sig"
+            echo "Missing Windows signature: artifacts/Clipper_${VERSION}_x64-setup.exe.sig"
           fi
 
           # Create latest.json using jq for proper JSON generation
@@ -307,11 +330,11 @@ jobs:
             --arg macos_sig "$MACOS_SIG" \
             --arg macos_url "${REPO_URL}/Clipper_${VERSION}_macos_universal.app.tar.gz" \
             --arg linux_amd64_sig "$LINUX_AMD64_SIG" \
-            --arg linux_amd64_url "${REPO_URL}/Clipper_${VERSION}_linux_amd64.AppImage.tar.gz" \
+            --arg linux_amd64_url "${REPO_URL}/Clipper_${VERSION}_amd64.AppImage" \
             --arg linux_arm64_sig "$LINUX_ARM64_SIG" \
-            --arg linux_arm64_url "${REPO_URL}/Clipper_${VERSION}_linux_arm64.AppImage.tar.gz" \
+            --arg linux_arm64_url "${REPO_URL}/Clipper_${VERSION}_arm64.AppImage" \
             --arg windows_sig "$WINDOWS_SIG" \
-            --arg windows_url "${REPO_URL}/Clipper_${VERSION}_x64-setup.nsis.zip" \
+            --arg windows_url "${REPO_URL}/Clipper_${VERSION}_x64-setup.exe" \
             '{
               version: $version,
               notes: $notes,
