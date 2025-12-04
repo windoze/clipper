@@ -750,6 +750,7 @@ async fn resolve_short_url(
 
         // Load template and substitute placeholders
         let html = include_str!("templates/shared_clip.html")
+            .replace("{{BUILD_VERSION}}", build_version())
             .replace("{{CONTENT}}", &html_escape(&content))
             .replace("{{IMAGE_HTML}}", &image_html)
             .replace("{{IS_IMAGE}}", if is_image { "true" } else { "false" })
@@ -788,32 +789,39 @@ fn is_image_file(filename: &str) -> bool {
     IMAGE_EXTENSIONS.iter().any(|ext| lower.ends_with(ext))
 }
 
+/// Get build timestamp for cache busting
+fn build_version() -> &'static str {
+    env!("BUILD_TIMESTAMP")
+}
+
 // ==================== Static Assets ====================
 
 /// Serve static assets for shared clip page with browser caching
+/// Supports versioned filenames like shared_clip-1733318400.css
 async fn serve_asset(Path(filename): Path<String>) -> Result<Response> {
-    // Only allow specific files to be served (security)
-    let (content, content_type) = match filename.as_str() {
-        "shared_clip.css" => (
+    // Extract base name and extension, stripping version suffix
+    // e.g., "shared_clip-1733318400.css" -> ("shared_clip", "css")
+    let (content, content_type) = if filename.starts_with("shared_clip-") && filename.ends_with(".css") {
+        (
             include_str!("assets/shared_clip.css"),
             "text/css; charset=utf-8",
-        ),
-        "shared_clip.js" => (
+        )
+    } else if filename.starts_with("shared_clip-") && filename.ends_with(".js") {
+        (
             include_str!("assets/shared_clip.js"),
             "application/javascript; charset=utf-8",
-        ),
-        _ => {
-            return Err(crate::error::ServerError::NotFound(format!(
-                "Asset not found: {}",
-                filename
-            )));
-        }
+        )
+    } else {
+        return Err(crate::error::ServerError::NotFound(format!(
+            "Asset not found: {}",
+            filename
+        )));
     };
 
     Ok(Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, content_type)
-        // Cache for 1 year (assets are versioned by content hash in practice)
+        // Cache for 1 year (assets are versioned in filename)
         .header(header::CACHE_CONTROL, "public, max-age=31536000, immutable")
         .body(Body::from(content))
         .unwrap())
