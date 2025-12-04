@@ -37,6 +37,7 @@ fn extract_query_token(query: Option<&str>) -> Option<String> {
 ///
 /// Certain endpoints are always allowed without authentication:
 /// - GET /health - Health check endpoint
+/// - GET /version - Version and configuration info
 /// - GET /auth/check - Authentication status check
 /// - GET /ws - WebSocket endpoint (handles its own message-based authentication)
 /// - GET /s/{code} - Public short URL resolver
@@ -55,13 +56,14 @@ pub async fn auth_middleware(
     // Allow certain endpoints without authentication
     // WebSocket endpoint handles its own message-based authentication
     // /s/{code} is the public short URL resolver (no auth required)
-    // /assets/* serves static files for shared clip pages (no auth required)
+    // /shared-assets/* serves static files for shared clip pages (no auth required)
     let path = request.uri().path();
     if path == "/health"
+        || path == "/version"
         || path == "/auth/check"
         || path == "/ws"
         || path.starts_with("/s/")
-        || path.starts_with("/assets/")
+        || path.starts_with("/shared-assets/")
     {
         return next.run(request).await;
     }

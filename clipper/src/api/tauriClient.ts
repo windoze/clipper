@@ -92,5 +92,38 @@ export function createTauriApiClient(): ClipperApi {
     async downloadFile(clipId: string, filename: string): Promise<void> {
       await invoke("download_file", { clipId, filename });
     },
+
+    async shareClip(clipId: string): Promise<string> {
+      // Get the server URL and settings (for auth token)
+      const serverUrl = await invoke<string>("get_server_url");
+      const settings = await invoke<{
+        useBundledServer?: boolean;
+        bundledServerToken?: string;
+        externalServerToken?: string;
+      }>("get_settings");
+
+      // Get the appropriate token based on server mode
+      const token = settings.useBundledServer
+        ? settings.bundledServerToken
+        : settings.externalServerToken;
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${serverUrl}/clips/${clipId}/short-url`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({}),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to share clip: ${response.status}`);
+      }
+      const result = await response.json();
+      return result.full_url;
+    },
   };
 }

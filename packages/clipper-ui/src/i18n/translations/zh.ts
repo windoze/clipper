@@ -15,6 +15,7 @@ export const zh = {
 
   // Clip Entry
   "clip.copy": "点击复制",
+  "clip.share": "分享剪贴",
   "clip.edit": "编辑剪贴",
   "clip.delete": "删除剪贴",
   "clip.favorite.add": "添加到收藏",
@@ -76,6 +77,15 @@ export const zh = {
   "editClip.notes": "备注",
   "editClip.notes.placeholder": "添加关于这条剪贴的备注...",
   "editClip.saveError": "保存失败：{error}",
+
+  // Share Dialog
+  "share.title": "分享剪贴",
+  "share.generating": "正在生成分享链接...",
+  "share.copy": "复制",
+  "share.copied": "已复制！",
+  "share.hint": "任何拥有此链接的人都可以查看这条剪贴。",
+  "share.error": "生成分享链接失败",
+  "share.notAvailable": "分享功能不可用",
 
   // Image Popup
   "imagePopup.download": "下载",

@@ -407,6 +407,19 @@
   background: rgba(102, 126, 234, 0.2);
 }
 
+:root[data-theme="dark"] .share-button {
+  color: #6c757d;
+}
+
+:root[data-theme="dark"] .share-button:hover {
+  color: #99aaf7;
+  background: rgba(102, 126, 234, 0.2);
+}
+
+:root[data-theme="dark"] .clip-action-separator {
+  color: #4a4a4a;
+}
+
 :root[data-theme="dark"] .delete-button {
   background: #dc3545;
   color: white;
@@ -519,6 +532,72 @@
 }
 
 :root[data-theme="dark"] .edit-clip-btn.secondary:hover:not(:disabled) {
+  background: #4a4a4a;
+}
+
+/* ============================================
+   Share Dialog - Dark Theme
+   ============================================ */
+:root[data-theme="dark"] .share-dialog {
+  background: #2d2d2d;
+}
+
+:root[data-theme="dark"] .share-dialog-header {
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .share-dialog-header h2 {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .share-dialog-close {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .share-dialog-close:hover {
+  background: #404040;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .share-dialog-error {
+  background: #4a2020;
+  color: #f8a0a0;
+}
+
+:root[data-theme="dark"] .share-dialog-loading {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .share-dialog-spinner {
+  border-color: #404040;
+  border-top-color: #667eea;
+}
+
+:root[data-theme="dark"] .share-dialog-url-input {
+  background: #363636;
+  border-color: #404040;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .share-dialog-url-input:focus {
+  border-color: #667eea;
+}
+
+:root[data-theme="dark"] .share-dialog-hint {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .share-dialog-footer {
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .share-dialog-btn.secondary {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .share-dialog-btn.secondary:hover {
   background: #4a4a4a;
 }
 
@@ -925,6 +1004,19 @@
     background: rgba(102, 126, 234, 0.2);
   }
 
+  :root:not([data-theme="light"]) .share-button {
+    color: #6c757d;
+  }
+
+  :root:not([data-theme="light"]) .share-button:hover {
+    color: #99aaf7;
+    background: rgba(102, 126, 234, 0.2);
+  }
+
+  :root:not([data-theme="light"]) .clip-action-separator {
+    color: #4a4a4a;
+  }
+
   :root:not([data-theme="light"]) .delete-confirm-dialog {
     background: #2d2d2d;
   }
@@ -1028,6 +1120,70 @@
   }
 
   :root:not([data-theme="light"]) .edit-clip-btn.secondary:hover:not(:disabled) {
+    background: #4a4a4a;
+  }
+
+  /* Share dialog dark mode fallback */
+  :root:not([data-theme="light"]) .share-dialog {
+    background: #2d2d2d;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-header {
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-header h2 {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-close {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-close:hover {
+    background: #404040;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-error {
+    background: #4a2020;
+    color: #f8a0a0;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-loading {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-spinner {
+    border-color: #404040;
+    border-top-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-url-input {
+    background: #363636;
+    border-color: #404040;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-url-input:focus {
+    border-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-hint {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-footer {
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-btn.secondary {
+    background: #404040;
+    border-color: #4a4a4a;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-btn.secondary:hover {
     background: #4a4a4a;
   }
 

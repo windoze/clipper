@@ -6,6 +6,7 @@ export { DateTag } from "./DateTag";
 export { EditClipDialog } from "./EditClipDialog";
 export { FavoriteToggle } from "./FavoriteToggle";
 export { ImagePopup } from "./ImagePopup";
+export { ShareDialog } from "./ShareDialog";
 export { LanguageSelector, LANGUAGES } from "./LanguageSelector";
 export type { LanguageId } from "./LanguageSelector";
 export { SearchBox } from "./SearchBox";

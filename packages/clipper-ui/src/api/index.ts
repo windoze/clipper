@@ -55,6 +55,9 @@ export interface ClipperApi {
 
   /** Download a file attachment */
   downloadFile(clipId: string, filename: string): Promise<void>;
+
+  /** Share a clip and get its short URL (optional, only available when server has sharing enabled) */
+  shareClip?: (clipId: string) => Promise<string>;
 }
 
 // Context for the API client
@@ -329,6 +332,16 @@ export function createRestApiClient(
         link.click();
         document.body.removeChild(link);
       }
+    },
+
+    async shareClip(clipId: string): Promise<string> {
+      const response = await fetch(`${baseUrl}/clips/${clipId}/short-url`, {
+        method: "POST",
+        headers: getHeaders("application/json"),
+        body: JSON.stringify({}),
+      });
+      const result = await handleResponse<{ full_url: string }>(response);
+      return result.full_url;
     },
   };
 }

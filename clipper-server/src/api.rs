@@ -29,7 +29,7 @@ pub fn routes() -> Router<AppState> {
         // Public short URL resolver (no auth required)
         .route("/s/{code}", get(resolve_short_url))
         // Static assets for shared clip page (no auth required)
-        .route("/assets/{filename}", get(serve_asset))
+        .route("/shared-assets/{filename}", get(serve_asset))
 }
 
 /// Version information response

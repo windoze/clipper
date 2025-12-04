@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { I18nProvider, ApiProvider } from "@unwritten-codes/clipper-ui";
 import { TauriToastWrapper } from "./components/TauriToastWrapper";
 import { CleanupConfigWrapper } from "./components/CleanupConfigWrapper";
+import { ServerConfigWrapper } from "./components/ServerConfigWrapper";
 import { createTauriApiClient } from "./api/tauriClient";
 import { tauriExtraTranslations } from "./i18n/translations";
 import App from "./App";
@@ -28,7 +29,9 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <ApiProvider value={api}>
         <TauriToastWrapper>
           <CleanupConfigWrapper>
-            <App />
+            <ServerConfigWrapper>
+              <App />
+            </ServerConfigWrapper>
           </CleanupConfigWrapper>
         </TauriToastWrapper>
       </ApiProvider>

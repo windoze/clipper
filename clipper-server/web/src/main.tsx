@@ -8,6 +8,7 @@ import {
   useI18n,
 } from "@unwritten-codes/clipper-ui";
 import { CleanupConfigWrapper } from "./components/CleanupConfigWrapper";
+import { ServerConfigWrapper } from "./components/ServerConfigWrapper";
 import { LoginScreen } from "./components/LoginScreen";
 import App from "./App";
 import "./App.css";
@@ -139,7 +140,9 @@ function AuthWrapper() {
 
   return (
     <CleanupConfigWrapper>
-      <App authToken={currentToken} />
+      <ServerConfigWrapper>
+        <App authToken={currentToken} />
+      </ServerConfigWrapper>
     </CleanupConfigWrapper>
   );
 }

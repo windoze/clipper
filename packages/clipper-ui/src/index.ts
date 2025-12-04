@@ -4,6 +4,7 @@ export type {
   PagedResult,
   SearchFilters,
   CleanupConfig,
+  ServerConfig,
 } from "./types";
 export { FAVORITE_TAG, isFavorite, calculateAgeRatio } from "./types";
 
@@ -46,6 +47,8 @@ export {
   useTheme,
   useCleanupConfig,
   CleanupConfigProvider,
+  useServerConfig,
+  ServerConfigProvider,
   useSyntaxTheme,
   useSyntaxThemeContext,
   SyntaxThemeProvider,

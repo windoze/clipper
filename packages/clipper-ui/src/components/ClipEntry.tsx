@@ -3,12 +3,14 @@ import hljs from "highlight.js";
 import { Clip, isFavorite, calculateAgeRatio } from "../types";
 import { ImagePopup } from "./ImagePopup";
 import { EditClipDialog } from "./EditClipDialog";
+import { ShareDialog } from "./ShareDialog";
 import { LanguageSelector, LanguageId, LANGUAGES } from "./LanguageSelector";
 import { DateTag } from "./DateTag";
 import { useI18n } from "../i18n";
 import { useToast } from "./Toast";
 import { useApi } from "../api";
 import { useCleanupConfig } from "../hooks/useCleanupConfig";
+import { useServerConfig } from "../hooks/useServerConfig";
 
 interface ClipEntryProps {
   clip: Clip;
@@ -80,6 +82,7 @@ export function ClipEntry({
   const { showToast } = useToast();
   const api = useApi();
   const cleanupConfig = useCleanupConfig();
+  const serverConfig = useServerConfig();
   const favorite = isFavorite(clip);
 
   // Calculate age-based opacity for visual aging effect
@@ -106,6 +109,7 @@ export function ClipEntry({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -227,6 +231,12 @@ export function ClipEntry({
     setIsExpanded(!isExpanded);
   };
 
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!serverConfig?.shortUrlEnabled) return;
+    setShowShareDialog(true);
+  };
+
   // Handle click on the clip entry itself - toggle expand/collapse for long content
   const handleEntryClick = () => {
     // Only toggle if content is long (not for images)
@@ -286,6 +296,34 @@ export function ClipEntry({
                 </svg>
               </button>
             )}
+            {serverConfig?.shortUrlEnabled && (
+              <>
+                <span className="clip-action-separator">|</span>
+                <button
+                  className="share-button"
+                  onClick={handleShareClick}
+                  title={t("clip.share")}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                  </svg>
+                </button>
+              </>
+            )}
+            <span className="clip-action-separator">|</span>
             <button
               className="edit-button"
               onClick={handleEditClick}
@@ -446,6 +484,12 @@ export function ClipEntry({
         isOpen={showEditDialog}
         onClose={() => setShowEditDialog(false)}
         onSave={handleClipSaved}
+      />
+
+      <ShareDialog
+        clipId={clip.id}
+        isOpen={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
       />
 
       {showDeleteConfirm && (

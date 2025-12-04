@@ -40,6 +40,17 @@ export interface CleanupConfig {
 }
 
 /**
+ * Server configuration from the /version endpoint.
+ * Used to conditionally show features like sharing.
+ */
+export interface ServerConfig {
+  /** Whether short URL sharing is enabled */
+  shortUrlEnabled: boolean;
+  /** Base URL for short URLs (if enabled) */
+  shortUrlBase?: string;
+}
+
+/**
  * Calculate the age ratio of a clip (0 = new, 1 = about to be cleaned up).
  * Returns null if cleanup is disabled or clip has meaningful tags.
  *

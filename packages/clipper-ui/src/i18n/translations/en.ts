@@ -15,6 +15,7 @@ export const en = {
 
   // Clip Entry
   "clip.copy": "Click to copy",
+  "clip.share": "Share clip",
   "clip.edit": "Edit clip",
   "clip.delete": "Delete clip",
   "clip.favorite.add": "Add to favorites",
@@ -77,6 +78,15 @@ export const en = {
   "editClip.notes": "Notes",
   "editClip.notes.placeholder": "Add notes about this clip...",
   "editClip.saveError": "Failed to save: {error}",
+
+  // Share Dialog
+  "share.title": "Share Clip",
+  "share.generating": "Generating share link...",
+  "share.copy": "Copy",
+  "share.copied": "Copied!",
+  "share.hint": "Anyone with this link can view this clip.",
+  "share.error": "Failed to generate share link",
+  "share.notAvailable": "Sharing is not available",
 
   // Image Popup
   "imagePopup.download": "Download",
