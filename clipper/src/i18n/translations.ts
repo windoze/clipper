@@ -3,6 +3,17 @@ import type { Language } from "@unwritten-codes/clipper-ui";
 // Extra translations specific to the Tauri desktop app
 export const tauriExtraTranslations: Record<Language, Record<string, string>> = {
   en: {
+    // Settings Tab Labels
+    "settings.tab.appearance": "Appearance",
+    "settings.tab.startup": "Startup",
+    "settings.tab.server": "Server",
+    "settings.tab.about": "About",
+
+    // About Section
+    "settings.about": "About",
+    "settings.about.version": "Version",
+    "settings.about.copyright": "A clipboard manager for modern workflows",
+
     // Startup
     "settings.startup": "Startup",
     "settings.openOnStartup": "Open main window on startup",
@@ -35,6 +46,15 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.bundledServerToken.hint": "Set a token to require authentication when accessing the server from other devices. Leave empty to allow unauthenticated access.",
     "settings.token.show": "Show token",
     "settings.token.hide": "Hide token",
+
+    // External Server Info
+    "settings.serverInfo": "Server Configuration",
+    "settings.serverInfo.version": "Server Version",
+    "settings.serverInfo.maxUploadSize": "Max Upload Size",
+    "settings.serverInfo.cleanupRetention": "Auto-cleanup Retention",
+    "settings.serverInfo.acmeDomain": "ACME Domain",
+    "settings.serverInfo.days": "days",
+    "settings.serverInfo.hint": "These settings are configured on the server and cannot be changed here.",
 
     // Storage
     "settings.storage": "Storage",
@@ -122,6 +142,17 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "toast.updateDownloadedMac": "Update downloaded. Quit and reopen to apply.",
   },
   zh: {
+    // Settings Tab Labels
+    "settings.tab.appearance": "外观",
+    "settings.tab.startup": "启动",
+    "settings.tab.server": "服务器",
+    "settings.tab.about": "关于",
+
+    // About Section
+    "settings.about": "关于",
+    "settings.about.version": "版本",
+    "settings.about.copyright": "为现代工作流程设计的剪贴板管理器",
+
     // Startup
     "settings.startup": "启动",
     "settings.openOnStartup": "启动时打开主窗口",
@@ -154,6 +185,15 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.bundledServerToken.hint": "设置令牌以在其他设备访问服务器时要求身份验证。留空则允许无需身份验证即可访问。",
     "settings.token.show": "显示令牌",
     "settings.token.hide": "隐藏令牌",
+
+    // External Server Info
+    "settings.serverInfo": "服务器配置",
+    "settings.serverInfo.version": "服务器版本",
+    "settings.serverInfo.maxUploadSize": "最大上传大小",
+    "settings.serverInfo.cleanupRetention": "自动清理保留期",
+    "settings.serverInfo.acmeDomain": "ACME 域名",
+    "settings.serverInfo.days": "天",
+    "settings.serverInfo.hint": "这些设置在服务器端配置，无法在此处修改。",
 
     // Storage
     "settings.storage": "存储",

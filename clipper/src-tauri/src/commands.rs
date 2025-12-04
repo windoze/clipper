@@ -570,6 +570,14 @@ pub fn get_max_upload_size_bytes(state: State<'_, AppState>) -> u64 {
     state.get_max_upload_size_bytes()
 }
 
+// ============ App Info Commands ============
+
+/// Get the current app version
+#[tauri::command]
+pub fn get_app_version(app: tauri::AppHandle) -> String {
+    app.package_info().version.to_string()
+}
+
 // ============ Updater Commands ============
 
 /// Information about an available update

@@ -27,6 +27,20 @@ pub enum SyntaxTheme {
     Nord,
 }
 
+/// Settings dialog window geometry
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsWindowGeometry {
+    /// Window width
+    pub width: Option<u32>,
+    /// Window height
+    pub height: Option<u32>,
+    /// Window X position (logical)
+    pub x: Option<i32>,
+    /// Window Y position (logical)
+    pub y: Option<i32>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
@@ -77,6 +91,9 @@ pub struct Settings {
     /// Maximum upload size in MB for bundled server (default: 10)
     #[serde(default = "default_max_upload_size_mb")]
     pub max_upload_size_mb: u64,
+    /// Settings dialog window geometry (size and position)
+    #[serde(default)]
+    pub settings_window_geometry: SettingsWindowGeometry,
 }
 
 fn default_cleanup_retention_days() -> u32 {
@@ -126,6 +143,7 @@ impl Default for Settings {
             external_server_token: None,
             bundled_server_token: None,
             max_upload_size_mb: default_max_upload_size_mb(),
+            settings_window_geometry: SettingsWindowGeometry::default(),
         }
     }
 }

@@ -460,6 +460,7 @@ pub fn run() {
             commands::get_websocket_status,
             commands::get_server_info,
             commands::get_max_upload_size_bytes,
+            commands::get_app_version,
             commands::check_for_updates,
             commands::install_update,
         ])

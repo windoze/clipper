@@ -1550,3 +1550,406 @@ body {
     display: none;
   }
 }
+
+/* ============================================
+   Tauri-Specific: Tabbed Settings Dialog
+   ============================================ */
+
+.settings-dialog-tabbed {
+  width: 600px;
+  min-width: 500px;
+  min-height: 450px;
+  max-width: 95vw;
+  max-height: 90vh;
+  position: relative;
+}
+
+/* Settings Tabs */
+.settings-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.settings-tab {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6c757d;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  margin-bottom: -1px;
+}
+
+.settings-tab:hover {
+  color: #495057;
+}
+
+.settings-tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+/* About Tab Styles */
+.settings-about-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.settings-about-logo {
+  flex-shrink: 0;
+  color: #667eea;
+}
+
+.settings-about-text h4 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #212529;
+}
+
+.settings-about-version {
+  font-size: 14px;
+  color: #495057;
+  margin: 0 0 4px 0;
+}
+
+.settings-about-copyright {
+  font-size: 12px;
+  color: #6c757d;
+  margin: 0;
+}
+
+/* Resize Handles */
+.settings-resize-handle {
+  position: absolute;
+  z-index: 10;
+}
+
+.settings-resize-n {
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 6px;
+  cursor: n-resize;
+}
+
+.settings-resize-s {
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 6px;
+  cursor: s-resize;
+}
+
+.settings-resize-e {
+  right: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 6px;
+  cursor: e-resize;
+}
+
+.settings-resize-w {
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 6px;
+  cursor: w-resize;
+}
+
+.settings-resize-ne {
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  cursor: ne-resize;
+}
+
+.settings-resize-nw {
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nw-resize;
+}
+
+.settings-resize-se {
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  cursor: se-resize;
+}
+
+.settings-resize-sw {
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  cursor: sw-resize;
+}
+
+/* Settings Notice (for restart required) */
+.settings-notice {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #856404;
+}
+
+/* Update notes styling */
+.settings-update-notes {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 12px 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.settings-update-notes pre {
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #495057;
+}
+
+.settings-update-ready {
+  color: #28a745;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.settings-update-available {
+  color: #667eea;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.settings-update-uptodate {
+  color: #28a745;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+/* Server Info Display */
+.settings-server-info {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.settings-server-info h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-server-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.settings-server-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-server-info-label {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.settings-server-info-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: #212529;
+}
+
+.settings-server-info .settings-hint {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+/* Dark Theme for Tabbed Settings */
+:root[data-theme="dark"] .settings-tabs {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .settings-tab {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-tab:hover {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-tab.active {
+  color: #99aaf7;
+  border-bottom-color: #667eea;
+}
+
+:root[data-theme="dark"] .settings-about-info {
+  background: #363636;
+}
+
+:root[data-theme="dark"] .settings-about-text h4 {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-about-version {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-about-copyright {
+  color: #6c757d;
+}
+
+:root[data-theme="dark"] .settings-notice {
+  background: #3d3520;
+  border-color: #6d5a10;
+  color: #f0d77c;
+}
+
+:root[data-theme="dark"] .settings-update-notes {
+  background: #363636;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .settings-update-notes pre {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-update-ready {
+  color: #28a745;
+}
+
+:root[data-theme="dark"] .settings-update-available {
+  color: #99aaf7;
+}
+
+:root[data-theme="dark"] .settings-update-uptodate {
+  color: #28a745;
+}
+
+:root[data-theme="dark"] .settings-server-info {
+  background: #363636;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .settings-server-info h4 {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-server-info-label {
+  color: #6c757d;
+}
+
+:root[data-theme="dark"] .settings-server-info-value {
+  color: #e9ecef;
+}
+
+/* Media query fallback for dark theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .settings-tabs {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .settings-tab {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .settings-tab:hover {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .settings-tab.active {
+    color: #99aaf7;
+    border-bottom-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .settings-about-info {
+    background: #363636;
+  }
+
+  :root:not([data-theme="light"]) .settings-about-text h4 {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .settings-about-version {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .settings-about-copyright {
+    color: #6c757d;
+  }
+
+  :root:not([data-theme="light"]) .settings-notice {
+    background: #3d3520;
+    border-color: #6d5a10;
+    color: #f0d77c;
+  }
+
+  :root:not([data-theme="light"]) .settings-update-notes {
+    background: #363636;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .settings-update-notes pre {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .settings-update-ready {
+    color: #28a745;
+  }
+
+  :root:not([data-theme="light"]) .settings-update-available {
+    color: #99aaf7;
+  }
+
+  :root:not([data-theme="light"]) .settings-update-uptodate {
+    color: #28a745;
+  }
+
+  :root:not([data-theme="light"]) .settings-server-info {
+    background: #363636;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .settings-server-info h4 {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .settings-server-info-label {
+    color: #6c757d;
+  }
+
+  :root:not([data-theme="light"]) .settings-server-info-value {
+    color: #e9ecef;
+  }
+}
