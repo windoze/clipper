@@ -21,6 +21,7 @@ English | [简体中文](README.zh-CN.md)
 - **HTTPS/TLS Support** - Secure connections with manual certificates or automatic Let's Encrypt
 - **Authentication** - Optional Bearer token authentication for API security
 - **Auto-cleanup** - Automatic deletion of old clips based on retention policy
+- **Clip Sharing** - Share clips publicly via short URLs with optional expiration
 - **Web UI** - Browser-based access with drag-and-drop file upload
 - **Multi-language** - English and Chinese interface
 - **Theme Support** - Light, dark, and auto themes
@@ -129,6 +130,8 @@ cargo run --bin clipper-server -- \
 | `CLIPPER_CLEANUP_RETENTION_DAYS` | `30` | Days to retain clips |
 | `CLIPPER_CLEANUP_INTERVAL_HOURS` | `24` | Hours between cleanups |
 | `CLIPPER_BEARER_TOKEN` | - | Bearer token for authentication |
+| `CLIPPER_SHORT_URL_BASE` | - | Base URL for sharing (enables sharing) |
+| `CLIPPER_SHORT_URL_EXPIRATION_HOURS` | `24` | Default short URL expiration |
 
 ### Authentication
 
@@ -198,6 +201,8 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
 | `/clips/:id` | PUT | Update clip metadata |
 | `/clips/:id` | DELETE | Delete clip |
 | `/clips/:id/file` | GET | Download file attachment |
+| `/clips/:id/short-url` | POST | Create short URL for sharing |
+| `/s/:code` | GET | Resolve short URL (public) |
 | `/ws` | WS | Real-time notifications |
 
 ## CLI
@@ -222,6 +227,9 @@ clipper-cli update <clip-id> --tags updated,important
 
 # Delete a clip
 clipper-cli delete <clip-id>
+
+# Share a clip (requires CLIPPER_SHORT_URL_BASE on server)
+clipper-cli share <clip-id> --expires 48
 ```
 
 ### Environment

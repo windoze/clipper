@@ -21,6 +21,7 @@
 - **HTTPS/TLS 支持** - 支持手动证书或 Let's Encrypt 自动证书的安全连接
 - **身份验证** - 可选的 Bearer Token 认证，保护 API 安全
 - **自动清理** - 根据保留策略自动删除旧剪贴内容
+- **剪贴分享** - 通过短链接公开分享剪贴内容，支持设置过期时间
 - **Web 界面** - 浏览器访问，支持拖放上传文件
 - **多语言支持** - 中英文界面
 - **主题支持** - 浅色、深色和自动主题
@@ -129,6 +130,8 @@ cargo run --bin clipper-server -- \
 | `CLIPPER_CLEANUP_RETENTION_DAYS` | `30` | 剪贴保留天数 |
 | `CLIPPER_CLEANUP_INTERVAL_HOURS` | `24` | 清理间隔小时数 |
 | `CLIPPER_BEARER_TOKEN` | - | 身份验证令牌 |
+| `CLIPPER_SHORT_URL_BASE` | - | 分享短链接基础 URL（启用分享功能） |
+| `CLIPPER_SHORT_URL_EXPIRATION_HOURS` | `24` | 短链接默认过期时间（小时） |
 
 ### 身份验证
 
@@ -198,6 +201,8 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
 | `/clips/:id` | PUT | 更新剪贴元数据 |
 | `/clips/:id` | DELETE | 删除剪贴 |
 | `/clips/:id/file` | GET | 下载文件附件 |
+| `/clips/:id/short-url` | POST | 创建分享短链接 |
+| `/s/:code` | GET | 解析短链接（公开） |
 | `/ws` | WS | 实时通知 |
 
 ## 命令行工具
@@ -222,6 +227,9 @@ clipper-cli update <clip-id> --tags updated,important
 
 # 删除剪贴
 clipper-cli delete <clip-id>
+
+# 分享剪贴（需要服务器设置 CLIPPER_SHORT_URL_BASE）
+clipper-cli share <clip-id> --expires 48
 ```
 
 ### 环境变量

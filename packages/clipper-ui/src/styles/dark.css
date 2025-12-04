@@ -91,6 +91,10 @@
   background: #404040;
 }
 
+:root[data-theme="dark"] .toggle-input:checked + .toggle-switch {
+  background: #667eea;
+}
+
 :root[data-theme="dark"] .toggle-text,
 :root[data-theme="dark"] .date-input-group label {
   color: #adb5bd;
@@ -757,6 +761,10 @@
 
   :root:not([data-theme="light"]) .toggle-switch {
     background: #404040;
+  }
+
+  :root:not([data-theme="light"]) .toggle-input:checked + .toggle-switch {
+    background: #667eea;
   }
 
   :root:not([data-theme="light"]) .toggle-text,
