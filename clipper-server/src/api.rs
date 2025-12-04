@@ -28,6 +28,8 @@ pub fn routes() -> Router<AppState> {
         .route("/short/{code}", get(get_short_url_redirect))
         // Public short URL resolver (no auth required)
         .route("/s/{code}", get(resolve_short_url))
+        // Static assets for shared clip page (no auth required)
+        .route("/assets/{filename}", get(serve_asset))
 }
 
 /// Version information response
@@ -702,9 +704,10 @@ async fn resolve_short_url(
         };
 
         // Build download link if file attachment exists
+        // Use id="download-btn" so JavaScript can localize the text
         let download_link = if entry.file_attachment.is_some() {
             format!(
-                r#"<a class="btn" href="/s/{}?accept=application/octet-stream">Download File</a>"#,
+                r#"<a class="btn" id="download-btn" href="/s/{}?accept=application/octet-stream">Download File</a>"#,
                 code
             )
         } else {
@@ -732,10 +735,6 @@ async fn resolve_short_url(
             .replace("{{CONTENT}}", &html_escape(&content))
             .replace("{{DOWNLOAD_LINK}}", &download_link)
             .replace(
-                "{{CREATED_AT}}",
-                &entry.created_at.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
-            )
-            .replace(
                 "{{ORIGINAL_CONTENT_JSON}}",
                 &serde_json::to_string(&original_content).unwrap_or_else(|_| "\"\"".to_string()),
             )
@@ -759,4 +758,35 @@ fn html_escape(s: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&#39;")
+}
+
+// ==================== Static Assets ====================
+
+/// Serve static assets for shared clip page with browser caching
+async fn serve_asset(Path(filename): Path<String>) -> Result<Response> {
+    // Only allow specific files to be served (security)
+    let (content, content_type) = match filename.as_str() {
+        "shared_clip.css" => (
+            include_str!("assets/shared_clip.css"),
+            "text/css; charset=utf-8",
+        ),
+        "shared_clip.js" => (
+            include_str!("assets/shared_clip.js"),
+            "application/javascript; charset=utf-8",
+        ),
+        _ => {
+            return Err(crate::error::ServerError::NotFound(format!(
+                "Asset not found: {}",
+                filename
+            )));
+        }
+    };
+
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, content_type)
+        // Cache for 1 year (assets are versioned by content hash in practice)
+        .header(header::CACHE_CONTROL, "public, max-age=31536000, immutable")
+        .body(Body::from(content))
+        .unwrap())
 }

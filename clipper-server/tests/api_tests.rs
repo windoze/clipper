@@ -2167,3 +2167,170 @@ async fn test_resolve_short_url_query_param_override() {
     let content = response_text(response).await;
     assert_eq!(content, "Download test content");
 }
+
+// ==================== Static Assets Tests ====================
+
+#[tokio::test]
+async fn test_serve_css_asset() {
+    let (app, _temp_dir) = create_test_app().await;
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/assets/shared_clip.css")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    assert!(content_type.contains("text/css"));
+
+    let cache_control = response
+        .headers()
+        .get("cache-control")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    assert!(cache_control.contains("max-age=31536000"));
+    assert!(cache_control.contains("immutable"));
+
+    let content = response_text(response).await;
+    assert!(content.contains("body {"));
+    assert!(content.contains(".container"));
+}
+
+#[tokio::test]
+async fn test_serve_js_asset() {
+    let (app, _temp_dir) = create_test_app().await;
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/assets/shared_clip.js")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    assert!(content_type.contains("application/javascript"));
+
+    let cache_control = response
+        .headers()
+        .get("cache-control")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    assert!(cache_control.contains("max-age=31536000"));
+
+    let content = response_text(response).await;
+    assert!(content.contains("translations"));
+    assert!(content.contains("copyToClipboard"));
+}
+
+#[tokio::test]
+async fn test_serve_asset_not_found() {
+    let (app, _temp_dir) = create_test_app().await;
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/assets/nonexistent.js")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_shared_clip_html_references_assets() {
+    let (app, _temp_dir) = create_test_app_with_short_url().await;
+
+    // Create a clip first
+    let create_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "Test content",
+                        "tags": ["test"]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let create_body = response_json(create_response).await;
+    let clip_id = create_body["id"].as_str().unwrap();
+
+    // Create short URL
+    let short_url_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/clips/{}/short-url", clip_id))
+                .header("content-type", "application/json")
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let short_url_body = response_json(short_url_response).await;
+    let short_code = short_url_body["short_code"].as_str().unwrap();
+
+    // Resolve short URL and check HTML contains asset references
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/s/{}", short_code))
+                .header("accept", "text/html")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let html = response_text(response).await;
+    // Check that HTML references external CSS and JS
+    assert!(html.contains(r#"href="/assets/shared_clip.css""#));
+    assert!(html.contains(r#"src="/assets/shared_clip.js""#));
+    // Check that inline styles and scripts are removed
+    assert!(!html.contains("<style>"));
+    // Check that data variables are still inline (needed by JS)
+    assert!(html.contains("const originalContent ="));
+    assert!(html.contains("const expiresAtIso ="));
+}

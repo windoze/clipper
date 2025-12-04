@@ -55,8 +55,14 @@ pub async fn auth_middleware(
     // Allow certain endpoints without authentication
     // WebSocket endpoint handles its own message-based authentication
     // /s/{code} is the public short URL resolver (no auth required)
+    // /assets/* serves static files for shared clip pages (no auth required)
     let path = request.uri().path();
-    if path == "/health" || path == "/auth/check" || path == "/ws" || path.starts_with("/s/") {
+    if path == "/health"
+        || path == "/auth/check"
+        || path == "/ws"
+        || path.starts_with("/s/")
+        || path.starts_with("/assets/")
+    {
         return next.run(request).await;
     }
 

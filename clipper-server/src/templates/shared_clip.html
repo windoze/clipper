@@ -4,174 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clipper - Shared Clip</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            border-radius: 8px;
-            padding: 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .content {
-            white-space: pre-wrap;
-            word-break: break-word;
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 4px;
-            border: 1px solid #e9ecef;
-            font-family: monospace;
-        }
-        .meta {
-            color: #6c757d;
-            font-size: 0.875rem;
-            margin-top: 1rem;
-        }
-        .meta-item {
-            margin: 0.25rem 0;
-        }
-        .actions {
-            margin-top: 1rem;
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        .btn {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-        .btn:hover {
-            background: #0056b3;
-        }
-        .btn-success {
-            background: #28a745;
-        }
-        .btn-success:hover {
-            background: #218838;
-        }
-        h1 {
-            margin-top: 0;
-            color: #333;
-        }
-        .expires {
-            cursor: help;
-            border-bottom: 1px dotted #6c757d;
-        }
-        .expires-warning {
-            color: #dc3545;
-        }
-        .expires-soon {
-            color: #ffc107;
-        }
-        .no-expiry {
-            color: #28a745;
-        }
-    </style>
+    <link rel="stylesheet" href="/assets/shared_clip.css">
 </head>
 <body>
     <div class="container">
-        <h1>📎 Shared Clip</h1>
+        <h1 id="page-title">📎 Shared Clip</h1>
         <div class="content" id="clip-content">{{CONTENT}}</div>
         <div class="actions">
             <button class="btn" id="copy-btn" onclick="copyToClipboard()">Copy to Clipboard</button>
             {{DOWNLOAD_LINK}}
         </div>
         <div class="meta">
-            <p class="meta-item">Created: {{CREATED_AT}}</p>
             <p class="meta-item" id="expiration-info">{{EXPIRATION_HTML}}</p>
         </div>
     </div>
     <script>
         const originalContent = {{ORIGINAL_CONTENT_JSON}};
         const expiresAtIso = {{EXPIRES_AT_JSON}};
-
-        function copyToClipboard() {
-            navigator.clipboard.writeText(originalContent).then(function() {
-                const btn = document.getElementById('copy-btn');
-                const originalText = btn.textContent;
-                btn.textContent = 'Copied!';
-                btn.classList.add('btn-success');
-                setTimeout(function() {
-                    btn.textContent = originalText;
-                    btn.classList.remove('btn-success');
-                }, 2000);
-            }).catch(function(err) {
-                alert('Failed to copy: ' + err);
-            });
-        }
-
-        // Format relative time (e.g., "in 2 hours", "in 3 days")
-        function formatRelativeTime(date) {
-            const now = new Date();
-            const diffMs = date - now;
-            const diffSecs = Math.floor(diffMs / 1000);
-            const diffMins = Math.floor(diffSecs / 60);
-            const diffHours = Math.floor(diffMins / 60);
-            const diffDays = Math.floor(diffHours / 24);
-
-            if (diffMs < 0) {
-                return 'expired';
-            } else if (diffMins < 1) {
-                return 'in less than a minute';
-            } else if (diffMins < 60) {
-                return 'in ' + diffMins + ' minute' + (diffMins === 1 ? '' : 's');
-            } else if (diffHours < 24) {
-                return 'in ' + diffHours + ' hour' + (diffHours === 1 ? '' : 's');
-            } else if (diffDays < 30) {
-                return 'in ' + diffDays + ' day' + (diffDays === 1 ? '' : 's');
-            } else {
-                const diffMonths = Math.floor(diffDays / 30);
-                return 'in ' + diffMonths + ' month' + (diffMonths === 1 ? '' : 's');
-            }
-        }
-
-        // Get CSS class based on time until expiration
-        function getExpirationClass(date) {
-            const now = new Date();
-            const diffMs = date - now;
-            const diffHours = diffMs / (1000 * 60 * 60);
-
-            if (diffHours < 0) {
-                return 'expires-warning';
-            } else if (diffHours < 1) {
-                return 'expires-warning';
-            } else if (diffHours < 24) {
-                return 'expires-soon';
-            }
-            return '';
-        }
-
-        // Update expiration display with local time
-        function updateExpirationDisplay() {
-            if (!expiresAtIso) return;
-
-            const expiresAt = new Date(expiresAtIso);
-            const localTimeStr = expiresAt.toLocaleString();
-            const relativeStr = formatRelativeTime(expiresAt);
-            const expirationClass = getExpirationClass(expiresAt);
-
-            const container = document.getElementById('expiration-info');
-            container.innerHTML = 'Expires: <span class="expires ' + expirationClass + '" title="' + localTimeStr + '">' + relativeStr + '</span>';
-        }
-
-        // Update on page load
-        if (expiresAtIso) {
-            updateExpirationDisplay();
-            // Update every minute
-            setInterval(updateExpirationDisplay, 60000);
-        }
     </script>
+    <script src="/assets/shared_clip.js"></script>
 </body>
 </html>
