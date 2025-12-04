@@ -226,7 +226,7 @@ impl AcmeManager {
                 AcmeError::ChallengeFailed("No HTTP-01 challenge found".to_string())
             })?;
 
-            let token = challenge.identifier().to_string();
+            let token = challenge.token.clone();
             let key_auth = challenge.key_authorization().as_str().to_string();
 
             tracing::info!("Setting up HTTP-01 challenge for token: {}", token);
