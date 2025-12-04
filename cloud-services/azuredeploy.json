@@ -131,6 +131,14 @@
               ],
               "environmentVariables": [
                 {
+                  "name": "PORT",
+                  "value": "80"
+                },
+                {
+                  "name": "CLIPPER_TLS_PORT",
+                  "value": "443"
+                },
+                {
                   "name": "CLIPPER_ACME_ENABLED",
                   "value": "true"
                 },
