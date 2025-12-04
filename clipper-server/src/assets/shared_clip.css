@@ -7,6 +7,7 @@ body {
     background-color: #f5f5f5;
 }
 .container {
+    position: relative;
     background: white;
     border-radius: 8px;
     padding: 2rem;
@@ -91,4 +92,26 @@ h1 {
 /* Hide text content for images (shows filename which is less useful) */
 .content.image-content {
     display: none;
+}
+/* Header links */
+.header-links {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.75rem;
+}
+.header-links a {
+    color: #6c757d;
+    text-decoration: none;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+}
+.header-links a:hover {
+    color: #007bff;
+}
+.header-links svg {
+    width: 20px;
+    height: 20px;
 }
