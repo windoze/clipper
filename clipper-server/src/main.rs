@@ -237,6 +237,35 @@ async fn start_with_tls<T>(
         std::process::exit(1);
     });
 
+    // For ACME, we need to start the HTTP server BEFORE attempting certificate provisioning
+    // because Let's Encrypt will validate the challenge on port 80
+    #[cfg(feature = "acme")]
+    let acme_challenges = if let Some(ref manager) = acme_manager
+        && let Some(acme) = (manager as &dyn Any).downcast_ref::<Arc<AcmeManager>>()
+    {
+        acme.pending_challenges()
+    } else {
+        std::sync::Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new()))
+    };
+
+    // Start HTTP server for ACME challenges before certificate provisioning
+    #[cfg(feature = "acme")]
+    if config.tls.redirect_http {
+        let http_addr = config.socket_addr().unwrap_or_else(|err| {
+            eprintln!("Invalid HTTP listen address: {}", err);
+            std::process::exit(1);
+        });
+        let https_port = config.tls.port;
+        let challenges = acme_challenges.clone();
+
+        tokio::spawn(async move {
+            run_http_redirect_server(http_addr, https_port, challenges).await;
+        });
+
+        // Give the HTTP server a moment to start
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+
     // Get certificate and key
     let (cert_pem, key_pem) = get_certificate(&config, &acme_manager).await;
 
@@ -250,7 +279,8 @@ async fn start_with_tls<T>(
 
     let rustls_config = tls_manager.config();
 
-    // Spawn HTTP redirect server if enabled
+    // For non-ACME builds, start HTTP redirect server after certificate is loaded
+    #[cfg(not(feature = "acme"))]
     if config.tls.redirect_http {
         let http_addr = config.socket_addr().unwrap_or_else(|err| {
             eprintln!("Invalid HTTP listen address: {}", err);
@@ -258,23 +288,6 @@ async fn start_with_tls<T>(
         });
         let https_port = config.tls.port;
 
-        #[cfg(feature = "acme")]
-        {
-            // Get ACME challenges from manager if available
-            let acme_challenges = if let Some(ref manager) = acme_manager
-                && let Some(acme) = (manager as &dyn Any).downcast_ref::<Arc<AcmeManager>>()
-            {
-                acme.pending_challenges()
-            } else {
-                std::sync::Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new()))
-            };
-
-            tokio::spawn(async move {
-                run_http_redirect_server(http_addr, https_port, acme_challenges).await;
-            });
-        }
-
-        #[cfg(not(feature = "acme"))]
         tokio::spawn(async move {
             run_http_redirect_server(http_addr, https_port).await;
         });

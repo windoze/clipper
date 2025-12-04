@@ -293,7 +293,16 @@ impl CertStorage for KeyringStorage {
 }
 
 /// Create the appropriate storage backend based on available features.
+///
+/// This function also ensures the storage directory exists.
 pub fn create_storage(base_dir: PathBuf) -> Box<dyn CertStorage> {
+    // Ensure the directory exists before creating storage
+    if let Err(e) = std::fs::create_dir_all(&base_dir) {
+        tracing::warn!("Failed to create certificate storage directory: {}", e);
+    } else {
+        tracing::debug!("Certificate storage directory: {}", base_dir.display());
+    }
+
     #[cfg(feature = "secure-storage")]
     {
         tracing::info!("Using keyring-backed certificate storage");
