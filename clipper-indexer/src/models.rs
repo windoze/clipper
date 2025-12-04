@@ -176,3 +176,64 @@ impl<T> PagedResult<T> {
         }
     }
 }
+
+/// Represents a short URL that maps to a clipboard entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShortUrl {
+    pub id: String,
+    pub clip_id: String,
+    pub short_code: String,
+    #[serde(with = "datetime_conversion")]
+    pub created_at: DateTime<Utc>,
+    #[serde(with = "option_datetime_conversion")]
+    pub expires_at: Option<DateTime<Utc>>,
+}
+
+mod option_datetime_conversion {
+    use chrono::{DateTime, Utc};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use surrealdb::sql::Datetime as SurrealDatetime;
+
+    pub fn serialize<S>(dt: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match dt {
+            Some(dt) => {
+                let surreal_dt = SurrealDatetime::from(*dt);
+                surreal_dt.serialize(serializer)
+            }
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let opt: Option<SurrealDatetime> = Option::deserialize(deserializer)?;
+        Ok(opt.map(|surreal_dt| *surreal_dt))
+    }
+}
+
+impl ShortUrl {
+    /// Create a new ShortUrl with a generated short code
+    pub fn new(clip_id: String, short_code: String, expires_at: Option<DateTime<Utc>>) -> Self {
+        let id = uuid::Uuid::new_v4().simple().to_string();
+        Self {
+            id,
+            clip_id,
+            short_code,
+            created_at: Utc::now(),
+            expires_at,
+        }
+    }
+
+    /// Check if this short URL has expired
+    pub fn is_expired(&self) -> bool {
+        match self.expires_at {
+            Some(expires) => Utc::now() > expires,
+            None => false, // No expiration set means never expires
+        }
+    }
+}

@@ -97,6 +97,16 @@ pub struct Cli {
     #[arg(long, env = "CLIPPER_MAX_UPLOAD_SIZE_MB")]
     pub max_upload_size_mb: Option<u64>,
 
+    // Short URL options
+    /// Base URL for short URLs (e.g., "https://clip.example.com/s/")
+    /// If not set, short URL functionality is disabled
+    #[arg(long, env = "CLIPPER_SHORT_URL_BASE")]
+    pub short_url_base: Option<String>,
+
+    /// Default expiration time for short URLs in hours (default: 24, 0 = no expiration)
+    #[arg(long, env = "CLIPPER_SHORT_URL_EXPIRATION_HOURS")]
+    pub short_url_expiration_hours: Option<u32>,
+
     // Hidden option for parent process monitoring (used by bundled server in Tauri app)
     /// Pipe handle from parent process for lifecycle monitoring (internal use only)
     #[arg(long, hide = true)]
@@ -118,6 +128,8 @@ pub struct ServerConfig {
     pub auth: AuthConfig,
     #[serde(default)]
     pub upload: UploadConfig,
+    #[serde(default)]
+    pub short_url: ShortUrlConfig,
 }
 
 /// Authentication configuration
@@ -266,6 +278,53 @@ impl UploadConfig {
     }
 }
 
+/// Short URL configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShortUrlConfig {
+    /// Base URL for short URLs (e.g., "https://clip.example.com/s/")
+    /// If not set (None or empty), short URL functionality is disabled
+    pub base_url: Option<String>,
+    /// Default expiration time for short URLs in hours (0 = no expiration)
+    pub default_expiration_hours: u32,
+}
+
+impl Default for ShortUrlConfig {
+    fn default() -> Self {
+        Self {
+            base_url: None,
+            default_expiration_hours: 24,
+        }
+    }
+}
+
+impl ShortUrlConfig {
+    /// Check if short URL functionality is enabled
+    pub fn is_enabled(&self) -> bool {
+        self.base_url
+            .as_ref()
+            .is_some_and(|url| !url.trim().is_empty())
+    }
+
+    /// Get the full short URL for a given short code
+    pub fn get_full_url(&self, short_code: &str) -> Option<String> {
+        self.base_url.as_ref().map(|base| {
+            let base = base.trim_end_matches('/');
+            format!("{}/{}", base, short_code)
+        })
+    }
+
+    /// Get the default expiration as Duration, None if no expiration
+    pub fn default_expiration(&self) -> Option<std::time::Duration> {
+        if self.default_expiration_hours > 0 {
+            Some(std::time::Duration::from_secs(
+                self.default_expiration_hours as u64 * 3600,
+            ))
+        } else {
+            None
+        }
+    }
+}
+
 impl Default for CleanupConfig {
     fn default() -> Self {
         Self {
@@ -306,6 +365,7 @@ impl Default for ServerConfig {
             cleanup: CleanupConfig::default(),
             auth: AuthConfig::default(),
             upload: UploadConfig::default(),
+            short_url: ShortUrlConfig::default(),
         }
     }
 }
@@ -425,6 +485,15 @@ impl ServerConfig {
         // Upload configuration overrides
         if let Some(max_upload_size_mb) = cli.max_upload_size_mb {
             cfg.upload.max_size_bytes = max_upload_size_mb * 1024 * 1024;
+        }
+
+        // Short URL configuration overrides
+        if let Some(short_url_base) = cli.short_url_base {
+            cfg.short_url.base_url = Some(short_url_base);
+        }
+
+        if let Some(short_url_expiration_hours) = cli.short_url_expiration_hours {
+            cfg.short_url.default_expiration_hours = short_url_expiration_hours;
         }
 
         Ok(cfg)

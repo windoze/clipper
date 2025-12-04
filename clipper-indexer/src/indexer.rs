@@ -1,12 +1,14 @@
 use crate::error::{IndexerError, Result};
-use crate::models::{ClipboardEntry, PagedResult, PagingParams, SearchFilters};
+use crate::models::{ClipboardEntry, PagedResult, PagingParams, SearchFilters, ShortUrl};
 use crate::storage::FileStorage;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use surrealdb::Surreal;
 use surrealdb::engine::local::{Db, RocksDb};
 
 const TABLE_NAME: &str = "clipboard";
+const SHORT_URL_TABLE: &str = "short_url";
 const CONFIG_TABLE: &str = "config";
 const INDEX_VERSION_KEY: &str = "index_schema";
 const SEARCH_ANALYZER_NAME: &str = "clipper_analyzer";
@@ -14,6 +16,10 @@ const SEARCH_INDEX_NAME: &str = "idx_search_content";
 const NAMESPACE: &str = "clipper";
 const DATABASE: &str = "library";
 const CURRENT_INDEX_VERSION: i64 = 1;
+
+/// Characters used for generating short codes (alphanumeric, excluding ambiguous characters)
+const SHORT_CODE_CHARS: &[u8] = b"23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz";
+const SHORT_CODE_LENGTH: usize = 8;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct DbClipboardEntry {
@@ -30,6 +36,26 @@ struct DbClipboardEntry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct IndexSchemaVersion {
     version: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DbShortUrl {
+    id: surrealdb::sql::Thing,
+    clip_id: String,
+    short_code: String,
+    created_at: surrealdb::sql::Datetime,
+    expires_at: Option<surrealdb::sql::Datetime>,
+}
+
+/// Generate a random short code using alphanumeric characters
+fn generate_short_code() -> String {
+    let mut rng = rand::rng();
+    (0..SHORT_CODE_LENGTH)
+        .map(|_| {
+            let idx = rng.random_range(0..SHORT_CODE_CHARS.len());
+            SHORT_CODE_CHARS[idx] as char
+        })
+        .collect()
 }
 
 pub struct ClipperIndexer {
@@ -59,29 +85,25 @@ impl ClipperIndexer {
         // Define the clipboard table schema
         let schema_query = format!(
             r#"
-            DEFINE TABLE IF NOT EXISTS {} SCHEMAFULL;
+            DEFINE TABLE IF NOT EXISTS {TABLE_NAME} SCHEMAFULL;
 
-            DEFINE FIELD IF NOT EXISTS content ON TABLE {} TYPE string;
-            DEFINE FIELD IF NOT EXISTS created_at ON TABLE {} TYPE datetime;
-            DEFINE FIELD IF NOT EXISTS tags ON TABLE {} TYPE array<string>;
-            DEFINE FIELD IF NOT EXISTS additional_notes ON TABLE {} TYPE option<string>;
-            DEFINE FIELD IF NOT EXISTS file_attachment ON TABLE {} TYPE option<string>;
-            DEFINE FIELD IF NOT EXISTS original_filename ON TABLE {} TYPE option<string>;
-            DEFINE FIELD IF NOT EXISTS search_content ON TABLE {} TYPE string;
+            DEFINE FIELD IF NOT EXISTS content ON TABLE {TABLE_NAME} TYPE string;
+            DEFINE FIELD IF NOT EXISTS created_at ON TABLE {TABLE_NAME} TYPE datetime;
+            DEFINE FIELD IF NOT EXISTS tags ON TABLE {TABLE_NAME} TYPE array<string>;
+            DEFINE FIELD IF NOT EXISTS additional_notes ON TABLE {TABLE_NAME} TYPE option<string>;
+            DEFINE FIELD IF NOT EXISTS file_attachment ON TABLE {TABLE_NAME} TYPE option<string>;
+            DEFINE FIELD IF NOT EXISTS original_filename ON TABLE {TABLE_NAME} TYPE option<string>;
+            DEFINE FIELD IF NOT EXISTS search_content ON TABLE {TABLE_NAME} TYPE string;
 
-            DEFINE TABLE IF NOT EXISTS {} SCHEMAFULL;
-            DEFINE FIELD IF NOT EXISTS version ON TABLE {} TYPE int;
-            "#,
-            TABLE_NAME,
-            TABLE_NAME,
-            TABLE_NAME,
-            TABLE_NAME,
-            TABLE_NAME,
-            TABLE_NAME,
-            TABLE_NAME,
-            TABLE_NAME,
-            CONFIG_TABLE,
-            CONFIG_TABLE
+            DEFINE TABLE IF NOT EXISTS {CONFIG_TABLE} SCHEMAFULL;
+            DEFINE FIELD IF NOT EXISTS version ON TABLE {CONFIG_TABLE} TYPE int;
+
+            DEFINE TABLE IF NOT EXISTS {SHORT_URL_TABLE} SCHEMAFULL;
+            DEFINE FIELD IF NOT EXISTS clip_id ON TABLE {SHORT_URL_TABLE} TYPE string;
+            DEFINE FIELD IF NOT EXISTS short_code ON TABLE {SHORT_URL_TABLE} TYPE string;
+            DEFINE FIELD IF NOT EXISTS created_at ON TABLE {SHORT_URL_TABLE} TYPE datetime;
+            DEFINE FIELD IF NOT EXISTS expires_at ON TABLE {SHORT_URL_TABLE} TYPE option<datetime>;
+            "#
         );
 
         db.query(schema_query).await?;
@@ -89,10 +111,12 @@ impl ClipperIndexer {
         // Define indexes
         let index_query = format!(
             r#"
-            DEFINE INDEX IF NOT EXISTS idx_created_at ON TABLE {} COLUMNS created_at;
-            DEFINE INDEX IF NOT EXISTS idx_tags ON TABLE {} COLUMNS tags;
-            "#,
-            TABLE_NAME, TABLE_NAME
+            DEFINE INDEX IF NOT EXISTS idx_created_at ON TABLE {TABLE_NAME} COLUMNS created_at;
+            DEFINE INDEX IF NOT EXISTS idx_tags ON TABLE {TABLE_NAME} COLUMNS tags;
+            DEFINE INDEX IF NOT EXISTS idx_short_code ON TABLE {SHORT_URL_TABLE} COLUMNS short_code UNIQUE;
+            DEFINE INDEX IF NOT EXISTS idx_short_url_clip_id ON TABLE {SHORT_URL_TABLE} COLUMNS clip_id;
+            DEFINE INDEX IF NOT EXISTS idx_short_url_expires_at ON TABLE {SHORT_URL_TABLE} COLUMNS expires_at;
+            "#
         );
 
         db.query(index_query).await?;
@@ -655,5 +679,230 @@ impl ClipperIndexer {
         }
 
         Ok(deleted_ids)
+    }
+
+    // ==================== Short URL Functions ====================
+
+    /// Create a short URL for a clip.
+    ///
+    /// Generates a unique short code and stores it in the database with the associated clip ID.
+    /// If an expiration time is provided, the short URL will be invalid after that time.
+    ///
+    /// # Arguments
+    /// * `clip_id` - The ID of the clip to create a short URL for
+    /// * `expires_at` - Optional expiration time for the short URL
+    ///
+    /// # Returns
+    /// The created ShortUrl
+    pub async fn create_short_url(
+        &self,
+        clip_id: &str,
+        expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> Result<ShortUrl> {
+        // Verify the clip exists
+        let _ = self.get_entry(clip_id).await?;
+
+        // Generate a unique short code (retry if collision)
+        let mut short_code = generate_short_code();
+        let mut attempts = 0;
+        const MAX_ATTEMPTS: usize = 10;
+
+        while attempts < MAX_ATTEMPTS {
+            // Check if the short code already exists
+            let check_query = format!(
+                "SELECT * FROM {} WHERE short_code = '{}';",
+                SHORT_URL_TABLE, short_code
+            );
+            let mut response = self.db.query(check_query).await?;
+            let existing: Vec<DbShortUrl> = response.take(0).unwrap_or_default();
+
+            if existing.is_empty() {
+                break;
+            }
+
+            short_code = generate_short_code();
+            attempts += 1;
+        }
+
+        if attempts >= MAX_ATTEMPTS {
+            return Err(IndexerError::InvalidInput(
+                "Failed to generate unique short code after multiple attempts".to_string(),
+            ));
+        }
+
+        let short_url = ShortUrl::new(clip_id.to_string(), short_code, expires_at);
+
+        // Insert into database
+        let record_id = (SHORT_URL_TABLE, short_url.id.as_str());
+        let _: Option<DbShortUrl> = self
+            .db
+            .create(record_id)
+            .content(DbShortUrl {
+                id: surrealdb::sql::Thing::from((
+                    SHORT_URL_TABLE.to_string(),
+                    short_url.id.clone(),
+                )),
+                clip_id: short_url.clip_id.clone(),
+                short_code: short_url.short_code.clone(),
+                created_at: surrealdb::sql::Datetime::from(short_url.created_at),
+                expires_at: short_url.expires_at.map(surrealdb::sql::Datetime::from),
+            })
+            .await?;
+
+        Ok(short_url)
+    }
+
+    /// Get a short URL by its short code.
+    ///
+    /// Returns an error if the short URL is not found or has expired.
+    ///
+    /// # Arguments
+    /// * `short_code` - The short code to look up
+    ///
+    /// # Returns
+    /// The ShortUrl if found and not expired
+    pub async fn get_short_url(&self, short_code: &str) -> Result<ShortUrl> {
+        let query = format!(
+            "SELECT * FROM {SHORT_URL_TABLE} WHERE short_code = '{}';",
+            short_code
+        );
+
+        let mut response = self.db.query(query).await?;
+        let results: Vec<DbShortUrl> = response
+            .take(0)
+            .map_err(|e| IndexerError::Serialization(e.to_string()))?;
+
+        let db_short_url = results.into_iter().next().ok_or_else(|| {
+            IndexerError::NotFound(format!("Short URL with code '{}' not found", short_code))
+        })?;
+
+        let short_url = ShortUrl {
+            id: db_short_url.id.id.to_string(),
+            clip_id: db_short_url.clip_id,
+            short_code: db_short_url.short_code,
+            created_at: *db_short_url.created_at,
+            expires_at: db_short_url.expires_at.map(|dt| *dt),
+        };
+
+        // Check if expired
+        if short_url.is_expired() {
+            return Err(IndexerError::ShortUrlExpired(format!(
+                "Short URL with code '{}' has expired",
+                short_code
+            )));
+        }
+
+        Ok(short_url)
+    }
+
+    /// Get all short URLs for a specific clip.
+    ///
+    /// # Arguments
+    /// * `clip_id` - The ID of the clip
+    ///
+    /// # Returns
+    /// A vector of ShortUrls associated with the clip
+    pub async fn get_short_urls_for_clip(&self, clip_id: &str) -> Result<Vec<ShortUrl>> {
+        let query = format!(
+            "SELECT * FROM {} WHERE clip_id = '{}' ORDER BY created_at DESC;",
+            SHORT_URL_TABLE, clip_id
+        );
+
+        let mut response = self.db.query(query).await?;
+        let results: Vec<DbShortUrl> = response
+            .take(0)
+            .map_err(|e| IndexerError::Serialization(e.to_string()))?;
+
+        let short_urls: Vec<ShortUrl> = results
+            .into_iter()
+            .map(|db| ShortUrl {
+                id: db.id.id.to_string(),
+                clip_id: db.clip_id,
+                short_code: db.short_code,
+                created_at: *db.created_at,
+                expires_at: db.expires_at.map(|dt| *dt),
+            })
+            .collect();
+
+        Ok(short_urls)
+    }
+
+    /// Delete a short URL by its ID.
+    ///
+    /// # Arguments
+    /// * `id` - The ID of the short URL to delete
+    pub async fn delete_short_url(&self, id: &str) -> Result<()> {
+        let query = format!("DELETE {}:{};", SHORT_URL_TABLE, id);
+        self.db.query(query).await?;
+        Ok(())
+    }
+
+    /// Delete all short URLs for a specific clip.
+    ///
+    /// # Arguments
+    /// * `clip_id` - The ID of the clip whose short URLs should be deleted
+    ///
+    /// # Returns
+    /// The number of short URLs deleted
+    pub async fn delete_short_urls_for_clip(&self, clip_id: &str) -> Result<usize> {
+        // First count how many will be deleted
+        let count_query = format!(
+            "SELECT count() FROM {} WHERE clip_id = '{}' GROUP ALL;",
+            SHORT_URL_TABLE, clip_id
+        );
+        let mut count_response = self.db.query(count_query).await?;
+
+        #[derive(Deserialize)]
+        struct CountResult {
+            count: i64,
+        }
+
+        let count_results: Vec<CountResult> = count_response.take(0).unwrap_or_default();
+        let count = count_results.first().map(|c| c.count as usize).unwrap_or(0);
+
+        // Delete the short URLs
+        let delete_query = format!(
+            "DELETE FROM {} WHERE clip_id = '{}';",
+            SHORT_URL_TABLE, clip_id
+        );
+        self.db.query(delete_query).await?;
+
+        Ok(count)
+    }
+
+    /// Clean up all expired short URLs from the database.
+    ///
+    /// This function finds and deletes all short URLs where expires_at is in the past.
+    ///
+    /// # Returns
+    /// The number of expired short URLs that were deleted
+    pub async fn cleanup_expired_short_urls(&self) -> Result<usize> {
+        let now = chrono::Utc::now();
+
+        // Count expired short URLs
+        let count_query = format!(
+            "SELECT count() FROM {} WHERE expires_at != NONE AND expires_at < <datetime>'{}' GROUP ALL;",
+            SHORT_URL_TABLE,
+            now.to_rfc3339()
+        );
+        let mut count_response = self.db.query(count_query).await?;
+
+        #[derive(Deserialize)]
+        struct CountResult {
+            count: i64,
+        }
+
+        let count_results: Vec<CountResult> = count_response.take(0).unwrap_or_default();
+        let count = count_results.first().map(|c| c.count as usize).unwrap_or(0);
+
+        // Delete expired short URLs
+        let delete_query = format!(
+            "DELETE FROM {} WHERE expires_at != NONE AND expires_at < <datetime>'{}';",
+            SHORT_URL_TABLE,
+            now.to_rfc3339()
+        );
+        self.db.query(delete_query).await?;
+
+        Ok(count)
     }
 }

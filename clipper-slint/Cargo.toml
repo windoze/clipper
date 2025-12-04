@@ -2,6 +2,7 @@
 name = "clipper-slint"
 version.workspace = true
 edition = "2024"
+rust-version = "1.91"
 
 [dependencies]
 anyhow = "1"

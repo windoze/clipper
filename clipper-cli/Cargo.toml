@@ -1,5 +1,6 @@
 [package]
 name = "clipper-cli"
+rust-version = "1.91"
 version.workspace = true
 edition.workspace = true
 

@@ -1,11 +1,12 @@
 use axum::{
+    body::Body,
     extract::{Multipart, Path, Query, State},
-    http::StatusCode,
-    response::Json,
+    http::{header, HeaderMap, StatusCode},
+    response::{IntoResponse, Json, Response},
     routing::{delete, get, post, put},
     Router,
 };
-use clipper_indexer::{ClipboardEntry, PagedResult, PagingParams, SearchFilters};
+use clipper_indexer::{ClipboardEntry, PagedResult, PagingParams, SearchFilters, ShortUrl};
 use serde::{Deserialize, Serialize};
 
 use crate::{error::Result, state::AppState};
@@ -22,6 +23,11 @@ pub fn routes() -> Router<AppState> {
         .route("/clips/{id}", put(update_clip))
         .route("/clips/{id}", delete(delete_clip))
         .route("/clips/{id}/file", get(get_clip_file))
+        // Short URL endpoints
+        .route("/clips/{id}/short-url", post(create_short_url))
+        .route("/short/{code}", get(get_short_url_redirect))
+        // Public short URL resolver (no auth required)
+        .route("/s/{code}", get(resolve_short_url))
 }
 
 /// Version information response
@@ -64,6 +70,11 @@ pub struct ConfigInfo {
     pub auth_required: bool,
     /// Maximum upload size in bytes
     pub max_upload_size_bytes: u64,
+    /// Whether short URL functionality is enabled
+    pub short_url_enabled: bool,
+    /// Short URL base URL (if enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub short_url_base: Option<String>,
 }
 
 /// Authentication check response
@@ -111,6 +122,12 @@ async fn get_version(State(state): State<AppState>) -> Json<VersionResponse> {
         },
         auth_required: config.auth.is_enabled(),
         max_upload_size_bytes: config.upload.max_size_bytes,
+        short_url_enabled: config.short_url.is_enabled(),
+        short_url_base: if config.short_url.is_enabled() {
+            config.short_url.base_url.clone()
+        } else {
+            None
+        },
     };
 
     Json(VersionResponse {
@@ -453,4 +470,293 @@ async fn upload_clip_file(
     state.notify_new_clip(entry.id.clone(), entry.content.clone(), entry.tags.clone());
 
     Ok((StatusCode::CREATED, Json(entry.into())))
+}
+
+// ==================== Short URL Endpoints ====================
+
+#[derive(Debug, Deserialize)]
+struct CreateShortUrlRequest {
+    /// Optional expiration time in hours (overrides server default)
+    #[serde(default)]
+    expires_in_hours: Option<u32>,
+}
+
+#[derive(Debug, Serialize)]
+struct ShortUrlResponse {
+    id: String,
+    clip_id: String,
+    short_code: String,
+    full_url: String,
+    created_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    expires_at: Option<String>,
+}
+
+impl ShortUrlResponse {
+    fn from_short_url(short_url: ShortUrl, base_url: &str) -> Self {
+        let base = base_url.trim_end_matches('/');
+        Self {
+            id: short_url.id,
+            clip_id: short_url.clip_id,
+            short_code: short_url.short_code.clone(),
+            full_url: format!("{}/s/{}", base, short_url.short_code),
+            created_at: short_url.created_at.to_rfc3339(),
+            expires_at: short_url.expires_at.map(|dt| dt.to_rfc3339()),
+        }
+    }
+}
+
+/// Create a short URL for a clip
+async fn create_short_url(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(payload): Json<CreateShortUrlRequest>,
+) -> Result<(StatusCode, Json<ShortUrlResponse>)> {
+    // Check if short URL feature is enabled
+    if !state.config.short_url.is_enabled() {
+        return Err(crate::error::ServerError::FeatureDisabled(
+            "Short URL functionality is disabled. Set CLIPPER_SHORT_URL_BASE to enable.".to_string(),
+        ));
+    }
+
+    // Calculate expiration time
+    let expires_at = match payload.expires_in_hours {
+        Some(0) => None, // Explicit no expiration
+        Some(hours) => Some(chrono::Utc::now() + chrono::Duration::hours(hours as i64)),
+        None => {
+            // Use server default
+            if state.config.short_url.default_expiration_hours > 0 {
+                Some(
+                    chrono::Utc::now()
+                        + chrono::Duration::hours(
+                            state.config.short_url.default_expiration_hours as i64,
+                        ),
+                )
+            } else {
+                None
+            }
+        }
+    };
+
+    let short_url = state.indexer.create_short_url(&id, expires_at).await?;
+
+    let base_url = state.config.short_url.base_url.as_ref().unwrap();
+    let response = ShortUrlResponse::from_short_url(short_url, base_url);
+
+    Ok((StatusCode::CREATED, Json(response)))
+}
+
+/// Redirect from short URL to the clip
+/// This endpoint returns the clip ID which can be used to fetch the clip content
+async fn get_short_url_redirect(
+    State(state): State<AppState>,
+    Path(code): Path<String>,
+) -> Result<Json<ShortUrlRedirectResponse>> {
+    let short_url = state.indexer.get_short_url(&code).await?;
+
+    Ok(Json(ShortUrlRedirectResponse {
+        clip_id: short_url.clip_id,
+        short_code: short_url.short_code,
+    }))
+}
+
+#[derive(Debug, Serialize)]
+struct ShortUrlRedirectResponse {
+    clip_id: String,
+    short_code: String,
+}
+
+// ==================== Public Short URL Resolver ====================
+
+/// JSON response for short URL content (minimal metadata)
+#[derive(Debug, Serialize)]
+struct ShortUrlContentResponse {
+    id: String,
+    content: String,
+    created_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    file_attachment: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    original_filename: Option<String>,
+}
+
+impl From<ClipboardEntry> for ShortUrlContentResponse {
+    fn from(entry: ClipboardEntry) -> Self {
+        // For file attachments, show only the filename (not the full path/key)
+        let content = if entry.file_attachment.is_some() {
+            entry
+                .original_filename
+                .clone()
+                .unwrap_or_else(|| entry.content.clone())
+        } else {
+            entry.content
+        };
+
+        Self {
+            id: entry.id,
+            content,
+            created_at: entry.created_at.to_rfc3339(),
+            file_attachment: entry.file_attachment,
+            original_filename: entry.original_filename,
+        }
+    }
+}
+
+/// Query parameters for short URL resolution
+#[derive(Debug, Deserialize)]
+struct ResolveShortUrlQuery {
+    /// Override content type (useful for download links in HTML)
+    #[serde(default)]
+    accept: Option<String>,
+}
+
+/// Resolve short URL and return content based on Accept header or query parameter
+///
+/// Content negotiation (via Accept header or ?accept= query parameter):
+/// - `text/html`: HTML representation of the clip
+/// - `text/plain`: Plain text content
+/// - `application/json`: JSON with minimal metadata (no tags/notes)
+/// - `application/octet-stream`: File attachment if exists, otherwise error
+async fn resolve_short_url(
+    State(state): State<AppState>,
+    Path(code): Path<String>,
+    Query(query): Query<ResolveShortUrlQuery>,
+    headers: HeaderMap,
+) -> Result<Response> {
+    // Get short URL and check if expired
+    let short_url = state.indexer.get_short_url(&code).await?;
+
+    // Get the clip
+    let entry = state.indexer.get_entry(&short_url.clip_id).await?;
+
+    // Determine content type from query parameter first, then Accept header
+    let accept = query.accept.as_deref().unwrap_or_else(|| {
+        headers
+            .get(header::ACCEPT)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("text/html")
+    });
+
+    // Parse accept header and find best match
+    let response = if accept.contains("application/octet-stream") {
+        // Return file attachment
+        if let Some(file_key) = &entry.file_attachment {
+            let bytes = state.indexer.get_file_content(file_key).await?;
+            let filename = entry
+                .original_filename
+                .as_deref()
+                .unwrap_or("attachment");
+
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, "application/octet-stream")
+                .header(
+                    header::CONTENT_DISPOSITION,
+                    format!("attachment; filename=\"{}\"", filename),
+                )
+                .body(Body::from(bytes.to_vec()))
+                .unwrap()
+        } else {
+            return Err(crate::error::ServerError::NotFound(
+                "This clip has no file attachment".to_string(),
+            ));
+        }
+    } else if accept.contains("application/json") {
+        // Return JSON with minimal metadata
+        let response: ShortUrlContentResponse = entry.into();
+        Json(response).into_response()
+    } else if accept.contains("text/plain") {
+        // Return plain text content
+        let content = if entry.file_attachment.is_some() {
+            entry
+                .original_filename
+                .unwrap_or_else(|| entry.content.clone())
+        } else {
+            entry.content
+        };
+
+        Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "text/plain; charset=utf-8")
+            .body(Body::from(content))
+            .unwrap()
+    } else {
+        // Default to HTML representation
+        let content = if entry.file_attachment.is_some() {
+            entry
+                .original_filename
+                .clone()
+                .unwrap_or_else(|| entry.content.clone())
+        } else {
+            entry.content.clone()
+        };
+
+        // Store original content for copy button (unescaped)
+        let original_content = if entry.file_attachment.is_some() {
+            entry
+                .original_filename
+                .clone()
+                .unwrap_or_else(|| entry.content.clone())
+        } else {
+            entry.content.clone()
+        };
+
+        // Build download link if file attachment exists
+        let download_link = if entry.file_attachment.is_some() {
+            format!(
+                r#"<a class="btn" href="/s/{}?accept=application/octet-stream">Download File</a>"#,
+                code
+            )
+        } else {
+            String::new()
+        };
+
+        // Build expiration info
+        let (expiration_html, expires_at_json) = match short_url.expires_at {
+            Some(expires_at) => (
+                format!(
+                    r#"Expires: <span class="expires" title="{}">loading...</span>"#,
+                    expires_at.format("%Y-%m-%d %H:%M:%S UTC")
+                ),
+                serde_json::to_string(&expires_at.to_rfc3339())
+                    .unwrap_or_else(|_| "null".to_string()),
+            ),
+            None => (
+                r#"Expires: <span class="no-expiry">never</span>"#.to_string(),
+                "null".to_string(),
+            ),
+        };
+
+        // Load template and substitute placeholders
+        let html = include_str!("templates/shared_clip.html")
+            .replace("{{CONTENT}}", &html_escape(&content))
+            .replace("{{DOWNLOAD_LINK}}", &download_link)
+            .replace(
+                "{{CREATED_AT}}",
+                &entry.created_at.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+            )
+            .replace(
+                "{{ORIGINAL_CONTENT_JSON}}",
+                &serde_json::to_string(&original_content).unwrap_or_else(|_| "\"\"".to_string()),
+            )
+            .replace("{{EXPIRATION_HTML}}", &expiration_html)
+            .replace("{{EXPIRES_AT_JSON}}", &expires_at_json);
+
+        Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
+            .body(Body::from(html))
+            .unwrap()
+    };
+
+    Ok(response)
+}
+
+/// Simple HTML escaping for content display
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
 }

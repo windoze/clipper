@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use clipper_indexer::{ClipperIndexer, PagingParams, SearchFilters};
+use clipper_indexer::{ClipperIndexer, IndexerError, PagingParams, SearchFilters};
 use std::fs;
 use tempfile::TempDir;
 
@@ -575,4 +575,311 @@ async fn test_cleanup_entries_none_to_delete() {
         .unwrap();
 
     assert_eq!(all_entries.total, 2);
+}
+
+// ==================== Short URL Tests ====================
+
+#[tokio::test]
+async fn test_create_short_url() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Create a clip first
+    let entry = indexer
+        .add_entry_from_text(
+            "Test content for short URL".to_string(),
+            vec!["test".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Create a short URL for the clip
+    let short_url = indexer
+        .create_short_url(&entry.id, None)
+        .await
+        .expect("Failed to create short URL");
+
+    assert_eq!(short_url.clip_id, entry.id);
+    assert!(!short_url.short_code.is_empty());
+    assert_eq!(short_url.short_code.len(), 8);
+    assert!(short_url.expires_at.is_none());
+}
+
+#[tokio::test]
+async fn test_create_short_url_with_expiration() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Create a clip first
+    let entry = indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["test".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Create a short URL with expiration
+    let expires_at = Utc::now() + Duration::hours(24);
+    let short_url = indexer
+        .create_short_url(&entry.id, Some(expires_at))
+        .await
+        .expect("Failed to create short URL");
+
+    assert_eq!(short_url.clip_id, entry.id);
+    assert!(short_url.expires_at.is_some());
+    assert!(!short_url.is_expired());
+}
+
+#[tokio::test]
+async fn test_create_short_url_for_nonexistent_clip() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Try to create a short URL for a nonexistent clip
+    let result = indexer
+        .create_short_url("nonexistent-clip-id", None)
+        .await;
+
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), IndexerError::NotFound(_)));
+}
+
+#[tokio::test]
+async fn test_get_short_url() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Create a clip and short URL
+    let entry = indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["test".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    let created_short_url = indexer
+        .create_short_url(&entry.id, None)
+        .await
+        .unwrap();
+
+    // Get the short URL by short code
+    let retrieved_short_url = indexer
+        .get_short_url(&created_short_url.short_code)
+        .await
+        .expect("Failed to get short URL");
+
+    assert_eq!(retrieved_short_url.id, created_short_url.id);
+    assert_eq!(retrieved_short_url.clip_id, entry.id);
+    assert_eq!(retrieved_short_url.short_code, created_short_url.short_code);
+}
+
+#[tokio::test]
+async fn test_get_short_url_not_found() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Try to get a nonexistent short URL
+    let result = indexer.get_short_url("nonexistent").await;
+
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), IndexerError::NotFound(_)));
+}
+
+#[tokio::test]
+async fn test_get_expired_short_url() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Create a clip
+    let entry = indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["test".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Create a short URL that's already expired
+    let expires_at = Utc::now() - Duration::hours(1);
+    let short_url = indexer
+        .create_short_url(&entry.id, Some(expires_at))
+        .await
+        .unwrap();
+
+    // Try to get the expired short URL
+    let result = indexer.get_short_url(&short_url.short_code).await;
+
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), IndexerError::ShortUrlExpired(_)));
+}
+
+#[tokio::test]
+async fn test_get_short_urls_for_clip() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Create a clip
+    let entry = indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["test".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Create multiple short URLs for the same clip
+    let short_url1 = indexer.create_short_url(&entry.id, None).await.unwrap();
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    let short_url2 = indexer.create_short_url(&entry.id, None).await.unwrap();
+
+    // Get all short URLs for the clip
+    let short_urls = indexer
+        .get_short_urls_for_clip(&entry.id)
+        .await
+        .expect("Failed to get short URLs");
+
+    assert_eq!(short_urls.len(), 2);
+    // Should be ordered by created_at DESC, so short_url2 should be first
+    assert_eq!(short_urls[0].id, short_url2.id);
+    assert_eq!(short_urls[1].id, short_url1.id);
+}
+
+#[tokio::test]
+async fn test_delete_short_url() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Create a clip and short URL
+    let entry = indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["test".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    let short_url = indexer.create_short_url(&entry.id, None).await.unwrap();
+
+    // Delete the short URL
+    indexer
+        .delete_short_url(&short_url.id)
+        .await
+        .expect("Failed to delete short URL");
+
+    // Verify it's deleted
+    let result = indexer.get_short_url(&short_url.short_code).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_delete_short_urls_for_clip() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Create a clip
+    let entry = indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["test".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Create multiple short URLs
+    let short_url1 = indexer.create_short_url(&entry.id, None).await.unwrap();
+    let short_url2 = indexer.create_short_url(&entry.id, None).await.unwrap();
+
+    // Delete all short URLs for the clip
+    let deleted_count = indexer
+        .delete_short_urls_for_clip(&entry.id)
+        .await
+        .expect("Failed to delete short URLs");
+
+    assert_eq!(deleted_count, 2);
+
+    // Verify they're deleted
+    let result1 = indexer.get_short_url(&short_url1.short_code).await;
+    let result2 = indexer.get_short_url(&short_url2.short_code).await;
+    assert!(result1.is_err());
+    assert!(result2.is_err());
+}
+
+#[tokio::test]
+async fn test_cleanup_expired_short_urls() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Create a clip
+    let entry = indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["test".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Create an expired short URL
+    let expired_at = Utc::now() - Duration::hours(1);
+    let expired_short_url = indexer
+        .create_short_url(&entry.id, Some(expired_at))
+        .await
+        .unwrap();
+
+    // Create a non-expired short URL
+    let future_at = Utc::now() + Duration::hours(24);
+    let valid_short_url = indexer
+        .create_short_url(&entry.id, Some(future_at))
+        .await
+        .unwrap();
+
+    // Create a short URL with no expiration
+    let no_expiry_short_url = indexer.create_short_url(&entry.id, None).await.unwrap();
+
+    // Cleanup expired short URLs
+    let cleaned_up = indexer
+        .cleanup_expired_short_urls()
+        .await
+        .expect("Failed to cleanup expired short URLs");
+
+    assert_eq!(cleaned_up, 1);
+
+    // Verify expired one is deleted (will error because not found)
+    let result = indexer.get_short_url(&expired_short_url.short_code).await;
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), IndexerError::NotFound(_)));
+
+    // Verify valid one still exists
+    let result = indexer.get_short_url(&valid_short_url.short_code).await;
+    assert!(result.is_ok());
+
+    // Verify no expiry one still exists
+    let result = indexer.get_short_url(&no_expiry_short_url.short_code).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_short_url_unique_codes() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Create a clip
+    let entry = indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["test".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Create multiple short URLs and verify all codes are unique
+    let mut short_codes = Vec::new();
+    for _ in 0..10 {
+        let short_url = indexer.create_short_url(&entry.id, None).await.unwrap();
+        assert!(!short_codes.contains(&short_url.short_code));
+        short_codes.push(short_url.short_code);
+    }
+
+    assert_eq!(short_codes.len(), 10);
 }

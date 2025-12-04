@@ -5,4 +5,4 @@ pub mod storage;
 
 pub use error::{IndexerError, Result};
 pub use indexer::ClipperIndexer;
-pub use models::{ClipboardEntry, PagedResult, PagingParams, SearchFilters};
+pub use models::{ClipboardEntry, PagedResult, PagingParams, SearchFilters, ShortUrl};

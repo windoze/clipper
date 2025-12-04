@@ -25,6 +25,12 @@ pub enum ServerError {
 
     #[error("Payload too large: {0}")]
     PayloadTooLarge(String),
+
+    #[error("Feature disabled: {0}")]
+    FeatureDisabled(String),
+
+    #[error("Short URL expired: {0}")]
+    ShortUrlExpired(String),
 }
 
 impl IntoResponse for ServerError {
@@ -34,6 +40,9 @@ impl IntoResponse for ServerError {
                 clipper_indexer::IndexerError::NotFound(_) => {
                     (StatusCode::NOT_FOUND, e.to_string())
                 }
+                clipper_indexer::IndexerError::ShortUrlExpired(_) => {
+                    (StatusCode::GONE, e.to_string())
+                }
                 _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
             },
             ServerError::InvalidInput(msg) => (StatusCode::BAD_REQUEST, msg),
@@ -41,6 +50,8 @@ impl IntoResponse for ServerError {
             ServerError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             ServerError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             ServerError::PayloadTooLarge(msg) => (StatusCode::PAYLOAD_TOO_LARGE, msg),
+            ServerError::FeatureDisabled(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg),
+            ServerError::ShortUrlExpired(msg) => (StatusCode::GONE, msg),
         };
 
         let body = Json(json!({

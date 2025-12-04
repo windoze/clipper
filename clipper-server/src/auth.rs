@@ -39,6 +39,7 @@ fn extract_query_token(query: Option<&str>) -> Option<String> {
 /// - GET /health - Health check endpoint
 /// - GET /auth/check - Authentication status check
 /// - GET /ws - WebSocket endpoint (handles its own message-based authentication)
+/// - GET /s/{code} - Public short URL resolver
 pub async fn auth_middleware(
     State(state): State<AppState>,
     request: Request,
@@ -53,8 +54,9 @@ pub async fn auth_middleware(
 
     // Allow certain endpoints without authentication
     // WebSocket endpoint handles its own message-based authentication
+    // /s/{code} is the public short URL resolver (no auth required)
     let path = request.uri().path();
-    if path == "/health" || path == "/auth/check" || path == "/ws" {
+    if path == "/health" || path == "/auth/check" || path == "/ws" || path.starts_with("/s/") {
         return next.run(request).await;
     }
 

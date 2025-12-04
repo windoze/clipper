@@ -19,6 +19,9 @@ pub enum IndexerError {
 
     #[error("Invalid input: {0}")]
     InvalidInput(String),
+
+    #[error("Short URL expired: {0}")]
+    ShortUrlExpired(String),
 }
 
 pub type Result<T> = std::result::Result<T, IndexerError>;

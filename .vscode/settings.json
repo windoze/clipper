@@ -5,6 +5,7 @@
     "editor.formatOnSave": true
   },
   "cSpell.words": [
+    "ABCDEFGHJKLMNPQRSTUVWXY",
     "afinet",
     "APPIMAGE",
     "appindicator",
@@ -74,7 +75,8 @@
     "webpki",
     "Winit",
     "winreg",
-    "xattr"
+    "xattr",
+    "Zabcdefghjkmnpqrstuvwxyz"
   ],
   "git.ignoreLimitWarning": true
 }
