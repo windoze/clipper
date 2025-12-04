@@ -72,3 +72,23 @@ h1 {
 .no-expiry {
     color: #28a745;
 }
+/* Image styles */
+.image-container {
+    margin-bottom: 1rem;
+    text-align: center;
+}
+.shared-image {
+    max-width: 100%;
+    max-height: 500px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.shared-image:hover {
+    transform: scale(1.02);
+}
+/* Hide text content for images (shows filename which is less useful) */
+.content.image-content {
+    display: none;
+}

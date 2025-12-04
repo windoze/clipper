@@ -684,9 +684,14 @@ async fn resolve_short_url(
             .unwrap()
     } else {
         // Default to HTML representation
+        let original_filename = entry.original_filename.clone();
+        let is_image = original_filename
+            .as_ref()
+            .map(|f| is_image_file(f))
+            .unwrap_or(false);
+
         let content = if entry.file_attachment.is_some() {
-            entry
-                .original_filename
+            original_filename
                 .clone()
                 .unwrap_or_else(|| entry.content.clone())
         } else {
@@ -695,12 +700,22 @@ async fn resolve_short_url(
 
         // Store original content for copy button (unescaped)
         let original_content = if entry.file_attachment.is_some() {
-            entry
-                .original_filename
+            original_filename
                 .clone()
                 .unwrap_or_else(|| entry.content.clone())
         } else {
             entry.content.clone()
+        };
+
+        // Build image HTML if it's an image file
+        let image_html = if is_image {
+            format!(
+                r#"<div class="image-container"><img src="/s/{}?accept=application/octet-stream" alt="{}" class="shared-image" /></div>"#,
+                code,
+                html_escape(&original_filename.clone().unwrap_or_default())
+            )
+        } else {
+            String::new()
         };
 
         // Build download link if file attachment exists
@@ -730,9 +745,15 @@ async fn resolve_short_url(
             ),
         };
 
+        // Check if this is a file attachment
+        let is_file = entry.file_attachment.is_some();
+
         // Load template and substitute placeholders
         let html = include_str!("templates/shared_clip.html")
             .replace("{{CONTENT}}", &html_escape(&content))
+            .replace("{{IMAGE_HTML}}", &image_html)
+            .replace("{{IS_IMAGE}}", if is_image { "true" } else { "false" })
+            .replace("{{IS_FILE}}", if is_file { "true" } else { "false" })
             .replace("{{DOWNLOAD_LINK}}", &download_link)
             .replace(
                 "{{ORIGINAL_CONTENT_JSON}}",
@@ -758,6 +779,13 @@ fn html_escape(s: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&#39;")
+}
+
+/// Check if a filename has an image extension
+fn is_image_file(filename: &str) -> bool {
+    const IMAGE_EXTENSIONS: &[&str] = &[".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"];
+    let lower = filename.to_lowercase();
+    IMAGE_EXTENSIONS.iter().any(|ext| lower.ends_with(ext))
 }
 
 // ==================== Static Assets ====================

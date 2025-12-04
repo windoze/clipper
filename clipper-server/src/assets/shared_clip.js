@@ -159,3 +159,29 @@ if (typeof expiresAtIso !== 'undefined' && expiresAtIso) {
     // Update every minute
     setInterval(updateExpirationDisplay, 60000);
 }
+
+// Handle file clips - hide copy button since copying filename isn't useful
+if (typeof isFile !== 'undefined' && isFile) {
+    const copyBtn = document.getElementById('copy-btn');
+    if (copyBtn) {
+        copyBtn.style.display = 'none';
+    }
+}
+
+// Handle image display
+if (typeof isImage !== 'undefined' && isImage) {
+    // Hide the text content for images (shows filename which is less useful)
+    const contentEl = document.getElementById('clip-content');
+    if (contentEl) {
+        contentEl.classList.add('image-content');
+    }
+
+    // Add click handler to open image in new tab
+    const img = document.querySelector('.shared-image');
+    if (img) {
+        img.addEventListener('click', function() {
+            window.open(this.src, '_blank');
+        });
+        img.title = currentLang === 'zh' ? '点击查看原图' : 'Click to view full image';
+    }
+}

@@ -9,6 +9,7 @@
 <body>
     <div class="container">
         <h1 id="page-title">📎 Shared Clip</h1>
+        {{IMAGE_HTML}}
         <div class="content" id="clip-content">{{CONTENT}}</div>
         <div class="actions">
             <button class="btn" id="copy-btn" onclick="copyToClipboard()">Copy to Clipboard</button>
@@ -21,6 +22,8 @@
     <script>
         const originalContent = {{ORIGINAL_CONTENT_JSON}};
         const expiresAtIso = {{EXPIRES_AT_JSON}};
+        const isImage = {{IS_IMAGE}};
+        const isFile = {{IS_FILE}};
     </script>
     <script src="/shared-assets/shared_clip.js"></script>
 </body>
