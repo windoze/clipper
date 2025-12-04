@@ -112,11 +112,14 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.updates.downloading": "Downloading...",
     "settings.updates.installing": "Installing...",
     "settings.updates.restartRequired": "Update ready! Restart to apply.",
+    "settings.updates.restartRequiredMac": "Update ready! Quit and reopen the app to apply.",
     "settings.updates.restartNow": "Restart Now",
+    "settings.updates.quitNow": "Quit Now",
     "settings.updates.error": "Failed to check for updates",
     "settings.updates.installError": "Failed to install update",
     "toast.updateAvailable": "Update available: v{version}",
     "toast.updateDownloaded": "Update downloaded. Restart to apply.",
+    "toast.updateDownloadedMac": "Update downloaded. Quit and reopen to apply.",
   },
   zh: {
     // Startup
@@ -228,10 +231,13 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.updates.downloading": "下载中...",
     "settings.updates.installing": "安装中...",
     "settings.updates.restartRequired": "更新就绪！重启以应用。",
+    "settings.updates.restartRequiredMac": "更新就绪！退出并重新打开应用以应用更新。",
     "settings.updates.restartNow": "立即重启",
+    "settings.updates.quitNow": "立即退出",
     "settings.updates.error": "检查更新失败",
     "settings.updates.installError": "安装更新失败",
     "toast.updateAvailable": "有可用更新：v{version}",
     "toast.updateDownloaded": "更新已下载。重启以应用。",
+    "toast.updateDownloadedMac": "更新已下载。退出并重新打开应用以应用更新。",
   },
 };

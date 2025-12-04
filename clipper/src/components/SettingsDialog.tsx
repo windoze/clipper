@@ -482,21 +482,28 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     const unlistenUpdateReady = listen("update-ready", () => {
       setInstallingUpdate(false);
       setUpdateReady(true);
-      showToast(t("toast.updateDownloaded"));
+      // Show different toast message for macOS (relaunch doesn't work on macOS in Tauri v2)
+      showToast(isMac ? t("toast.updateDownloadedMac") : t("toast.updateDownloaded"));
     });
 
     return () => {
       unlistenUpdateReady.then((fn) => fn());
     };
-  }, [showToast, t]);
+  }, [showToast, t, isMac]);
 
   // Restart to apply update
   const handleRestartToUpdate = async () => {
     try {
-      // The app will restart automatically after download_and_install
-      // For now, we can use process.relaunch if available
-      const { relaunch } = await import("@tauri-apps/plugin-process");
-      await relaunch();
+      // On macOS, relaunch() doesn't work in Tauri v2 (known bug: https://github.com/tauri-apps/tauri/issues/13923)
+      // So we just exit and let the user reopen the app manually
+      if (isMac) {
+        const { exit } = await import("@tauri-apps/plugin-process");
+        await exit(0);
+      } else {
+        // On Windows/Linux, relaunch should work
+        const { relaunch } = await import("@tauri-apps/plugin-process");
+        await relaunch();
+      }
     } catch (e) {
       console.error("Failed to restart:", e);
       // Fallback: just close the app
@@ -1082,14 +1089,14 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
                   {updateReady ? (
                     <>
                       <p className="settings-update-ready">
-                        {t("settings.updates.restartRequired")}
+                        {isMac ? t("settings.updates.restartRequiredMac") : t("settings.updates.restartRequired")}
                       </p>
                       <button
                         type="button"
                         className="settings-btn primary"
                         onClick={handleRestartToUpdate}
                       >
-                        {t("settings.updates.restartNow")}
+                        {isMac ? t("settings.updates.quitNow") : t("settings.updates.restartNow")}
                       </button>
                     </>
                   ) : updateInfo ? (
