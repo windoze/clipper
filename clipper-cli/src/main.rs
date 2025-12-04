@@ -157,6 +157,20 @@ enum Commands {
         #[arg(short, long)]
         content: Option<String>,
     },
+
+    /// Create a short URL for a clip
+    Share {
+        /// Clip ID
+        id: String,
+
+        /// Expiration time in hours (0 = never expires, omit for server default)
+        #[arg(short, long)]
+        expires: Option<u32>,
+
+        /// Output format: json (full metadata) or url (just the URL)
+        #[arg(short, long, default_value = "url")]
+        format: String,
+    },
 }
 
 #[tokio::main]
@@ -405,6 +419,29 @@ async fn main() -> Result<()> {
                 .context("Failed to upload file")?;
 
             println!("{}", serde_json::to_string_pretty(&clip)?);
+        }
+
+        Commands::Share {
+            id,
+            expires,
+            format,
+        } => {
+            let short_url = client
+                .create_short_url(&id, expires)
+                .await
+                .context("Failed to create short URL")?;
+
+            match format.as_str() {
+                "url" => {
+                    println!("{}", short_url.full_url);
+                }
+                "json" => {
+                    println!("{}", serde_json::to_string_pretty(&short_url)?);
+                }
+                _ => {
+                    anyhow::bail!("Invalid format. Use 'json' or 'url'");
+                }
+            }
         }
     }
 

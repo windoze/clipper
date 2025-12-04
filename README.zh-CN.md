@@ -185,15 +185,6 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
 # 访问 http://localhost:3000
 ```
 
-#### 部署到 Azure
-
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fwindoze%2Fclipper%2Fmain%2Fcloud-services%2Faca%2Fazuredeploy.json)
-
-此模板将 clipper-server 部署到 Azure 容器应用，包含：
-- 通过 Let's Encrypt 自动获取 HTTPS 证书
-- 通过 Azure 文件共享实现持久化存储
-- Bearer Token 身份验证
-
 ### REST API
 
 | 端点 | 方法 | 说明 |

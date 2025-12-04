@@ -155,3 +155,29 @@ pub struct ServerInfo {
     /// Configuration info
     pub config: ServerConfigInfo,
 }
+
+/// Request to create a short URL for a clip
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateShortUrlRequest {
+    /// Optional expiration time in hours (overrides server default)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_in_hours: Option<u32>,
+}
+
+/// Short URL response from the server
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShortUrl {
+    /// Short URL record ID
+    pub id: String,
+    /// Associated clip ID
+    pub clip_id: String,
+    /// Short code (used in URL path)
+    pub short_code: String,
+    /// Full short URL
+    pub full_url: String,
+    /// Creation timestamp (RFC3339)
+    pub created_at: String,
+    /// Expiration timestamp (RFC3339), if set
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<String>,
+}

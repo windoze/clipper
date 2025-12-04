@@ -1,7 +1,7 @@
 use crate::error::{ClientError, Result};
 use crate::models::{
-    Clip, ClipNotification, CreateClipRequest, PagedResult, SearchFilters, ServerInfo,
-    UpdateClipRequest, WsAuthRequest, WsAuthResponse,
+    Clip, ClipNotification, CreateClipRequest, CreateShortUrlRequest, PagedResult, SearchFilters,
+    ServerInfo, ShortUrl, UpdateClipRequest, WsAuthRequest, WsAuthResponse,
 };
 use futures_util::{SinkExt, StreamExt};
 use reqwest::StatusCode;
@@ -435,6 +435,30 @@ impl ClipperClient {
                 })
             }
         }
+    }
+
+    /// Create a short URL for a clip
+    ///
+    /// # Arguments
+    /// * `id` - The clip ID
+    /// * `expires_in_hours` - Optional expiration time in hours (0 = no expiration, None = server default)
+    ///
+    /// # Returns
+    /// Short URL metadata including the full URL
+    pub async fn create_short_url(
+        &self,
+        id: &str,
+        expires_in_hours: Option<u32>,
+    ) -> Result<ShortUrl> {
+        let url = format!("{}/clips/{}/short-url", self.base_url, id);
+        let request = CreateShortUrlRequest { expires_in_hours };
+
+        let response = self
+            .apply_auth(self.client.post(&url).json(&request))
+            .send()
+            .await?;
+
+        self.handle_response(response).await
     }
 
     /// Connect to the server's WebSocket endpoint and receive real-time notifications

@@ -52,7 +52,7 @@
     },
     "memoryInGb": {
       "type": "string",
-      "defaultValue": "1.5",
+      "defaultValue": "2",
       "metadata": {
         "description": "Memory in GB for the container"
       }

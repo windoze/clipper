@@ -185,15 +185,6 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
 # Access at http://localhost:3000
 ```
 
-#### Deploy to Azure
-
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fwindoze%2Fclipper%2Fmain%2Fcloud-services%2Faca%2Fazuredeploy.json)
-
-This deploys clipper-server to Azure Container App with:
-- Automatic HTTPS via Let's Encrypt
-- Persistent storage via Azure File Share
-- Bearer token authentication
-
 ### REST API
 
 | Endpoint | Method | Description |
