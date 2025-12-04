@@ -258,6 +258,23 @@ async fn start_with_tls<T>(
         });
         let https_port = config.tls.port;
 
+        #[cfg(feature = "acme")]
+        {
+            // Get ACME challenges from manager if available
+            let acme_challenges = if let Some(ref manager) = acme_manager
+                && let Some(acme) = (manager as &dyn Any).downcast_ref::<Arc<AcmeManager>>()
+            {
+                acme.pending_challenges()
+            } else {
+                std::sync::Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new()))
+            };
+
+            tokio::spawn(async move {
+                run_http_redirect_server(http_addr, https_port, acme_challenges).await;
+            });
+        }
+
+        #[cfg(not(feature = "acme"))]
         tokio::spawn(async move {
             run_http_redirect_server(http_addr, https_port).await;
         });
@@ -449,7 +466,8 @@ async fn run_certificate_reload_task(
 }
 
 /// Run HTTP to HTTPS redirect server.
-#[cfg(feature = "tls")]
+/// Note: This variant does NOT handle ACME challenges - use run_http_redirect_server_with_acme instead.
+#[cfg(all(feature = "tls", not(feature = "acme")))]
 async fn run_http_redirect_server(http_addr: std::net::SocketAddr, https_port: u16) {
     use axum::response::Redirect;
 
@@ -480,6 +498,76 @@ async fn run_http_redirect_server(http_addr: std::net::SocketAddr, https_port: u
 
     tracing::info!(
         "HTTP redirect server listening on {} -> HTTPS port {}",
+        http_addr,
+        https_port
+    );
+
+    if let Err(e) = axum::serve(listener, redirect_app).await {
+        tracing::error!("HTTP redirect server error: {}", e);
+    }
+}
+
+/// Run HTTP to HTTPS redirect server with ACME challenge support.
+/// ACME HTTP-01 challenges are served on port 80, all other requests are redirected to HTTPS.
+#[cfg(all(feature = "tls", feature = "acme"))]
+async fn run_http_redirect_server(
+    http_addr: std::net::SocketAddr,
+    https_port: u16,
+    acme_challenges: std::sync::Arc<tokio::sync::RwLock<std::collections::HashMap<String, String>>>,
+) {
+    use axum::response::{IntoResponse, Redirect};
+    use axum::extract::Path;
+
+    // Handler for ACME challenges
+    let challenge_handler = {
+        let challenges = acme_challenges.clone();
+        move |Path(token): Path<String>| {
+            let challenges = challenges.clone();
+            async move {
+                let challenges = challenges.read().await;
+                if let Some(key_auth) = challenges.get(&token) {
+                    tracing::debug!("Responding to ACME challenge for token: {}", token);
+                    (StatusCode::OK, key_auth.clone()).into_response()
+                } else {
+                    tracing::warn!("Unknown ACME challenge token: {}", token);
+                    (StatusCode::NOT_FOUND, "Challenge not found").into_response()
+                }
+            }
+        }
+    };
+
+    // Redirect handler for all other requests
+    let redirect_handler = move |uri: Uri| async move {
+        let host = uri.host().unwrap_or("localhost");
+        let path_and_query = uri.path_and_query().map(|pq| pq.as_str()).unwrap_or("/");
+
+        let https_uri = if https_port == 443 {
+            format!("https://{}{}", host, path_and_query)
+        } else {
+            format!("https://{}:{}{}", host, https_port, path_and_query)
+        };
+
+        Redirect::permanent(&https_uri)
+    };
+
+    let redirect_app = Router::new()
+        .route("/.well-known/acme-challenge/{token}", get(challenge_handler))
+        .fallback(redirect_handler);
+
+    let listener = match tokio::net::TcpListener::bind(&http_addr).await {
+        Ok(l) => l,
+        Err(err) => {
+            tracing::warn!(
+                "Failed to bind HTTP redirect server to {}: {}",
+                http_addr,
+                err
+            );
+            return;
+        }
+    };
+
+    tracing::info!(
+        "HTTP redirect server listening on {} -> HTTPS port {} (with ACME challenge support)",
         http_addr,
         https_port
     );
