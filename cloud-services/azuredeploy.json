@@ -49,12 +49,19 @@
       "metadata": {
         "description": "Memory in GB for the container"
       }
+    },
+    "acmeEmail": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Contact email for Let's Encrypt certificate notifications"
+      }
     }
   },
   "variables": {
     "containerDnsLabel": "[parameters('containerGroupName')]",
     "acmeDomain": "[concat(variables('containerDnsLabel'), '.', parameters('location'), '.azurecontainer.io')]",
-    "shortUrlBase": "[concat('https://', variables('acmeDomain'), '/s/')]"
+    "shortUrlBase": "[concat('https://', variables('acmeDomain'))]"
   },
   "resources": [
     {
@@ -150,6 +157,10 @@
                 {
                   "name": "CLIPPER_CERTS_DIR",
                   "value": "/data/certs"
+                },
+                {
+                  "name": "CLIPPER_ACME_EMAIL",
+                  "value": "[parameters('acmeEmail')]"
                 }
               ],
               "volumeMounts": [
