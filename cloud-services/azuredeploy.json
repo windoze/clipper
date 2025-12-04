@@ -1,0 +1,211 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "containerGroupName": {
+      "type": "string",
+      "defaultValue": "clipper-server",
+      "metadata": {
+        "description": "Name for the container group and related resources"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "[concat('clipper', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Name for the storage account (must be globally unique)"
+      }
+    },
+    "fileShareName": {
+      "type": "string",
+      "defaultValue": "clipper-data",
+      "metadata": {
+        "description": "Name for the Azure File Share"
+      }
+    },
+    "bearerToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Bearer token for Clipper server authentication"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources"
+      }
+    },
+    "cpuCores": {
+      "type": "string",
+      "defaultValue": "1",
+      "metadata": {
+        "description": "Number of CPU cores for the container"
+      }
+    },
+    "memoryInGb": {
+      "type": "string",
+      "defaultValue": "1.5",
+      "metadata": {
+        "description": "Memory in GB for the container"
+      }
+    }
+  },
+  "variables": {
+    "containerDnsLabel": "[parameters('containerGroupName')]",
+    "acmeDomain": "[concat(variables('containerDnsLabel'), '.', parameters('location'), '.azurecontainer.io')]",
+    "shortUrlBase": "[concat('https://', variables('acmeDomain'), '/s/')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "accessTier": "Hot",
+        "supportsHttpsTrafficOnly": true,
+        "minimumTlsVersion": "TLS1_2"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices",
+      "apiVersion": "2023-01-01",
+      "name": "[concat(parameters('storageAccountName'), '/default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2023-01-01",
+      "name": "[concat(parameters('storageAccountName'), '/default/', parameters('fileShareName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices', parameters('storageAccountName'), 'default')]"
+      ],
+      "properties": {
+        "shareQuota": 5
+      }
+    },
+    {
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('containerGroupName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', parameters('fileShareName'))]"
+      ],
+      "properties": {
+        "containers": [
+          {
+            "name": "[parameters('containerGroupName')]",
+            "properties": {
+              "image": "windoze/clipper-server:latest",
+              "resources": {
+                "requests": {
+                  "cpu": "[parameters('cpuCores')]",
+                  "memoryInGB": "[parameters('memoryInGb')]"
+                }
+              },
+              "ports": [
+                {
+                  "port": 80,
+                  "protocol": "TCP"
+                },
+                {
+                  "port": 443,
+                  "protocol": "TCP"
+                }
+              ],
+              "environmentVariables": [
+                {
+                  "name": "CLIPPER_ACME_ENABLED",
+                  "value": "true"
+                },
+                {
+                  "name": "CLIPPER_BEARER_TOKEN",
+                  "secureValue": "[parameters('bearerToken')]"
+                },
+                {
+                  "name": "CLIPPER_ACME_DOMAIN",
+                  "value": "[variables('acmeDomain')]"
+                },
+                {
+                  "name": "CLIPPER_SHORT_URL_BASE",
+                  "value": "[variables('shortUrlBase')]"
+                },
+                {
+                  "name": "CLIPPER_DB_PATH",
+                  "value": "/data/db"
+                },
+                {
+                  "name": "CLIPPER_STORAGE_PATH",
+                  "value": "/data/storage"
+                },
+                {
+                  "name": "CLIPPER_CERTS_DIR",
+                  "value": "/data/certs"
+                }
+              ],
+              "volumeMounts": [
+                {
+                  "name": "clipper-data",
+                  "mountPath": "/data"
+                }
+              ]
+            }
+          }
+        ],
+        "osType": "Linux",
+        "restartPolicy": "Always",
+        "ipAddress": {
+          "type": "Public",
+          "ports": [
+            {
+              "port": 80,
+              "protocol": "TCP"
+            },
+            {
+              "port": 443,
+              "protocol": "TCP"
+            }
+          ],
+          "dnsNameLabel": "[variables('containerDnsLabel')]"
+        },
+        "volumes": [
+          {
+            "name": "clipper-data",
+            "azureFile": {
+              "shareName": "[parameters('fileShareName')]",
+              "storageAccountName": "[parameters('storageAccountName')]",
+              "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-01-01').keys[0].value]"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "containerFqdn": {
+      "type": "string",
+      "value": "[variables('acmeDomain')]"
+    },
+    "containerUrl": {
+      "type": "string",
+      "value": "[concat('https://', variables('acmeDomain'))]"
+    },
+    "shortUrlBase": {
+      "type": "string",
+      "value": "[variables('shortUrlBase')]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[parameters('storageAccountName')]"
+    }
+  }
+}
