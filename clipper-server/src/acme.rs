@@ -243,11 +243,8 @@ impl AcmeManager {
                 .await
                 .map_err(|e| AcmeError::Protocol(e.to_string()))?;
 
-            // Clean up challenge after notifying (the server will validate asynchronously)
-            {
-                let mut challenges = self.pending_challenges.write().await;
-                challenges.remove(&token);
-            }
+            // Note: Do NOT remove the challenge here - the ACME server will validate asynchronously
+            // and needs to be able to fetch the key authorization from our HTTP endpoint
         }
 
         // Wait for order to be ready using poll_ready with retry policy
@@ -255,6 +252,12 @@ impl AcmeManager {
             .poll_ready(&RetryPolicy::default())
             .await
             .map_err(|e| AcmeError::Protocol(e.to_string()))?;
+
+        // Clean up pending challenges after validation is complete
+        {
+            let mut challenges = self.pending_challenges.write().await;
+            challenges.clear();
+        }
 
         if status != OrderStatus::Ready {
             return Err(AcmeError::OrderFailed(format!(
