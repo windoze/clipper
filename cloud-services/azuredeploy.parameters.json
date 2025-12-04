@@ -25,6 +25,9 @@
     },
     "acmeEmail": {
       "value": ""
+    },
+    "imageTag": {
+      "value": "latest"
     }
   }
 }

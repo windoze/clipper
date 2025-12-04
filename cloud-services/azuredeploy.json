@@ -56,6 +56,13 @@
       "metadata": {
         "description": "Contact email for Let's Encrypt certificate notifications"
       }
+    },
+    "imageTag": {
+      "type": "string",
+      "defaultValue": "latest",
+      "metadata": {
+        "description": "Docker image tag for the clipper-server container"
+      }
     }
   },
   "variables": {
@@ -112,7 +119,7 @@
           {
             "name": "[parameters('containerGroupName')]",
             "properties": {
-              "image": "windoze/clipper-server:latest",
+              "image": "[concat('windoze/clipper-server:', parameters('imageTag'))]",
               "resources": {
                 "requests": {
                   "cpu": "[parameters('cpuCores')]",
