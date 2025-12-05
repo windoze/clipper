@@ -4,6 +4,7 @@ use chrono::Utc;
 use gethostname::gethostname;
 use image::{ImageBuffer, Rgba};
 use std::io::Cursor;
+use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
@@ -21,7 +22,8 @@ const POLL_INTERVAL_MS: u64 = 500;
 #[derive(Clone, PartialEq)]
 enum ClipboardContent {
     Text(String),
-    Image(Vec<u8>), // PNG-encoded bytes
+    Image(Vec<u8>),      // PNG-encoded bytes
+    Files(Vec<PathBuf>), // File paths from clipboard (e.g., copied from Finder/Explorer)
     Empty,
 }
 
@@ -49,10 +51,29 @@ enum ClipboardResult {
     AccessError(String),
 }
 
-/// Get current clipboard content (text or image)
+/// Get current clipboard content (text, image, or files)
 /// Returns ClipboardResult to indicate whether the clipboard handle is still valid
+/// Priority: files > images > text (files take highest priority since copying files
+/// in Finder/Explorer also provides text fallback with filenames)
 fn get_clipboard_content(clipboard: &mut Clipboard) -> ClipboardResult {
-    // Try to get image first (images take priority)
+    // Try to get file list first (highest priority)
+    // When copying files in Finder/Explorer, the clipboard contains both file URIs and text fallback
+    match clipboard.get().file_list() {
+        Ok(files) => {
+            if !files.is_empty() {
+                return ClipboardResult::Content(ClipboardContent::Files(files));
+            }
+        }
+        Err(arboard::Error::ContentNotAvailable) => {
+            // No file content, this is normal - try image
+        }
+        Err(e) => {
+            // Other errors might indicate clipboard handle issues
+            eprintln!("[clipboard] File list access error: {}", e);
+        }
+    }
+
+    // Try to get image (second priority)
     match clipboard.get_image() {
         Ok(image_data) => {
             if let Some(png_bytes) = image_data_to_png(&image_data) {
@@ -68,7 +89,7 @@ fn get_clipboard_content(clipboard: &mut Clipboard) -> ClipboardResult {
         }
     }
 
-    // Fall back to text
+    // Fall back to text (lowest priority)
     match clipboard.get_text() {
         Ok(text) => {
             if !text.is_empty() {
@@ -297,6 +318,91 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                             }
                             Err(e) => {
                                 eprintln!("[clipboard] Failed to create clip from image: {}", e);
+                            }
+                        }
+                    });
+                }
+                ClipboardContent::Files(paths) => {
+                    // Upload files copied from Finder/Explorer
+                    let max_size = max_upload_size_arc.load(Ordering::SeqCst);
+                    let hostname_tag = get_hostname_tag();
+                    rt.spawn(async move {
+                        for path in paths {
+                            // Check if file exists and get metadata
+                            let metadata = match tokio::fs::metadata(&path).await {
+                                Ok(m) => m,
+                                Err(e) => {
+                                    eprintln!(
+                                        "[clipboard] Failed to read file metadata for {}: {}",
+                                        path.display(),
+                                        e
+                                    );
+                                    continue;
+                                }
+                            };
+
+                            // Skip directories
+                            if metadata.is_dir() {
+                                eprintln!(
+                                    "[clipboard] Skipping directory: {}",
+                                    path.display()
+                                );
+                                continue;
+                            }
+
+                            // Check file size
+                            if metadata.len() > max_size {
+                                let max_size_mb = max_size as f64 / (1024.0 * 1024.0);
+                                let file_size_mb = metadata.len() as f64 / (1024.0 * 1024.0);
+                                eprintln!(
+                                    "[clipboard] File {} ({:.2} MB) exceeds maximum allowed size ({:.2} MB), skipping",
+                                    path.display(),
+                                    file_size_mb,
+                                    max_size_mb
+                                );
+                                continue;
+                            }
+
+                            // Read file bytes
+                            let bytes = match tokio::fs::read(&path).await {
+                                Ok(b) => b,
+                                Err(e) => {
+                                    eprintln!(
+                                        "[clipboard] Failed to read file {}: {}",
+                                        path.display(),
+                                        e
+                                    );
+                                    continue;
+                                }
+                            };
+
+                            let filename = path
+                                .file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("unknown")
+                                .to_string();
+
+                            let full_path = path.to_string_lossy().to_string();
+
+                            match client
+                                .upload_file_bytes_with_content(
+                                    bytes,
+                                    filename.clone(),
+                                    vec!["$file".to_string(), hostname_tag.clone()],
+                                    None,
+                                    Some(full_path.clone()),
+                                )
+                                .await
+                            {
+                                Ok(clip) => {
+                                    let _ = app_handle.emit("clip-created", &clip);
+                                }
+                                Err(e) => {
+                                    eprintln!(
+                                        "[clipboard] Failed to upload file {}: {}",
+                                        filename, e
+                                    );
+                                }
                             }
                         }
                     });
