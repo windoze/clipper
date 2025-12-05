@@ -42,6 +42,15 @@ The version info is in following files:
 
 All above files should be updated to keep consistent version.
 
+Then we should run `npm install` in following directories to update lock files:
+1. `packages/clipper-ui/`
+2. `clipper/`
+3. `clipper-server/web/`
+
+And run `cargo check` in the root to update Cargo.lock.
+
+Then we need to update the changelog in `CHANGELOG.md` accordingly.
+
 ## Build & Test Commands
 
 ### Building
