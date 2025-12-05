@@ -9,6 +9,7 @@ import {
   SYNTAX_THEMES,
 } from "@unwritten-codes/clipper-ui";
 import type { Language, SyntaxTheme } from "@unwritten-codes/clipper-ui";
+import { CertificateConfirmDialog, CertificateInfo } from "./CertificateConfirmDialog";
 
 export type ThemePreference = "light" | "dark" | "auto";
 
@@ -62,6 +63,14 @@ interface UpdateInfo {
   current_version: string;
   body: string | null;
   date: string | null;
+}
+
+interface ServerCertificateCheckResult {
+  isHttps: boolean;
+  certificate: CertificateInfo | null;
+  isTrusted: boolean;
+  needsTrustConfirmation: boolean;
+  error: string | null;
 }
 
 type SettingsTab = "appearance" | "startup" | "server" | "about";
@@ -141,6 +150,11 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const [isResizing, setIsResizing] = useState(false);
   const [resizeEdge, setResizeEdge] = useState<string | null>(null);
   const justFinishedResizing = useRef(false);
+  // Certificate confirmation dialog state
+  const [showCertDialog, setShowCertDialog] = useState(false);
+  const [pendingCertificate, setPendingCertificate] = useState<CertificateInfo | null>(null);
+  const [pendingServerUrl, setPendingServerUrl] = useState<string>("");
+  const [trustingCertificate, setTrustingCertificate] = useState(false);
 
   // Load settings when dialog opens
   useEffect(() => {
@@ -351,7 +365,18 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     );
     if (externalServerChanged) {
       try {
-        // switch_to_external_server returns null if connected, or an error message if not
+        // Check if the new server URL needs certificate confirmation
+        const certResult = await invoke<ServerCertificateCheckResult>("check_server_certificate", { serverUrl: settings.serverAddress });
+
+        if (certResult.needsTrustConfirmation && certResult.certificate) {
+          // Show certificate confirmation dialog
+          setPendingCertificate(certResult.certificate);
+          setPendingServerUrl(settings.serverAddress);
+          setShowCertDialog(true);
+          return; // Don't close yet, wait for certificate confirmation
+        }
+
+        // No certificate confirmation needed, proceed with reconnect
         const connectionError = await invoke<string | null>("switch_to_external_server", { serverUrl: settings.serverAddress });
         setServerUrl(settings.serverAddress);
         if (connectionError) {
@@ -407,15 +432,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
         setServerUrl(newUrl);
         showToast(t("toast.serverStarted"));
       } else {
-        // Switch to external server
-        // Returns null if connected successfully, or an error message if unreachable
-        const connectionError = await invoke<string | null>("switch_to_external_server", { serverUrl: settings.serverAddress });
-        setServerUrl(settings.serverAddress);
-        if (connectionError) {
-          showToast(connectionError, "error");
-        } else {
-          showToast(t("toast.serverConnected"));
-        }
+        // For external server, first check if it's HTTPS with self-signed cert
+        await switchToExternalServerWithCertCheck(settings.serverAddress);
+        return; // switchToExternalServerWithCertCheck handles setSwitchingServerMode
       }
       // Reload settings from backend to ensure frontend is in sync
       // This is important because the switch commands update settings on the backend
@@ -426,6 +445,83 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     } finally {
       setSwitchingServerMode(false);
     }
+  };
+
+  // Switch to external server with certificate checking
+  const switchToExternalServerWithCertCheck = async (targetUrl: string) => {
+    try {
+      // Check if the server has a certificate that needs trust confirmation
+      const certResult = await invoke<ServerCertificateCheckResult>("check_server_certificate", { serverUrl: targetUrl });
+
+      if (certResult.needsTrustConfirmation && certResult.certificate) {
+        // Show certificate confirmation dialog
+        setPendingCertificate(certResult.certificate);
+        setPendingServerUrl(targetUrl);
+        setShowCertDialog(true);
+        setSwitchingServerMode(false);
+        return;
+      }
+
+      // No certificate confirmation needed, proceed with switch
+      await completeSwitchToExternalServer(targetUrl);
+    } catch (e) {
+      setError(`Failed to check server certificate: ${e}`);
+      setSwitchingServerMode(false);
+    }
+  };
+
+  // Complete the switch to external server (after certificate is trusted or not needed)
+  const completeSwitchToExternalServer = async (targetUrl: string) => {
+    try {
+      // Switch to external server
+      // Returns null if connected successfully, or an error message if unreachable
+      const connectionError = await invoke<string | null>("switch_to_external_server", { serverUrl: targetUrl });
+      setServerUrl(targetUrl);
+      if (connectionError) {
+        showToast(connectionError, "error");
+      } else {
+        showToast(t("toast.serverConnected"));
+      }
+      // Reload settings from backend to ensure frontend is in sync
+      const loadedSettings = await invoke<Settings>("get_settings");
+      setSettings(loadedSettings);
+    } catch (e) {
+      setError(`Failed to switch server mode: ${e}`);
+    } finally {
+      setSwitchingServerMode(false);
+    }
+  };
+
+  // Handle certificate trust confirmation
+  const handleCertificateConfirm = async () => {
+    if (!pendingCertificate) return;
+
+    setTrustingCertificate(true);
+    try {
+      // Trust the certificate
+      await invoke("trust_certificate", {
+        host: pendingCertificate.host,
+        fingerprint: pendingCertificate.fingerprint,
+      });
+      showToast(t("toast.certificateTrusted").replace("{host}", pendingCertificate.host));
+
+      // Close dialog and proceed with connection
+      setShowCertDialog(false);
+      setPendingCertificate(null);
+      setSwitchingServerMode(true);
+      await completeSwitchToExternalServer(pendingServerUrl);
+    } catch (e) {
+      setError(`Failed to trust certificate: ${e}`);
+    } finally {
+      setTrustingCertificate(false);
+    }
+  };
+
+  // Handle certificate trust cancellation
+  const handleCertificateCancel = () => {
+    setShowCertDialog(false);
+    setPendingCertificate(null);
+    setPendingServerUrl("");
   };
 
   // Handle clear all data
@@ -1383,6 +1479,15 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
           </button>
         </div>
       </div>
+
+      {/* Certificate confirmation dialog */}
+      <CertificateConfirmDialog
+        isOpen={showCertDialog}
+        certificate={pendingCertificate}
+        onConfirm={handleCertificateConfirm}
+        onCancel={handleCertificateCancel}
+        loading={trustingCertificate}
+      />
     </div>
   );
 }

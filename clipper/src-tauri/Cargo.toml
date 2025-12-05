@@ -48,6 +48,7 @@ reqwest = { version = "0.12", default-features = false, features = [
 ] }
 local-ip-address = "0.6"
 gethostname = "1"
+rustls = { version = "0.23", default-features = false, features = ["std", "ring"] }
 
 # Cross-platform pipe support for server process monitoring
 os_pipe = "1"

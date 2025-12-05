@@ -144,4 +144,17 @@ export const zh = {
   "auth.error": "身份验证失败。请检查您的令牌并重试。",
   "auth.invalidToken": "无效的令牌",
   "auth.sessionExpired": "会话已过期。请重新登录。",
+
+  // Certificate Trust Dialog
+  "certificate.title": "不受信任的证书",
+  "certificate.warning":
+    "服务器使用的是自签名或不受信任的证书。只有在您信任此服务器并已验证证书指纹的情况下才能继续。",
+  "certificate.host": "服务器",
+  "certificate.fingerprint": "SHA-256 指纹",
+  "certificate.hint":
+    "如果您信任此证书，它将被保存，以后连接此服务器时不会再提示。",
+  "certificate.trust": "信任证书",
+  "certificate.trusting": "信任中...",
+  "toast.certificateTrusted": "已信任 {host} 的证书",
+  "toast.certificateError": "验证证书失败",
 };

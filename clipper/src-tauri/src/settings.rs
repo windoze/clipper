@@ -94,6 +94,10 @@ pub struct Settings {
     /// Settings dialog window geometry (size and position)
     #[serde(default)]
     pub settings_window_geometry: SettingsWindowGeometry,
+    /// Trusted certificate fingerprints for self-signed HTTPS servers
+    /// Maps server hostname to SHA-256 fingerprint (hex encoded)
+    #[serde(default)]
+    pub trusted_certificates: std::collections::HashMap<String, String>,
 }
 
 fn default_cleanup_retention_days() -> u32 {
@@ -144,6 +148,7 @@ impl Default for Settings {
             bundled_server_token: None,
             max_upload_size_mb: default_max_upload_size_mb(),
             settings_window_geometry: SettingsWindowGeometry::default(),
+            trusted_certificates: std::collections::HashMap::new(),
         }
     }
 }
@@ -256,6 +261,46 @@ impl SettingsManager {
     /// Get the maximum upload size in MB
     pub fn get_max_upload_size_mb(&self) -> u64 {
         self.settings.read().unwrap().max_upload_size_mb
+    }
+
+    /// Get all trusted certificate fingerprints
+    pub fn get_trusted_certificates(&self) -> std::collections::HashMap<String, String> {
+        self.settings.read().unwrap().trusted_certificates.clone()
+    }
+
+    /// Check if a certificate fingerprint is trusted for a given host
+    pub fn is_certificate_trusted(&self, host: &str, fingerprint: &str) -> bool {
+        self.settings
+            .read()
+            .unwrap()
+            .trusted_certificates
+            .get(host)
+            .map(|fp| fp == fingerprint)
+            .unwrap_or(false)
+    }
+
+    /// Add a trusted certificate fingerprint for a host
+    pub async fn trust_certificate(&self, host: String, fingerprint: String) -> Result<(), String> {
+        {
+            self.settings
+                .write()
+                .unwrap()
+                .trusted_certificates
+                .insert(host, fingerprint);
+        }
+        self.save().await
+    }
+
+    /// Remove a trusted certificate for a host
+    pub async fn untrust_certificate(&self, host: &str) -> Result<(), String> {
+        {
+            self.settings
+                .write()
+                .unwrap()
+                .trusted_certificates
+                .remove(host);
+        }
+        self.save().await
     }
 }
 

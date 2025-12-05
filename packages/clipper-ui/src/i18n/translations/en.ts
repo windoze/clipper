@@ -145,6 +145,19 @@ export const en = {
   "auth.error": "Authentication failed. Please check your token and try again.",
   "auth.invalidToken": "Invalid token",
   "auth.sessionExpired": "Session expired. Please login again.",
+
+  // Certificate Trust Dialog
+  "certificate.title": "Untrusted Certificate",
+  "certificate.warning":
+    "The server is using a self-signed or untrusted certificate. Only proceed if you trust this server and have verified the certificate fingerprint.",
+  "certificate.host": "Server",
+  "certificate.fingerprint": "SHA-256 Fingerprint",
+  "certificate.hint":
+    "If you trust this certificate, it will be saved and you won't be prompted again for this server.",
+  "certificate.trust": "Trust Certificate",
+  "certificate.trusting": "Trusting...",
+  "toast.certificateTrusted": "Certificate trusted for {host}",
+  "toast.certificateError": "Failed to verify certificate",
 };
 
 export type TranslationKey = keyof typeof en;

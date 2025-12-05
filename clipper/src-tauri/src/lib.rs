@@ -124,8 +124,52 @@ pub fn parse_shortcut(shortcut_str: &str) -> Option<Shortcut> {
     })
 }
 
+/// Check certificate on startup and emit event if trust is required
+async fn check_certificate_on_startup(
+    app: &tauri::AppHandle,
+    server_url: &str,
+    settings_manager: &SettingsManager,
+) {
+    use clipper_client::fetch_server_certificate;
+
+    // Parse URL to get host and port
+    if let Ok(url) = tauri::Url::parse(server_url) {
+        if let Some(host) = url.host_str() {
+            let port = url.port().unwrap_or(443);
+
+            match fetch_server_certificate(host, port).await {
+                Ok(cert_info) => {
+                    let fingerprint = cert_info.fingerprint.clone();
+                    let is_system_trusted = cert_info.is_system_trusted;
+                    let is_user_trusted = settings_manager.is_certificate_trusted(host, &fingerprint);
+
+                    // Only emit if certificate is not trusted at all
+                    if !is_system_trusted && !is_user_trusted {
+                        info!("Certificate trust required on startup for {}", host);
+                        let _ = app.emit(
+                            "certificate-trust-required",
+                            serde_json::json!({
+                                "host": host,
+                                "fingerprint": fingerprint,
+                                "isTrusted": false
+                            }),
+                        );
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to fetch certificate for {} on startup: {}", host, e);
+                }
+            }
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Install the ring crypto provider for rustls at startup
+    // This is required for TLS certificate operations
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     let app = tauri::Builder::default()
         // Log plugin should be registered early to capture all logs
         .plugin(
@@ -235,8 +279,9 @@ pub fn run() {
             // Register server manager
             app.manage(server_manager);
 
-            // Create app state with the server URL and token
-            let app_state = AppState::new_with_token(&server_url, token);
+            // Create app state with the server URL, token, and trusted certificates
+            let trusted_certs = settings_manager.get_trusted_certificates();
+            let app_state = AppState::new_with_trusted_certs(&server_url, token, trusted_certs);
             app.manage(app_state);
 
             // Handle window visibility based on settings
@@ -258,6 +303,19 @@ pub fn run() {
 
             // Start clipboard monitoring
             clipboard::start_clipboard_monitor(app.handle().clone());
+
+            // Check certificate on startup for external HTTPS servers
+            // This runs in background and emits event to frontend if trust is required
+            if !use_bundled && server_url.starts_with("https://") {
+                let app_handle_cert = app.handle().clone();
+                let server_url_cert = server_url.clone();
+                let settings_manager_cert = settings_manager.clone();
+                tauri::async_runtime::spawn(async move {
+                    // Small delay to ensure frontend is ready to receive events
+                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                    check_certificate_on_startup(&app_handle_cert, &server_url_cert, &settings_manager_cert).await;
+                });
+            }
 
             // Start WebSocket listener
             let app_handle = app.handle().clone();
@@ -463,6 +521,10 @@ pub fn run() {
             commands::get_app_version,
             commands::check_for_updates,
             commands::install_update,
+            commands::check_server_certificate,
+            commands::trust_certificate,
+            commands::untrust_certificate,
+            commands::get_trusted_certificates,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

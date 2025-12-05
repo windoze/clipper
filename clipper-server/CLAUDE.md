@@ -91,6 +91,43 @@ Multiple configuration sources (in priority order):
 - `CLIPPER_TLS_REDIRECT` - Redirect HTTP to HTTPS (default: `true`)
 - `CLIPPER_TLS_RELOAD_INTERVAL` - Seconds between certificate reload checks (default: `0` = disabled)
 
+#### Setting Up Self-Signed Certificates
+
+For development or private networks where you don't have a domain name, you can use self-signed certificates:
+
+1. **Generate a self-signed certificate using OpenSSL:**
+
+```bash
+# Create a directory for certificates
+mkdir -p certs
+
+# Generate a private key and self-signed certificate (valid for 365 days)
+openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes \
+  -subj "/CN=clipper-server" \
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:192.168.1.100"
+```
+
+Replace `192.168.1.100` with your server's actual IP address. You can add multiple IPs or DNS names.
+
+2. **Run the server with TLS:**
+
+```bash
+CLIPPER_TLS_ENABLED=true \
+CLIPPER_TLS_PORT=3443 \
+CLIPPER_TLS_CERT=./certs/cert.pem \
+CLIPPER_TLS_KEY=./certs/key.pem \
+cargo run --bin clipper-server --features tls
+```
+
+3. **Connect from the Clipper desktop app:**
+
+When connecting to a server with a self-signed certificate, the Clipper app will show a confirmation dialog displaying the certificate's SHA-256 fingerprint. If you trust the server:
+- Verify the fingerprint matches (you can check it with: `openssl x509 -in certs/cert.pem -noout -fingerprint -sha256`)
+- Click "Trust Certificate" to save the fingerprint
+- Future connections to this server will automatically trust this certificate
+
+**Note:** The certificate fingerprint is stored per-host in the app's settings. If you regenerate the certificate, you'll need to trust the new fingerprint.
+
 ### ACME Environment Variables (requires `acme` feature)
 
 - `CLIPPER_ACME_ENABLED` - Enable automatic certificate management (default: `false`)

@@ -1,0 +1,248 @@
+.cert-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.cert-dialog {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid #e9ecef;
+}
+
+.cert-dialog-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.cert-dialog-icon {
+  color: #f59e0b;
+  margin-bottom: 12px;
+}
+
+.cert-dialog-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #212529;
+}
+
+.cert-dialog-content {
+  margin-bottom: 24px;
+}
+
+.cert-dialog-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #212529;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.cert-dialog-info {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.cert-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.cert-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.cert-info-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cert-info-value {
+  font-size: 0.9rem;
+  color: #212529;
+}
+
+.cert-host {
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.cert-fingerprint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cert-fingerprint-group {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  background: #e9ecef;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #212529;
+}
+
+.cert-dialog-hint {
+  font-size: 0.85rem;
+  color: #6c757d;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cert-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cert-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.cert-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cert-btn.secondary {
+  background: #e9ecef;
+  color: #212529;
+  border: 1px solid #dee2e6;
+}
+
+.cert-btn.secondary:hover:not(:disabled) {
+  background: #dee2e6;
+}
+
+.cert-btn.primary {
+  background: #667eea;
+  color: white;
+}
+
+.cert-btn.primary:hover:not(:disabled) {
+  background: #5a6fd6;
+}
+
+/* Dark mode */
+:root[data-theme="dark"] .cert-dialog {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .cert-dialog-header h2 {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .cert-dialog-warning {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .cert-dialog-info {
+  background: #363636;
+}
+
+:root[data-theme="dark"] .cert-info-label {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .cert-info-value {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .cert-fingerprint-group {
+  background: #404040;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .cert-dialog-hint {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .cert-btn.secondary {
+  background: #404040;
+  color: #e9ecef;
+  border-color: #4a4a4a;
+}
+
+:root[data-theme="dark"] .cert-btn.secondary:hover:not(:disabled) {
+  background: #4a4a4a;
+}
+
+/* Media query fallback for auto theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cert-dialog {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .cert-dialog-header h2 {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .cert-dialog-warning {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .cert-dialog-info {
+    background: #363636;
+  }
+
+  :root:not([data-theme="light"]) .cert-info-label {
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .cert-info-value {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .cert-fingerprint-group {
+    background: #404040;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .cert-dialog-hint {
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .cert-btn.secondary {
+    background: #404040;
+    color: #e9ecef;
+    border-color: #4a4a4a;
+  }
+
+  :root:not([data-theme="light"]) .cert-btn.secondary:hover:not(:disabled) {
+    background: #4a4a4a;
+  }
+}

@@ -1,6 +1,7 @@
 use crate::clipboard::{set_clipboard_content, set_clipboard_image};
+use crate::settings::SettingsManager;
 use crate::state::AppState;
-use clipper_client::ClipNotification;
+use clipper_client::{fetch_server_certificate, ClipNotification};
 use gethostname::gethostname;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc;
@@ -19,6 +20,73 @@ fn emit_ws_status(app: &AppHandle, connected: bool) {
         "websocket-status",
         serde_json::json!({ "connected": connected }),
     );
+}
+
+/// Check if the error message indicates a certificate verification failure
+fn is_certificate_error(error_msg: &str) -> bool {
+    let lower = error_msg.to_lowercase();
+    lower.contains("certificate")
+        || lower.contains("ca used as end entity")
+        || lower.contains("webpki")
+        || lower.contains("invalid peer certificate")
+        || lower.contains("self signed")
+        || lower.contains("selfcertverify")
+        || lower.contains("unknownissuer")
+}
+
+/// Extract host and port from URL
+fn parse_url(url: &str) -> Option<(String, u16)> {
+    // Handle URLs that might not have a scheme
+    let url_with_scheme = if url.starts_with("http://") || url.starts_with("https://") {
+        url.to_string()
+    } else {
+        format!("https://{}", url)
+    };
+
+    tauri::Url::parse(&url_with_scheme).ok().map(|u| {
+        let host = u.host_str().unwrap_or("").to_string();
+        let port = u.port().unwrap_or(if u.scheme() == "https" { 443 } else { 80 });
+        (host, port)
+    })
+}
+
+/// Check certificate and emit event if trust is required
+async fn check_and_emit_certificate_trust(app: &AppHandle, url: &str) -> bool {
+    // Only check HTTPS URLs
+    if !url.starts_with("https://") {
+        return false;
+    }
+
+    let settings_manager = app.state::<SettingsManager>();
+
+    if let Some((host, port)) = parse_url(url) {
+        match fetch_server_certificate(&host, port).await {
+            Ok(cert_info) => {
+                let fingerprint = cert_info.fingerprint.clone();
+                let is_system_trusted = cert_info.is_system_trusted;
+                let is_user_trusted = settings_manager.is_certificate_trusted(&host, &fingerprint);
+
+                // Only emit if certificate is not trusted at all
+                if !is_system_trusted && !is_user_trusted {
+                    eprintln!("Certificate trust required for {}", host);
+                    let _ = app.emit(
+                        "certificate-trust-required",
+                        serde_json::json!({
+                            "host": host,
+                            "fingerprint": fingerprint,
+                            "isTrusted": false
+                        }),
+                    );
+                    return true;
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to fetch certificate for {}: {}", host, e);
+            }
+        }
+    }
+
+    false
 }
 
 pub async fn start_websocket_listener(app: AppHandle) {
@@ -161,7 +229,21 @@ pub async fn start_websocket_listener(app: AppHandle) {
             }
             Err(e) => {
                 emit_ws_status(&app, false);
-                eprintln!("Failed to connect to WebSocket: {}", e);
+                let error_msg = e.to_string();
+                eprintln!("Failed to connect to WebSocket: {}", error_msg);
+
+                // Check if this is a certificate error
+                if is_certificate_error(&error_msg) {
+                    let base_url = state.base_url();
+                    // Check and emit certificate trust event
+                    if check_and_emit_certificate_trust(&app, &base_url).await {
+                        // Certificate trust is required, wait longer before retrying
+                        // to give user time to trust the certificate
+                        eprintln!("Waiting for certificate trust before retrying...");
+                        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                        continue;
+                    }
+                }
             }
         }
 

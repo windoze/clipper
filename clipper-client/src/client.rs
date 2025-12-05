@@ -1,3 +1,4 @@
+use crate::certificate::create_tls_config_with_trusted_certs;
 use crate::error::{ClientError, Result};
 use crate::models::{
     Clip, ClipNotification, CreateClipRequest, CreateShortUrlRequest, PagedResult, SearchFilters,
@@ -5,6 +6,7 @@ use crate::models::{
 };
 use futures_util::{SinkExt, StreamExt};
 use reqwest::StatusCode;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::AsyncRead;
@@ -24,6 +26,8 @@ pub struct ClipperClient {
     client: reqwest::Client,
     /// Optional Bearer token for authentication
     token: Option<String>,
+    /// Trusted certificate fingerprints (host -> SHA-256 fingerprint)
+    trusted_fingerprints: HashMap<String, String>,
 }
 
 impl ClipperClient {
@@ -36,6 +40,7 @@ impl ClipperClient {
             base_url: base_url.into().trim_end_matches('/').to_string(),
             client: reqwest::Client::new(),
             token: None,
+            trusted_fingerprints: HashMap::new(),
         }
     }
 
@@ -49,6 +54,55 @@ impl ClipperClient {
             base_url: base_url.into().trim_end_matches('/').to_string(),
             client: reqwest::Client::new(),
             token: Some(token.into()),
+            trusted_fingerprints: HashMap::new(),
+        }
+    }
+
+    /// Create a new Clipper client with trusted certificate fingerprints
+    ///
+    /// # Arguments
+    /// * `base_url` - Base URL of the Clipper server (e.g., "https://localhost:3000")
+    /// * `token` - Optional Bearer token for authentication
+    /// * `trusted_fingerprints` - Map of hostname to SHA-256 fingerprint for trusted certificates
+    pub fn new_with_trusted_certs(
+        base_url: impl Into<String>,
+        token: Option<String>,
+        trusted_fingerprints: HashMap<String, String>,
+    ) -> Self {
+        // Create HTTP client that accepts certificates if we have trusted fingerprints
+        let client = if trusted_fingerprints.is_empty() {
+            reqwest::Client::new()
+        } else {
+            reqwest::Client::builder()
+                .danger_accept_invalid_certs(true)
+                .timeout(Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new())
+        };
+
+        Self {
+            base_url: base_url.into().trim_end_matches('/').to_string(),
+            client,
+            token,
+            trusted_fingerprints,
+        }
+    }
+
+    /// Get the trusted certificate fingerprints
+    pub fn trusted_fingerprints(&self) -> &HashMap<String, String> {
+        &self.trusted_fingerprints
+    }
+
+    /// Set trusted certificate fingerprints
+    pub fn set_trusted_fingerprints(&mut self, fingerprints: HashMap<String, String>) {
+        self.trusted_fingerprints = fingerprints.clone();
+        // Rebuild client if we have trusted certs
+        if !fingerprints.is_empty() {
+            self.client = reqwest::Client::builder()
+                .danger_accept_invalid_certs(true)
+                .timeout(Duration::from_secs(30))
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new());
         }
     }
 
@@ -643,27 +697,31 @@ impl ClipperClient {
             // For WSS connections, use a custom TLS connector
             use tokio_tungstenite::Connector;
 
-            // Build rustls config
-            let mut root_store = rustls::RootCertStore::empty();
-            root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+            // Build rustls config based on whether we have trusted fingerprints
+            let config = if !self.trusted_fingerprints.is_empty() {
+                // Use our custom verifier that trusts specific fingerprints
+                create_tls_config_with_trusted_certs(self.trusted_fingerprints.clone())
+            } else {
+                #[cfg(feature = "danger-accept-invalid-certs")]
+                {
+                    // Accept any certificate (for development with self-signed certs)
+                    let config = rustls::ClientConfig::builder()
+                        .dangerous()
+                        .with_custom_certificate_verifier(Arc::new(NoVerifier))
+                        .with_no_client_auth();
+                    Arc::new(config)
+                }
 
-            #[cfg(feature = "danger-accept-invalid-certs")]
-            let config = {
-                // Accept any certificate (for development with self-signed certs)
-                let config = rustls::ClientConfig::builder()
-                    .dangerous()
-                    .with_custom_certificate_verifier(Arc::new(NoVerifier))
-                    .with_no_client_auth();
-                Arc::new(config)
-            };
-
-            #[cfg(not(feature = "danger-accept-invalid-certs"))]
-            let config = {
-                // Use proper certificate validation with system roots
-                let config = rustls::ClientConfig::builder()
-                    .with_root_certificates(root_store)
-                    .with_no_client_auth();
-                Arc::new(config)
+                #[cfg(not(feature = "danger-accept-invalid-certs"))]
+                {
+                    // Use proper certificate validation with system roots
+                    let mut root_store = rustls::RootCertStore::empty();
+                    root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+                    let config = rustls::ClientConfig::builder()
+                        .with_root_certificates(root_store)
+                        .with_no_client_auth();
+                    Arc::new(config)
+                }
             };
 
             let connector = Connector::Rustls(config);

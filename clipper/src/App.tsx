@@ -17,6 +17,7 @@ import {
 import { TitleBar } from "./components/TitleBar";
 import { DropZone } from "./components/DropZone";
 import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
+import { CertificateConfirmDialog, CertificateInfo } from "./components/CertificateConfirmDialog";
 import "./App.css";
 
 // Detect platform from user agent
@@ -33,6 +34,10 @@ function App() {
   const [isMaximized, setIsMaximized] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [useBundledServer, setUseBundledServer] = useState(true);
+  // Certificate trust dialog state
+  const [certificateDialogOpen, setCertificateDialogOpen] = useState(false);
+  const [pendingCertificate, setPendingCertificate] = useState<CertificateInfo | null>(null);
+  const [certificateTrusting, setCertificateTrusting] = useState(false);
   const {
     clips,
     loading,
@@ -126,6 +131,48 @@ function App() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [os, openSettings]);
+
+  // Listen for certificate trust required events
+  useEffect(() => {
+    const unlistenCertTrust = listen<CertificateInfo>("certificate-trust-required", (event) => {
+      // Only show dialog if not already open
+      if (!certificateDialogOpen) {
+        setPendingCertificate(event.payload);
+        setCertificateDialogOpen(true);
+      }
+    });
+
+    return () => {
+      unlistenCertTrust.then((fn) => fn());
+    };
+  }, [certificateDialogOpen]);
+
+  // Certificate trust handlers
+  const handleCertificateConfirm = useCallback(async () => {
+    if (!pendingCertificate) return;
+
+    setCertificateTrusting(true);
+    try {
+      await invoke("trust_certificate", {
+        host: pendingCertificate.host,
+        fingerprint: pendingCertificate.fingerprint,
+      });
+      showToast(t("toast.certificateTrusted").replace("{host}", pendingCertificate.host));
+      setCertificateDialogOpen(false);
+      setPendingCertificate(null);
+      // Refresh clips after trusting certificate to clear error state
+      refetch();
+    } catch (error) {
+      showToast(t("toast.certificateError"), "error");
+    } finally {
+      setCertificateTrusting(false);
+    }
+  }, [pendingCertificate, showToast, t, refetch]);
+
+  const handleCertificateCancel = useCallback(() => {
+    setCertificateDialogOpen(false);
+    setPendingCertificate(null);
+  }, []);
 
   // Listen for data-cleared and server-switched events to refresh clips
   useEffect(() => {
@@ -515,6 +562,15 @@ function App() {
         </main>
 
         <SettingsDialog isOpen={isSettingsOpen} onClose={closeSettings} onThemeChange={updateTheme} onSyntaxThemeChange={setSyntaxTheme} />
+
+        {/* Certificate trust dialog - shown when connecting to server with self-signed cert */}
+        <CertificateConfirmDialog
+          isOpen={certificateDialogOpen}
+          certificate={pendingCertificate}
+          onConfirm={handleCertificateConfirm}
+          onCancel={handleCertificateCancel}
+          loading={certificateTrusting}
+        />
       </div>
     </DropZone>
   );

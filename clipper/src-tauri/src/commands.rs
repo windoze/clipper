@@ -4,9 +4,10 @@ use crate::settings::{Settings, SettingsManager};
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
 use clipper_client::models::PagedResult;
-use clipper_client::{Clip, SearchFilters, ServerInfo};
+use clipper_client::{fetch_server_certificate, Clip, SearchFilters, ServerInfo};
 use gethostname::gethostname;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use tauri::State;
 use tokio::fs;
@@ -401,7 +402,9 @@ pub async fn switch_to_external_server(
     eprintln!("[clipper] Switched to external server at {}", server_url);
 
     // Check if the external server is reachable (but don't block the switch)
-    let connection_error = check_server_reachable(&server_url, token.as_deref()).await;
+    // Use current trusted fingerprints for certificate verification
+    let trusted_fingerprints = state.get_trusted_fingerprints();
+    let connection_error = check_server_reachable(&server_url, token.as_deref(), trusted_fingerprints).await;
 
     if let Some(ref err) = connection_error {
         eprintln!(
@@ -415,11 +418,13 @@ pub async fn switch_to_external_server(
 
 /// Check if a server is reachable by calling its health endpoint
 /// Returns None if reachable, Some(error_message) if not
-async fn check_server_reachable(server_url: &str, token: Option<&str>) -> Option<String> {
-    let client = match reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-    {
+async fn check_server_reachable(
+    server_url: &str,
+    token: Option<&str>,
+    trusted_fingerprints: HashMap<String, String>,
+) -> Option<String> {
+    // Use trusted certificates for HTTPS connections
+    let client = match clipper_client::create_http_client_with_trusted_certs(trusted_fingerprints) {
         Ok(c) => c,
         Err(e) => return Some(format!("Failed to create HTTP client: {}", e)),
     };
@@ -648,4 +653,151 @@ pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
         Ok(None) => Err("No update available".to_string()),
         Err(e) => Err(e.to_string()),
     }
+}
+
+// ============ Certificate Commands ============
+
+/// Certificate information returned to the frontend
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CertificateInfoResponse {
+    pub host: String,
+    pub fingerprint: String,
+    pub is_trusted: bool,
+}
+
+/// Result of checking server certificate
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerCertificateCheckResult {
+    /// Whether the server uses HTTPS
+    pub is_https: bool,
+    /// Certificate info if HTTPS and certificate was retrieved
+    pub certificate: Option<CertificateInfoResponse>,
+    /// Whether the certificate is already trusted
+    pub is_trusted: bool,
+    /// Whether the certificate is self-signed or has verification issues
+    pub needs_trust_confirmation: bool,
+    /// Error message if certificate couldn't be retrieved
+    pub error: Option<String>,
+}
+
+/// Fetch and check the certificate for a server URL
+/// Returns certificate info and whether it needs user confirmation
+#[tauri::command]
+pub async fn check_server_certificate(
+    settings_manager: State<'_, SettingsManager>,
+    server_url: String,
+) -> Result<ServerCertificateCheckResult, String> {
+    use tauri::Url;
+
+    // Parse the URL to get host and port
+    let url = Url::parse(&server_url)
+        .map_err(|e| format!("Invalid URL: {}", e))?;
+
+    // Check if it's HTTPS
+    let is_https = url.scheme() == "https";
+    if !is_https {
+        return Ok(ServerCertificateCheckResult {
+            is_https: false,
+            certificate: None,
+            is_trusted: true, // HTTP doesn't need certificate trust
+            needs_trust_confirmation: false,
+            error: None,
+        });
+    }
+
+    let host = url.host_str()
+        .ok_or_else(|| "URL has no host".to_string())?
+        .to_string();
+    let port = url.port().unwrap_or(443);
+
+    // Try to fetch the certificate
+    match fetch_server_certificate(&host, port).await {
+        Ok(cert_info) => {
+            let fingerprint = cert_info.fingerprint.clone();
+            let is_system_trusted = cert_info.is_system_trusted;
+
+            // Check if this certificate is already trusted by us (in settings)
+            let is_user_trusted = settings_manager.is_certificate_trusted(&host, &fingerprint);
+
+            // Certificate is trusted if it passes system verification OR if user has trusted it
+            let is_trusted = is_system_trusted || is_user_trusted;
+
+            // Only need confirmation if:
+            // 1. Certificate is NOT system trusted (self-signed or invalid chain)
+            // 2. AND user has NOT already trusted it
+            let needs_trust_confirmation = !is_system_trusted && !is_user_trusted;
+
+            Ok(ServerCertificateCheckResult {
+                is_https: true,
+                certificate: Some(CertificateInfoResponse {
+                    host: host.clone(),
+                    fingerprint,
+                    is_trusted,
+                }),
+                is_trusted,
+                needs_trust_confirmation,
+                error: None,
+            })
+        }
+        Err(e) => {
+            // Certificate fetch failed - this could be various TLS errors
+            Ok(ServerCertificateCheckResult {
+                is_https: true,
+                certificate: None,
+                is_trusted: false,
+                needs_trust_confirmation: false,
+                error: Some(e.to_string()),
+            })
+        }
+    }
+}
+
+/// Trust a certificate fingerprint for a specific host
+#[tauri::command]
+pub async fn trust_certificate(
+    settings_manager: State<'_, SettingsManager>,
+    state: State<'_, AppState>,
+    host: String,
+    fingerprint: String,
+) -> Result<(), String> {
+    // Save to settings
+    settings_manager.trust_certificate(host.clone(), fingerprint.clone()).await?;
+
+    // Update AppState with new trusted fingerprints
+    let trusted = settings_manager.get_trusted_certificates();
+    state.set_trusted_fingerprints(trusted);
+
+    // Signal WebSocket to reconnect with the new trusted certificate
+    state.signal_ws_reconnect();
+
+    eprintln!("[clipper] Trusted certificate for {}: {}", host, fingerprint);
+    Ok(())
+}
+
+/// Remove trust for a certificate
+#[tauri::command]
+pub async fn untrust_certificate(
+    settings_manager: State<'_, SettingsManager>,
+    state: State<'_, AppState>,
+    host: String,
+) -> Result<(), String> {
+    // Remove from settings
+    settings_manager.untrust_certificate(&host).await?;
+
+    // Update AppState
+    let trusted = settings_manager.get_trusted_certificates();
+    state.set_trusted_fingerprints(trusted);
+
+    eprintln!("[clipper] Removed certificate trust for {}", host);
+    Ok(())
+}
+
+/// Get all trusted certificates
+#[tauri::command]
+pub fn get_trusted_certificates(
+    settings_manager: State<'_, SettingsManager>,
+) -> HashMap<String, String> {
+    settings_manager.get_trusted_certificates()
 }
