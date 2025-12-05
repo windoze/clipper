@@ -293,7 +293,7 @@ done < input.txt
 
 Search and delete old clips:
 ```bash
-clipper-cli search "" --tags temporary --end-date 2025-11-01T00:00:00Z --format json | \
+clipper-cli list --tags temporary --end-date 2025-11-01T00:00:00Z --format json | \
   jq -r '.items[].id' | \
   while read id; do
     clipper-cli delete "$id"
@@ -308,11 +308,11 @@ clipper-cli watch | jq 'select(.type == "new_clip") | .content'
 Export all clips to JSON:
 ```bash
 # Get total pages first
-total_pages=$(clipper-cli search "" --page 1 --page-size 100 --format json | jq '.total_pages')
+total_pages=$(clipper-cli list --page 1 --page-size 100 --format json | jq '.total_pages')
 
 # Fetch all pages
 for page in $(seq 1 $total_pages); do
-  clipper-cli search "" --page $page --page-size 100 --format json | jq '.items[]'
+  clipper-cli list --page $page --page-size 100 --format json | jq '.items[]'
 done > all_clips.json
 ```
 
@@ -320,12 +320,12 @@ done > all_clips.json
 
 **fzf integration** (fuzzy search):
 ```bash
-clipper-cli search "" --format text | fzf
+clipper-cli list | jq ".items[].content" | fzf
 ```
 
 **rofi integration** (GUI menu):
 ```bash
-clip_id=$(clipper-cli search "" --format text | rofi -dmenu -i -p "Clip:" | head -1)
+clip_id=$(clipper-cli list | jq ".items[].content" | rofi -dmenu -i -p "Clip:" | head -1)
 clipper-cli get "$clip_id" --format text | xclip -selection clipboard
 ```
 
