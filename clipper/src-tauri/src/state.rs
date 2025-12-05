@@ -21,23 +21,6 @@ pub struct AppState {
 const DEFAULT_MAX_UPLOAD_SIZE_BYTES: u64 = 10 * 1024 * 1024;
 
 impl AppState {
-    /// Create a new AppState with optional Bearer token
-    pub fn new_with_token(base_url: &str, token: Option<String>) -> Self {
-        let client = match token {
-            Some(t) => ClipperClient::new_with_token(base_url, t),
-            None => ClipperClient::new(base_url),
-        };
-        Self {
-            client: RwLock::new(client),
-            last_synced_content: Arc::new(Mutex::new(String::new())),
-            last_synced_image: Arc::new(Mutex::new(Vec::new())),
-            websocket_connected: Arc::new(AtomicBool::new(false)),
-            ws_reconnect_counter: Arc::new(AtomicU64::new(0)),
-            max_upload_size_bytes: Arc::new(AtomicU64::new(DEFAULT_MAX_UPLOAD_SIZE_BYTES)),
-            trusted_fingerprints: RwLock::new(HashMap::new()),
-        }
-    }
-
     /// Create a new AppState with token and trusted certificates
     pub fn new_with_trusted_certs(
         base_url: &str,
@@ -84,23 +67,6 @@ impl AppState {
         let client = ClipperClient::new_with_trusted_certs(url, token, fingerprints);
         *self.client.write().unwrap() = client;
         // Signal WebSocket to reconnect with new credentials
-        self.signal_ws_reconnect();
-    }
-
-    /// Update the server URL with token and trusted certificates
-    /// This also signals the WebSocket to reconnect
-    pub fn set_server_url_with_trusted_certs(
-        &self,
-        url: &str,
-        token: Option<String>,
-        trusted_fingerprints: HashMap<String, String>,
-    ) {
-        // Update stored fingerprints
-        *self.trusted_fingerprints.write().unwrap() = trusted_fingerprints.clone();
-        // Create client with new fingerprints
-        let client = ClipperClient::new_with_trusted_certs(url, token, trusted_fingerprints);
-        *self.client.write().unwrap() = client;
-        // Signal WebSocket to reconnect
         self.signal_ws_reconnect();
     }
 

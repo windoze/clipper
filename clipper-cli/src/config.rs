@@ -111,13 +111,17 @@ pub fn get_default_config_path() -> Option<PathBuf> {
 
 /// Save a trusted certificate to the config file
 /// This updates the trustedCertificates field in the settings.json
-pub fn save_trusted_certificate(config_path: &Path, host: &str, fingerprint: &str) -> std::io::Result<()> {
+pub fn save_trusted_certificate(
+    config_path: &Path,
+    host: &str,
+    fingerprint: &str,
+) -> std::io::Result<()> {
     // Read existing config or create new one
     let contents = std::fs::read_to_string(config_path).unwrap_or_else(|_| "{}".to_string());
 
     // Parse as generic JSON to preserve all fields
-    let mut json: serde_json::Value = serde_json::from_str(&contents)
-        .unwrap_or_else(|_| serde_json::json!({}));
+    let mut json: serde_json::Value =
+        serde_json::from_str(&contents).unwrap_or_else(|_| serde_json::json!({}));
 
     // Ensure trustedCertificates exists
     if json.get("trustedCertificates").is_none() {
@@ -133,8 +137,7 @@ pub fn save_trusted_certificate(config_path: &Path, host: &str, fingerprint: &st
     }
 
     // Write back
-    let output = serde_json::to_string_pretty(&json)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    let output = serde_json::to_string_pretty(&json).map_err(std::io::Error::other)?;
     std::fs::write(config_path, output)
 }
 

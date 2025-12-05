@@ -133,32 +133,32 @@ async fn check_certificate_on_startup(
     use clipper_client::fetch_server_certificate;
 
     // Parse URL to get host and port
-    if let Ok(url) = tauri::Url::parse(server_url) {
-        if let Some(host) = url.host_str() {
-            let port = url.port().unwrap_or(443);
+    if let Ok(url) = tauri::Url::parse(server_url)
+        && let Some(host) = url.host_str()
+    {
+        let port = url.port().unwrap_or(443);
 
-            match fetch_server_certificate(host, port).await {
-                Ok(cert_info) => {
-                    let fingerprint = cert_info.fingerprint.clone();
-                    let is_system_trusted = cert_info.is_system_trusted;
-                    let is_user_trusted = settings_manager.is_certificate_trusted(host, &fingerprint);
+        match fetch_server_certificate(host, port).await {
+            Ok(cert_info) => {
+                let fingerprint = cert_info.fingerprint.clone();
+                let is_system_trusted = cert_info.is_system_trusted;
+                let is_user_trusted = settings_manager.is_certificate_trusted(host, &fingerprint);
 
-                    // Only emit if certificate is not trusted at all
-                    if !is_system_trusted && !is_user_trusted {
-                        info!("Certificate trust required on startup for {}", host);
-                        let _ = app.emit(
-                            "certificate-trust-required",
-                            serde_json::json!({
-                                "host": host,
-                                "fingerprint": fingerprint,
-                                "isTrusted": false
-                            }),
-                        );
-                    }
+                // Only emit if certificate is not trusted at all
+                if !is_system_trusted && !is_user_trusted {
+                    info!("Certificate trust required on startup for {}", host);
+                    let _ = app.emit(
+                        "certificate-trust-required",
+                        serde_json::json!({
+                            "host": host,
+                            "fingerprint": fingerprint,
+                            "isTrusted": false
+                        }),
+                    );
                 }
-                Err(e) => {
-                    warn!("Failed to fetch certificate for {} on startup: {}", host, e);
-                }
+            }
+            Err(e) => {
+                warn!("Failed to fetch certificate for {} on startup: {}", host, e);
             }
         }
     }
@@ -313,7 +313,12 @@ pub fn run() {
                 tauri::async_runtime::spawn(async move {
                     // Small delay to ensure frontend is ready to receive events
                     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                    check_certificate_on_startup(&app_handle_cert, &server_url_cert, &settings_manager_cert).await;
+                    check_certificate_on_startup(
+                        &app_handle_cert,
+                        &server_url_cert,
+                        &settings_manager_cert,
+                    )
+                    .await;
                 });
             }
 
