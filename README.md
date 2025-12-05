@@ -297,7 +297,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Prerequisites
 
-- Rust 1.70+
+- Rust 1.91+
 - Node.js 18+
 - Platform-specific dependencies for Tauri ([see docs](https://tauri.app/start/prerequisites/))
 

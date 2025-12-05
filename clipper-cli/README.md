@@ -417,7 +417,7 @@ Trusted certificates are stored in `trustedCertificates` in the settings.json fi
 
 ## Requirements
 
-- Rust 1.70 or later (for building)
+- Rust 1.91 or later (for building)
 - Running clipper-server instance
 - Network connectivity to the server
 

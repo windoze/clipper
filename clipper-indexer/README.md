@@ -311,7 +311,7 @@ All operations return `Result<T, IndexerError>`.
 
 ## Requirements
 
-- Rust 1.70 or later
+- Rust 1.91 or later
 - Tokio runtime (async)
 - Sufficient disk space for database and file storage
 

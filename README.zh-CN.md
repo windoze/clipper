@@ -297,7 +297,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### 前置条件
 
-- Rust 1.70+
+- Rust 1.91+
 - Node.js 18+
 - Tauri 平台特定依赖（[查看文档](https://tauri.app/start/prerequisites/)）
 

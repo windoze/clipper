@@ -1,16 +1,14 @@
-# Azure Container Apps Deployment for Clipper Server
+# Azure Container Instances Deployment for Clipper Server
 
-This directory contains ARM templates to deploy `windoze/clipper-server:latest` to Azure Container Apps.
+This directory contains ARM templates to deploy `windoze/clipper-server:latest` to Azure Container Instances (ACI).
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fwindoze%2Fclipper%2Fmain%2Fcloud-services%2Faca%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fwindoze%2Fclipper%2Fmain%2Fcloud-services%2Faci%2Fazuredeploy.json)
 
 ## Resources Created
 
 - **Storage Account**: Standard LRS storage with File Share enabled
 - **File Share**: For persistent data storage (mounted to `/data`)
-- **Log Analytics Workspace**: For container logs and monitoring
-- **Container Apps Environment**: Managed environment for the Container App
-- **Container App**: Running clipper-server with ACME (Let's Encrypt) enabled
+- **Container Instance**: Running clipper-server with public IP and DNS label
 
 ## Prerequisites
 
@@ -34,18 +32,20 @@ az deployment group create \
   --resource-group clipper-rg \
   --template-file azuredeploy.json \
   --parameters \
-    containerAppName=clipper-server \
-    bearerToken=your-secure-token-here
+    containerGroupName=clipper-server \
+    bearerToken=your-secure-token-here \
+    acmeEmail=admin@example.com
 ```
 
 ### Using Parameters File
 
 1. Edit `azuredeploy.parameters.json` with your values:
-   - `containerAppName`: Name for the Container App (also used for DNS)
+   - `containerGroupName`: Name for the Container Instance
    - `storageAccountName`: Leave empty for auto-generated name, or specify your own
-   - `bearerToken`: Your desired authentication token
+   - `bearerToken`: Your desired authentication token (required)
+   - `acmeEmail`: Email for Let's Encrypt certificate notifications (required)
    - `location`: Azure region (leave empty to use resource group location)
-   - `acmeEmail`: Email for Let's Encrypt notifications (optional)
+   - `dnsNameLabel`: DNS label for the public URL (leave empty to use container name)
 
 2. Deploy:
 
@@ -67,9 +67,9 @@ az deployment group create \
 ## Outputs
 
 After deployment, the template outputs:
-- `containerAppFqdn`: The fully qualified domain name (e.g., `clipper-server.kindpond-abc123.eastus.azurecontainerapps.io`)
-- `containerAppUrl`: The HTTPS URL to access the server
-- `shortUrlBase`: The base URL for short links
+- `containerFqdn`: The fully qualified domain name (e.g., `clipper-server.eastus.azurecontainer.io`)
+- `containerUrl`: The HTTPS URL to access the server (e.g., `https://clipper-server.eastus.azurecontainer.io`)
+- `containerIpAddress`: The public IP address of the container
 - `storageAccountName`: The name of the created storage account
 
 ## Configuration
@@ -80,30 +80,59 @@ The container is configured with:
 |---------------------|-------|
 | PORT | 80 |
 | CLIPPER_TLS_PORT | 443 |
+| CLIPPER_BEARER_TOKEN | (from parameter, stored as secure value) |
 | CLIPPER_ACME_ENABLED | true |
-| CLIPPER_BEARER_TOKEN | (from parameter, stored as secret) |
-| CLIPPER_ACME_DOMAIN | {name}.{location}.azurecontainerapps.io |
-| CLIPPER_SHORT_URL_BASE | https://{domain} |
+| CLIPPER_ACME_DOMAIN | {dnsNameLabel}.{region}.azurecontainer.io |
+| CLIPPER_ACME_EMAIL | (from parameter) |
+| CLIPPER_SHORT_URL_BASE | https://{dnsNameLabel}.{region}.azurecontainer.io |
 | CLIPPER_DB_PATH | /data/db |
 | CLIPPER_STORAGE_PATH | /data/storage |
-| CLIPPER_CERTS_DIR | /data/certs |
-| CLIPPER_ACME_EMAIL | (from parameter) |
 
 ## Notes
 
-- Container Apps provides built-in HTTPS with automatic TLS termination
-- The internal ACME configuration is still useful for the clipper-server's own certificate management
-- Data is persisted to Azure File Share and survives container restarts
-- The storage account uses Standard LRS with 5GB quota by default
-- Container Apps Environment includes Log Analytics for logging and monitoring
-- Scale is fixed at 1 replica to ensure data consistency (single-instance SQLite/SurrealDB)
+- **No built-in HTTPS**: ACI does not provide automatic TLS. For HTTPS, use a reverse proxy (e.g., Azure Application Gateway, Cloudflare) or consider Azure Container Apps instead
+- **Public IP with DNS**: The container gets a public IP with a DNS label (`<name>.<region>.azurecontainer.io`)
+- **Data persistence**: Data is persisted to Azure File Share and survives container restarts
+- **Storage**: The storage account uses Standard LRS with 5GB quota by default
+- **Simple deployment**: Best for development, testing, or simple single-instance deployments
+- **Cost model**: Pay per second of running time (billed by CPU and memory)
 
-## Differences from Azure Container Instance (ACI)
+## HTTPS Options
 
-| Feature | Container Apps (ACA) | Container Instance (ACI) |
-|---------|---------------------|--------------------------|
-| Built-in HTTPS | Yes (automatic) | No (manual setup) |
-| Scaling | Auto-scale supported | No auto-scale |
-| Logging | Log Analytics included | Separate setup needed |
-| Custom domains | Easy configuration | DNS setup required |
-| Cost model | Pay per usage | Pay per second running |
+Since ACI doesn't provide built-in HTTPS, here are some options:
+
+1. **Azure Application Gateway**: Add an Application Gateway in front of the container for TLS termination
+2. **Cloudflare Proxy**: Use Cloudflare as a reverse proxy with their free SSL
+3. **Azure Front Door**: Use Azure Front Door for global load balancing and HTTPS
+4. **Use Container Apps**: For built-in HTTPS, consider [Azure Container Apps](../aca/README.md) instead
+
+## Comparison with Azure Container Apps (ACA)
+
+| Feature | Container Instances (ACI) | Container Apps (ACA) |
+|---------|--------------------------|---------------------|
+| Built-in HTTPS | No (manual setup) | Yes (automatic) |
+| Scaling | No auto-scale | Auto-scale supported |
+| Logging | Basic container logs | Log Analytics included |
+| Custom domains | DNS setup required | Easy configuration |
+| Cost model | Pay per second running | Pay per usage |
+| Complexity | Simple | More features |
+| Best for | Dev/test, simple deployments | Production workloads |
+
+## Accessing the Server
+
+After deployment, access the server at:
+
+```
+https://<dns-label>.<region>.azurecontainer.io
+```
+
+For example:
+```
+https://clipper-server.eastus.azurecontainer.io
+```
+
+With authentication:
+```bash
+curl -H "Authorization: Bearer your-secure-token" \
+  https://clipper-server.eastus.azurecontainer.io/clips
+```

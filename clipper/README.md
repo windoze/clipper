@@ -36,7 +36,7 @@ A cross-platform clipboard manager built with Tauri 2 + React + TypeScript.
 ### Prerequisites
 
 - Node.js 18+
-- Rust 1.70+
+- Rust 1.91+
 - Platform-specific dependencies (see [Tauri prerequisites](https://tauri.app/start/prerequisites/))
 
 ### Installation

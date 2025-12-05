@@ -1,21 +1,21 @@
 # Clipper Client
 
-A Rust client library for interacting with the Clipper server REST API and WebSocket notifications.
+用于与 Clipper 服务器 REST API 和 WebSocket 通知交互的 Rust 客户端库。
 
-## Features
+## 功能特性
 
-- **Full REST API Support**: Create, read, update, delete clips
-- **Search & Filter**: Full-text search with date range and tag filters
-- **Pagination Support**: Built-in pagination for search and list operations
-- **Real-time Notifications**: WebSocket support for live clip updates
-- **File Operations**: Upload files and download attachments
-- **Authentication Support**: Optional Bearer token authentication
-- **Async/Await**: Built on Tokio for efficient async I/O
-- **Type-Safe**: Strongly typed API with comprehensive error handling
+- **完整的 REST API 支持** - 创建、读取、更新、删除剪贴
+- **搜索和筛选** - 支持日期范围和标签筛选的全文搜索
+- **分页支持** - 搜索和列表操作内置分页
+- **实时通知** - WebSocket 支持实时剪贴更新
+- **文件操作** - 上传文件和下载附件
+- **身份验证支持** - 可选的 Bearer 令牌身份验证
+- **异步/等待** - 基于 Tokio 构建，实现高效异步 I/O
+- **类型安全** - 强类型 API 和完善的错误处理
 
-## Installation
+## 安装
 
-Add this to your `Cargo.toml`:
+在 `Cargo.toml` 中添加：
 
 ```toml
 [dependencies]
@@ -23,43 +23,43 @@ clipper-client = { path = "../clipper-client" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-## Quick Start
+## 快速开始
 
 ```rust
 use clipper_client::{ClipperClient, SearchFilters};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a client (with optional authentication)
+    // 创建客户端（可选身份验证）
     let client = ClipperClient::new("http://localhost:3000")
-        .with_token("your-secret-token".to_string()); // Optional
+        .with_token("your-secret-token".to_string()); // 可选
 
-    // Create a clip
+    // 创建剪贴
     let clip = client
         .create_clip(
             "Hello, World!".to_string(),
             vec!["greeting".to_string()],
-            Some("My first clip".to_string()),
+            Some("我的第一个剪贴".to_string()),
         )
         .await?;
 
-    println!("Created clip with ID: {}", clip.id);
+    println!("创建的剪贴 ID: {}", clip.id);
 
-    // Search for clips with pagination
+    // 分页搜索剪贴
     let result = client
         .search_clips("Hello", SearchFilters::new(), 1, 20)
         .await?;
 
-    println!("Found {} clips (page {} of {})",
+    println!("找到 {} 个剪贴（第 {} 页，共 {} 页）",
              result.total, result.page, result.total_pages);
 
     Ok(())
 }
 ```
 
-## API Reference
+## API 参考
 
-### Create a Clip
+### 创建剪贴
 
 ```rust
 let clip = client
@@ -71,7 +71,7 @@ let clip = client
     .await?;
 ```
 
-### Upload a File
+### 上传文件
 
 ```rust
 let file_content = std::fs::read("document.txt")?;
@@ -81,70 +81,70 @@ let clip = client
         file_content,
         "document.txt".to_string(),
         vec!["documents".to_string()],
-        Some("Important document".to_string()),
+        Some("重要文档".to_string()),
     )
     .await?;
 ```
 
-### Get a Clip by ID
+### 按 ID 获取剪贴
 
 ```rust
 let clip = client.get_clip("clip_id").await?;
 ```
 
-### Update a Clip
+### 更新剪贴
 
 ```rust
 let updated = client
     .update_clip(
         "clip_id",
         Some(vec!["new_tag".to_string()]),
-        Some("Updated notes".to_string()),
+        Some("更新的备注".to_string()),
     )
     .await?;
 ```
 
-### Search Clips
+### 搜索剪贴
 
 ```rust
 use clipper_client::SearchFilters;
 use chrono::{Duration, Utc};
 
-// Search with filters and pagination
+// 带筛选和分页的搜索
 let filters = SearchFilters::new()
     .with_tags(vec!["important".to_string()])
     .with_start_date(Utc::now() - Duration::days(7))
     .with_end_date(Utc::now());
 
 let result = client.search_clips("query", filters, 1, 20).await?;
-println!("Page {} of {}, Total: {}", result.page, result.total_pages, result.total);
+println!("第 {} 页，共 {} 页，总计: {}", result.page, result.total_pages, result.total);
 
 for clip in result.items {
     println!("- {}: {}", clip.id, clip.content);
 }
 ```
 
-### List Clips
+### 列出剪贴
 
 ```rust
-// List all clips with pagination
+// 分页列出所有剪贴
 let result = client.list_clips(SearchFilters::new(), 1, 20).await?;
 
-// List with filters
+// 带筛选列出
 let filters = SearchFilters::new()
     .with_tags(vec!["work".to_string()]);
 let result = client.list_clips(filters, 1, 50).await?;
 ```
 
-### Delete a Clip
+### 删除剪贴
 
 ```rust
 client.delete_clip("clip_id").await?;
 ```
 
-## Authentication
+## 身份验证
 
-If the server requires authentication, use the `with_token()` method:
+如果服务器需要身份验证，使用 `with_token()` 方法：
 
 ```rust
 use clipper_client::ClipperClient;
@@ -152,18 +152,18 @@ use clipper_client::ClipperClient;
 let client = ClipperClient::new("http://localhost:3000")
     .with_token("your-secret-token".to_string());
 
-// All subsequent requests will include the Authorization header
+// 后续所有请求都会包含 Authorization 头
 let clips = client.list_clips(SearchFilters::new(), 1, 20).await?;
 ```
 
-The token is automatically:
-- Sent as `Authorization: Bearer <token>` header for REST API requests
-- Sent as a message-based authentication after WebSocket connection
-- Appended as `?token=<token>` query parameter for file downloads
+令牌会自动：
+- 作为 `Authorization: Bearer <token>` 头发送给 REST API 请求
+- WebSocket 连接后作为基于消息的身份验证发送
+- 作为 `?token=<token>` 查询参数附加到文件下载
 
-## WebSocket Notifications
+## WebSocket 通知
 
-Receive real-time updates when clips are created, updated, or deleted:
+在剪贴创建、更新或删除时接收实时更新：
 
 ```rust
 use clipper_client::{ClipperClient, ClipNotification};
@@ -173,128 +173,128 @@ use tokio::sync::mpsc;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = ClipperClient::new("http://localhost:3000");
 
-    // Create a channel to receive notifications
+    // 创建用于接收通知的通道
     let (tx, mut rx) = mpsc::unbounded_channel();
 
-    // Subscribe to notifications (returns a task handle)
+    // 订阅通知（返回任务句柄）
     let handle = client.subscribe_notifications(tx).await?;
 
-    // Process notifications
+    // 处理通知
     tokio::spawn(async move {
         while let Some(notification) = rx.recv().await {
             match notification {
                 ClipNotification::NewClip { id, content, tags } => {
-                    println!("New clip created: {} - {}", id, content);
+                    println!("新剪贴创建: {} - {}", id, content);
                 }
                 ClipNotification::UpdatedClip { id } => {
-                    println!("Clip updated: {}", id);
+                    println!("剪贴已更新: {}", id);
                 }
                 ClipNotification::DeletedClip { id } => {
-                    println!("Clip deleted: {}", id);
+                    println!("剪贴已删除: {}", id);
                 }
                 ClipNotification::ClipsCleanedUp { ids, count } => {
-                    println!("{} old clips cleaned up", count);
+                    println!("{} 个旧剪贴已清理", count);
                 }
             }
         }
     });
 
-    // Keep the connection alive
+    // 保持连接活跃
     handle.await??;
 
     Ok(())
 }
 ```
 
-## Error Handling
+## 错误处理
 
-The client provides a comprehensive error type:
+客户端提供完善的错误类型：
 
 ```rust
 use clipper_client::ClientError;
 
 match client.get_clip("id").await {
-    Ok(clip) => println!("Got clip: {}", clip.content),
-    Err(ClientError::NotFound(msg)) => println!("Not found: {}", msg),
-    Err(ClientError::BadRequest(msg)) => println!("Bad request: {}", msg),
+    Ok(clip) => println!("获取到剪贴: {}", clip.content),
+    Err(ClientError::NotFound(msg)) => println!("未找到: {}", msg),
+    Err(ClientError::BadRequest(msg)) => println!("错误请求: {}", msg),
     Err(ClientError::ServerError { status, message }) => {
-        println!("Server error {}: {}", status, message)
+        println!("服务器错误 {}: {}", status, message)
     }
-    Err(e) => println!("Error: {}", e),
+    Err(e) => println!("错误: {}", e),
 }
 ```
 
-## Testing
+## 测试
 
-The library includes comprehensive integration tests that require a running clipper-server:
+库包含需要运行 clipper-server 的完整集成测试：
 
 ```bash
-# Start the server (in another terminal)
+# 启动服务器（在另一个终端）
 cargo run --bin clipper-server
 
-# Run tests
+# 运行测试
 cargo test -p clipper-client --test integration_tests -- --test-threads=1
 ```
 
-Tests cover:
-- Creating clips with and without optional fields
-- Uploading files (text and binary)
-- Getting clips by ID
-- Updating clip metadata
-- Searching and listing with filters
-- Deleting clips
-- WebSocket notifications for all operations
+测试覆盖：
+- 创建带可选字段和不带可选字段的剪贴
+- 上传文件（文本和二进制）
+- 按 ID 获取剪贴
+- 更新剪贴元数据
+- 带筛选的搜索和列出
+- 删除剪贴
+- 所有操作的 WebSocket 通知
 
-**18 tests total - all passing ✓**
+**共 18 个测试 - 全部通过 ✓**
 
-## Examples
+## 示例
 
-### Complete CRUD Example
+### 完整 CRUD 示例
 
 ```rust
 use clipper_client::ClipperClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create client (with optional token for authenticated servers)
+    // 创建客户端（服务器需要身份验证时可选令牌）
     let client = ClipperClient::new("http://localhost:3000");
-    // .with_token("your-secret-token".to_string()); // Uncomment if server requires auth
+    // .with_token("your-secret-token".to_string()); // 如果服务器需要身份验证则取消注释
 
-    // Create
+    // 创建
     let clip = client
         .create_clip(
-            "My important note".to_string(),
+            "我的重要笔记".to_string(),
             vec!["work".to_string(), "important".to_string()],
-            Some("Don't forget!".to_string()),
+            Some("别忘了！".to_string()),
         )
         .await?;
-    
-    println!("Created: {}", clip.id);
 
-    // Read
+    println!("已创建: {}", clip.id);
+
+    // 读取
     let retrieved = client.get_clip(&clip.id).await?;
-    println!("Content: {}", retrieved.content);
+    println!("内容: {}", retrieved.content);
 
-    // Update
+    // 更新
     let updated = client
         .update_clip(
             &clip.id,
             Some(vec!["work".to_string(), "done".to_string()]),
-            Some("Completed".to_string()),
+            Some("已完成".to_string()),
         )
         .await?;
-    
-    println!("Updated tags: {:?}", updated.tags);
 
-    // Delete
+    println!("更新后的标签: {:?}", updated.tags);
+
+    // 删除
     client.delete_clip(&clip.id).await?;
-    println!("Deleted");
+    println!("已删除");
 
     Ok(())
 }
 ```
 
-### File Upload Example
+### 文件上传示例
 
 ```rust
 use clipper_client::ClipperClient;
@@ -303,27 +303,27 @@ use clipper_client::ClipperClient;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = ClipperClient::new("http://localhost:3000");
 
-    // Read file from disk
+    // 从磁盘读取文件
     let file_content = std::fs::read("report.pdf")?;
 
-    // Upload the file
+    // 上传文件
     let clip = client
         .upload_file(
             file_content,
             "report.pdf".to_string(),
             vec!["reports".to_string(), "monthly".to_string()],
-            Some("November 2025 report".to_string()),
+            Some("2025年11月报告".to_string()),
         )
         .await?;
 
-    println!("Uploaded file as clip: {}", clip.id);
-    println!("File stored at: {:?}", clip.file_attachment);
+    println!("文件已上传为剪贴: {}", clip.id);
+    println!("文件存储位置: {:?}", clip.file_attachment);
 
     Ok(())
 }
 ```
 
-### Search with Multiple Filters and Pagination
+### 多条件筛选和分页搜索
 
 ```rust
 use clipper_client::{ClipperClient, SearchFilters};
@@ -333,37 +333,37 @@ use chrono::{Duration, Utc};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = ClipperClient::new("http://localhost:3000");
 
-    // Search for clips from the last week with specific tags
+    // 搜索过去一周内带特定标签的剪贴
     let filters = SearchFilters::new()
         .with_start_date(Utc::now() - Duration::days(7))
         .with_end_date(Utc::now())
         .with_tags(vec!["important".to_string(), "work".to_string()]);
 
-    // Search with pagination (page 1, 20 items per page)
+    // 分页搜索（第1页，每页20条）
     let result = client.search_clips("meeting", filters, 1, 20).await?;
 
-    println!("Found {} total clips", result.total);
+    println!("共找到 {} 个剪贴", result.total);
     for clip in result.items {
-        println!("Found: {} - {:?}", clip.content, clip.tags);
+        println!("找到: {} - {:?}", clip.content, clip.tags);
     }
 
     Ok(())
 }
 ```
 
-## Architecture
+## 架构
 
-- **HTTP Client**: Uses `reqwest` for REST API calls
-- **WebSocket**: Uses `tokio-tungstenite` for real-time notifications
-- **Async Runtime**: Built on Tokio for efficient async operations
-- **Type Safety**: Strongly typed models with serde serialization
+- **HTTP 客户端** - 使用 `reqwest` 进行 REST API 调用
+- **WebSocket** - 使用 `tokio-tungstenite` 进行实时通知
+- **异步运行时** - 基于 Tokio 实现高效异步操作
+- **类型安全** - 使用 serde 序列化的强类型模型
 
-## Requirements
+## 系统要求
 
-- Rust 1.91 or later
-- Tokio runtime
-- Running clipper-server instance
+- Rust 1.91 或更高版本
+- Tokio 运行时
+- 运行中的 clipper-server 实例
 
-## License
+## 许可证
 
-See the main project license.
+请参阅主项目许可证。

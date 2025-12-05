@@ -2,18 +2,11 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "containerAppName": {
+        "containerGroupName": {
             "type": "string",
             "defaultValue": "clipper-server",
             "metadata": {
-                "description": "Name for the Container App and related resources"
-            }
-        },
-        "containerAppEnvName": {
-            "type": "string",
-            "defaultValue": "[concat(parameters('containerAppName'), '-env')]",
-            "metadata": {
-                "description": "Name for the Container Apps Environment"
+                "description": "Name for the Container Instance"
             }
         },
         "storageAccountName": {
@@ -57,13 +50,6 @@
                 "description": "Memory in GB for the container"
             }
         },
-        "acmeEmail": {
-            "type": "string",
-            "defaultValue": "",
-            "metadata": {
-                "description": "Contact email for Let's Encrypt certificate notifications"
-            }
-        },
         "imageTag": {
             "type": "string",
             "defaultValue": "latest",
@@ -71,17 +57,22 @@
                 "description": "Docker image tag for the clipper-server container"
             }
         },
-        "logAnalyticsWorkspaceName": {
+        "dnsNameLabel": {
             "type": "string",
-            "defaultValue": "[concat(parameters('containerAppName'), '-logs')]",
+            "defaultValue": "[parameters('containerGroupName')]",
             "metadata": {
-                "description": "Name for the Log Analytics workspace"
+                "description": "DNS name label for the container (will be <label>.<region>.azurecontainer.io)"
+            }
+        },
+        "acmeEmail": {
+            "type": "string",
+            "metadata": {
+                "description": "Contact email for Let's Encrypt certificate notifications (required)"
             }
         }
     },
     "variables": {
-        "acmeDomain": "[concat(parameters('containerAppName'), '.', parameters('location'), '.azurecontainerapps.io')]",
-        "shortUrlBase": "[concat('https://', variables('acmeDomain'))]"
+        "containerFqdn": "[concat(parameters('dnsNameLabel'), '.', parameters('location'), '.azurecontainer.io')]"
     },
     "resources": [
         {
@@ -120,87 +111,36 @@
             }
         },
         {
-            "type": "Microsoft.OperationalInsights/workspaces",
-            "apiVersion": "2022-10-01",
-            "name": "[parameters('logAnalyticsWorkspaceName')]",
-            "location": "[parameters('location')]",
-            "properties": {
-                "sku": {
-                    "name": "PerGB2018"
-                },
-                "retentionInDays": 30
-            }
-        },
-        {
-            "type": "Microsoft.App/managedEnvironments",
+            "type": "Microsoft.ContainerInstance/containerGroups",
             "apiVersion": "2023-05-01",
-            "name": "[parameters('containerAppEnvName')]",
+            "name": "[parameters('containerGroupName')]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]",
                 "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', parameters('fileShareName'))]"
             ],
             "properties": {
-                "appLogsConfiguration": {
-                    "destination": "log-analytics",
-                    "logAnalyticsConfiguration": {
-                        "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2022-10-01').customerId]",
-                        "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2022-10-01').primarySharedKey]"
-                    }
-                }
-            }
-        },
-        {
-            "type": "Microsoft.App/managedEnvironments/storages",
-            "apiVersion": "2023-05-01",
-            "name": "[concat(parameters('containerAppEnvName'), '/clipper-storage')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.App/managedEnvironments', parameters('containerAppEnvName'))]",
-                "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', parameters('fileShareName'))]"
-            ],
-            "properties": {
-                "azureFile": {
-                    "accountName": "[parameters('storageAccountName')]",
-                    "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-01-01').keys[0].value]",
-                    "shareName": "[parameters('fileShareName')]",
-                    "accessMode": "ReadWrite"
-                }
-            }
-        },
-        {
-            "type": "Microsoft.App/containerApps",
-            "apiVersion": "2023-05-01",
-            "name": "[parameters('containerAppName')]",
-            "location": "[parameters('location')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.App/managedEnvironments/storages', parameters('containerAppEnvName'), 'clipper-storage')]"
-            ],
-            "properties": {
-                "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('containerAppEnvName'))]",
-                "configuration": {
-                    "ingress": {
-                        "external": true,
-                        "targetPort": 80,
-                        "transport": "auto",
-                        "allowInsecure": false
-                    },
-                    "secrets": [
-                        {
-                            "name": "bearer-token",
-                            "value": "[parameters('bearerToken')]"
-                        }
-                    ]
-                },
-                "template": {
-                    "containers": [
-                        {
-                            "name": "[parameters('containerAppName')]",
+                "containers": [
+                    {
+                        "name": "[parameters('containerGroupName')]",
+                        "properties": {
                             "image": "[concat('windoze/clipper-server:', parameters('imageTag'))]",
                             "resources": {
-                                "cpu": "[json(parameters('cpuCores'))]",
-                                "memory": "[concat(parameters('memoryInGb'), 'Gi')]"
+                                "requests": {
+                                    "cpu": "[json(parameters('cpuCores'))]",
+                                    "memoryInGB": "[json(parameters('memoryInGb'))]"
+                                }
                             },
-                            "env": [
+                            "ports": [
+                                {
+                                    "port": 80,
+                                    "protocol": "TCP"
+                                },
+                                {
+                                    "port": 443,
+                                    "protocol": "TCP"
+                                }
+                            ],
+                            "environmentVariables": [
                                 {
                                     "name": "PORT",
                                     "value": "80"
@@ -210,20 +150,24 @@
                                     "value": "443"
                                 },
                                 {
+                                    "name": "CLIPPER_BEARER_TOKEN",
+                                    "secureValue": "[parameters('bearerToken')]"
+                                },
+                                {
                                     "name": "CLIPPER_ACME_ENABLED",
                                     "value": "true"
                                 },
                                 {
-                                    "name": "CLIPPER_BEARER_TOKEN",
-                                    "secretRef": "bearer-token"
+                                    "name": "CLIPPER_ACME_DOMAIN",
+                                    "value": "[variables('containerFqdn')]"
                                 },
                                 {
-                                    "name": "CLIPPER_ACME_DOMAIN",
-                                    "value": "[variables('acmeDomain')]"
+                                    "name": "CLIPPER_ACME_EMAIL",
+                                    "value": "[parameters('acmeEmail')]"
                                 },
                                 {
                                     "name": "CLIPPER_SHORT_URL_BASE",
-                                    "value": "[variables('shortUrlBase')]"
+                                    "value": "[concat('https://', variables('containerFqdn'))]"
                                 },
                                 {
                                     "name": "CLIPPER_DB_PATH",
@@ -232,51 +176,58 @@
                                 {
                                     "name": "CLIPPER_STORAGE_PATH",
                                     "value": "/data/storage"
-                                },
-                                {
-                                    "name": "CLIPPER_CERTS_DIR",
-                                    "value": "/data/certs"
-                                },
-                                {
-                                    "name": "CLIPPER_ACME_EMAIL",
-                                    "value": "[parameters('acmeEmail')]"
                                 }
                             ],
                             "volumeMounts": [
                                 {
-                                    "volumeName": "clipper-data",
+                                    "name": "clipper-data",
                                     "mountPath": "/data"
                                 }
                             ]
                         }
-                    ],
-                    "scale": {
-                        "minReplicas": 1,
-                        "maxReplicas": 1
-                    },
-                    "volumes": [
+                    }
+                ],
+                "osType": "Linux",
+                "restartPolicy": "Always",
+                "ipAddress": {
+                    "type": "Public",
+                    "ports": [
                         {
-                            "name": "clipper-data",
-                            "storageName": "clipper-storage",
-                            "storageType": "AzureFile"
+                            "port": 80,
+                            "protocol": "TCP"
+                        },
+                        {
+                            "port": 443,
+                            "protocol": "TCP"
                         }
-                    ]
-                }
+                    ],
+                    "dnsNameLabel": "[parameters('dnsNameLabel')]"
+                },
+                "volumes": [
+                    {
+                        "name": "clipper-data",
+                        "azureFile": {
+                            "shareName": "[parameters('fileShareName')]",
+                            "storageAccountName": "[parameters('storageAccountName')]",
+                            "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-01-01').keys[0].value]"
+                        }
+                    }
+                ]
             }
         }
     ],
     "outputs": {
-        "containerAppFqdn": {
+        "containerFqdn": {
             "type": "string",
-            "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('containerAppName')), '2023-05-01').configuration.ingress.fqdn]"
+            "value": "[variables('containerFqdn')]"
         },
-        "containerAppUrl": {
+        "containerUrl": {
             "type": "string",
-            "value": "[concat('https://', reference(resourceId('Microsoft.App/containerApps', parameters('containerAppName')), '2023-05-01').configuration.ingress.fqdn)]"
+            "value": "[concat('https://', variables('containerFqdn'))]"
         },
-        "shortUrlBase": {
+        "containerIpAddress": {
             "type": "string",
-            "value": "[variables('shortUrlBase')]"
+            "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName')), '2023-05-01').ipAddress.ip]"
         },
         "storageAccountName": {
             "type": "string",
