@@ -77,6 +77,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 32px;
     }
 
     .logo-group {
@@ -97,10 +98,24 @@
       font-weight: 600;
     }
 
+    nav {
+      display: flex;
+      align-items: center;
+    }
+
     .nav-links {
       display: flex;
+      align-items: stretch;
       gap: 24px;
       list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .nav-links li {
+      display: flex;
+      align-items: center;
+      padding: 0;
     }
 
     .nav-links a {
@@ -128,11 +143,13 @@
       border: 1px solid var(--border-color);
       border-radius: 6px;
       overflow: hidden;
+      flex-shrink: 0;
     }
 
     .lang-btn {
       padding: 6px 12px;
       border: none;
+      white-space: nowrap;
       background: transparent;
       font-size: 13px;
       font-weight: 500;
@@ -148,6 +165,58 @@
     .lang-btn.active {
       background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);
       color: white;
+    }
+
+    /* Fancy/Normal Toggle Switch */
+    .fancy-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .fancy-toggle input {
+      display: none;
+    }
+
+    .toggle-slider {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      background: var(--border-color);
+      border-radius: 10px;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .fancy-toggle input:checked+.toggle-slider {
+      background: linear-gradient(135deg, var(--primary-start) 0%, var(--primary-end) 100%);
+    }
+
+    .fancy-toggle input:checked+.toggle-slider::before {
+      transform: translateX(16px);
+    }
+
+    .toggle-label {
+      font-weight: 500;
+      white-space: nowrap;
+      line-height: 20px;
     }
 
     .github-link {
@@ -685,6 +754,10 @@
       .github-link span {
         display: none;
       }
+
+      .fancy-toggle .toggle-label {
+        display: none;
+      }
     }
 
     /* ============================================
@@ -759,6 +832,11 @@
         </ul>
       </nav>
       <div class="header-actions">
+        <label class="fancy-toggle" title="Toggle between fancy and normal wording">
+          <input type="checkbox" id="fancy-mode-toggle">
+          <span class="toggle-slider"></span>
+          <span class="toggle-label" data-i18n="toggle.wtc">What's this crap?</span>
+        </label>
         <div class="lang-switch">
           <button class="lang-btn active" data-lang="en">EN</button>
           <button class="lang-btn" data-lang="zh">中文</button>
@@ -913,15 +991,22 @@
 
       <div class="downloads-grid" id="downloads-grid">
         <!-- macOS -->
-        <a id="download-macos-dmg" href="https://github.com/windoze/clipper/releases/latest" class="download-card" target="_blank" rel="noopener">
-          <div class="download-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg></div>
+        <a id="download-macos-dmg" href="https://github.com/windoze/clipper/releases/latest" class="download-card"
+          target="_blank" rel="noopener">
+          <div class="download-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+            </svg></div>
           <h4>macOS</h4>
           <span>.dmg (Universal)</span>
         </a>
         <!-- Windows -->
         <div class="download-card-wrapper" id="download-windows">
           <div class="download-card" onclick="toggleDropdown('download-windows')">
-            <div class="download-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg></div>
+            <div class="download-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801" />
+              </svg></div>
             <h4>Windows</h4>
             <span>x64 <span class="dropdown-arrow">&#9662;</span></span>
           </div>
@@ -938,11 +1023,13 @@
             <span>x64 / ARM64 <span class="dropdown-arrow">&#9662;</span></span>
           </div>
           <div class="download-dropdown">
-            <a id="download-linux-amd64-appimage" href="https://github.com/windoze/clipper/releases/latest">.AppImage (x64)</a>
+            <a id="download-linux-amd64-appimage" href="https://github.com/windoze/clipper/releases/latest">.AppImage
+              (x64)</a>
             <a id="download-linux-amd64-deb" href="https://github.com/windoze/clipper/releases/latest">.deb (x64)</a>
             <a id="download-linux-amd64-rpm" href="https://github.com/windoze/clipper/releases/latest">.rpm (x64)</a>
             <div class="dropdown-divider"></div>
-            <a id="download-linux-arm64-appimage" href="https://github.com/windoze/clipper/releases/latest">.AppImage (ARM64)</a>
+            <a id="download-linux-arm64-appimage" href="https://github.com/windoze/clipper/releases/latest">.AppImage
+              (ARM64)</a>
             <a id="download-linux-arm64-deb" href="https://github.com/windoze/clipper/releases/latest">.deb (ARM64)</a>
             <a id="download-linux-arm64-rpm" href="https://github.com/windoze/clipper/releases/latest">.rpm (ARM64)</a>
           </div>
@@ -1391,9 +1478,10 @@ clipper-server --bearer-token your-secret-token</code></pre>
   </footer>
 
   <script>
-    // Translations
+    // Translations - fancy mode (default)
     const translations = {
-      en: {
+      en_fancy: {
+        "toggle.wtc": "What's this crap?",
         "nav.features": "What spectres doth it harbour",
         "nav.download": "Procure the phantasm",
         "nav.manual": "The book of unknowable rites",
@@ -1594,7 +1682,210 @@ clipper-server --bearer-token your-secret-token</code></pre>
         "footer.license": "License incantation",
         "footer.copyright": "© 2025 Clipper MIT License perform whatsoever"
       },
-      zh: {
+      en_normal: {
+        "toggle.wtc": "What's this crap?",
+        "nav.features": "Features",
+        "nav.download": "Download",
+        "nav.manual": "User Manual",
+        "nav.faq": "FAQ",
+        "hero.tagline": "A powerful clipboard manager that syncs across devices with real-time updates, full-text search, and file attachments.",
+        "hero.download": "Download",
+        "hero.github": "View on GitHub",
+        "features.title": "Features",
+        "features.intro": "Clipper provides a complete clipboard management solution with powerful features designed for productivity.",
+        "features.history.title": "Clipboard History",
+        "features.history.desc": "Automatically capture and store everything you copy, including text, images, and files.",
+        "features.search.title": "Full-Text Search",
+        "features.search.desc": "Quickly find any clip with powerful BM25 full-text search across all your clipboard history.",
+        "features.sync.title": "Real-Time Sync",
+        "features.sync.desc": "WebSocket-powered real-time synchronization keeps all your devices up to date instantly.",
+        "features.tags.title": "Tags & Organization",
+        "features.tags.desc": "Organize clips with custom tags and mark favorites for easy access later.",
+        "features.files.title": "File Attachments",
+        "features.files.desc": "Attach files to clips with drag-and-drop upload support for images and documents.",
+        "features.cross.title": "Cross-Platform",
+        "features.cross.desc": "Available as a desktop app (macOS, Windows, Linux) and accessible via web browser.",
+        "features.cleanup.title": "Auto-Cleanup",
+        "features.cleanup.desc": "Automatic deletion of old clips based on configurable retention policy. Keep your clipboard history tidy.",
+        "features.auth.title": "Authentication",
+        "features.auth.desc": "Optional Bearer token authentication to secure your API. Protect your clipboard data when sharing across networks.",
+        "download.title": "Download",
+        "download.intro": "Download Clipper for your platform or access it through the web interface.",
+        "download.docker.desc": "Server + Web UI",
+        "download.requirements": "System Requirements",
+        "download.table.platform": "Platform",
+        "download.table.version": "Minimum Version",
+        "download.table.arch": "Architecture",
+        "download.macos.version": "10.15 (Catalina) or later",
+        "download.macos.arch": "Universal (Intel + Apple Silicon)",
+        "download.windows.version": "Windows 10 (1809) or later",
+        "download.linux.version": "Ubuntu 20.04 or equivalent",
+        "download.linux.arch": "x64 / ARM64",
+        "manual.title": "User Manual",
+        "manual.getting_started.title": "Getting Started",
+        "manual.getting_started.step1.title": "Install Clipper",
+        "manual.getting_started.step1.desc": "Download and install the desktop app for your platform.",
+        "manual.getting_started.step2.title": "Launch the app",
+        "manual.getting_started.step2.desc": "Clipper starts in the system tray and begins monitoring your clipboard automatically.",
+        "manual.getting_started.step3.title": "Copy anything",
+        "manual.getting_started.step3.desc": "Text, images, and files you copy are automatically saved to your clipboard history.",
+        "manual.getting_started.step4.title": "Access your clips",
+        "manual.getting_started.step4.desc": "Click the tray icon or use the global hotkey to open the Clipper window.",
+        "manual.desktop.title": "Desktop App",
+        "manual.desktop.intro": "The desktop application provides the full Clipper experience with automatic clipboard monitoring.",
+        "manual.desktop.server_mode.title": "Server Mode",
+        "manual.desktop.server_mode.intro": "Clipper can run in two modes. In both modes, you fully own and control the server—no third-party services are involved:",
+        "manual.desktop.server_mode.bundled.title": "Bundled Server",
+        "manual.desktop.server_mode.bundled.desc": "(default) - Runs a local server automatically on your machine. Works completely offline.",
+        "manual.desktop.server_mode.external.title": "External Server",
+        "manual.desktop.server_mode.external.desc": "Connect to your own self-hosted Clipper server on another machine for multi-device sync. Requires network connectivity.",
+        "manual.desktop.server_mode.switch": "To switch modes, open Settings and choose your preferred server configuration.",
+        "manual.desktop.network.title": "Network Access",
+        "manual.desktop.network.desc": "When using the bundled server, you can enable \"Listen on all interfaces\" to access Clipper from other devices on your local network. The app will display your local IP addresses for easy connection.",
+        "manual.web.title": "Web Interface",
+        "manual.web.intro": "The web interface provides browser-based access to your clipboard history.",
+        "manual.web.view.title": "View & Search",
+        "manual.web.view.desc": "Browse all your clips with infinite scroll and full-text search.",
+        "manual.web.edit.title": "Edit",
+        "manual.web.edit.desc": "Modify tags and notes on any clip.",
+        "manual.web.upload.title": "Upload",
+        "manual.web.upload.desc": "Drag and drop files to upload, or use the \"Send Clipboard\" button.",
+        "manual.web.realtime.title": "Real-time Updates",
+        "manual.web.realtime.desc": "When connected via HTTPS, receive live notifications of new clips.",
+        "manual.clips.title": "Working with Clips",
+        "manual.clips.creating.title": "Creating Clips",
+        "manual.clips.creating.auto.title": "Automatic capture",
+        "manual.clips.creating.auto.desc": "The desktop app monitors your clipboard and saves new content automatically.",
+        "manual.clips.creating.manual.title": "Manual upload",
+        "manual.clips.creating.manual.desc": "Drag and drop files onto the app window or web interface.",
+        "manual.clips.creating.send.title": "Send clipboard",
+        "manual.clips.creating.send.desc": "In the web UI, click the clipboard button to manually send your current clipboard.",
+        "manual.clips.searching.title": "Searching",
+        "manual.clips.searching.intro": "Use the search box to find clips by content. The search supports:",
+        "manual.clips.searching.fulltext": "Full-text search across clip content and notes",
+        "manual.clips.searching.date": "Filter by date range using the date pickers",
+        "manual.clips.searching.tags": "Filter by tags - click a tag to filter clips with that tag",
+        "manual.clips.searching.favorites": "Show favorites only using the toggle switch",
+        "manual.clips.organizing.title": "Organizing with Tags",
+        "manual.clips.organizing.intro": "Tags help you organize and find clips quickly:",
+        "manual.clips.organizing.edit": "Click the edit button on any clip to add or remove tags",
+        "manual.clips.organizing.add": "Type a tag name and press Enter to add it",
+        "manual.clips.organizing.filter": "Click a tag to filter all clips with that tag",
+        "manual.clips.organizing.favorite_prefix": "",
+        "manual.clips.organizing.favorite_suffix": "tag marks clips as favorites",
+        "manual.clips.host.title": "Host Tags",
+        "manual.clips.host.desc": "When syncing across devices, clips are automatically tagged with the hostname of the device they came from. These tags have a distinct blue color and help you identify the source of each clip.",
+        "manual.settings.title": "Settings",
+        "manual.settings.table.setting": "Setting",
+        "manual.settings.table.description": "Description",
+        "manual.settings.theme.name": "Theme",
+        "manual.settings.theme.desc": "Choose Light, Dark, or Auto (follows system preference)",
+        "manual.settings.language.name": "Language",
+        "manual.settings.language.desc": "English or Chinese (simplified)",
+        "manual.settings.startup.name": "Start on Login",
+        "manual.settings.startup.desc": "Launch Clipper automatically when you log in",
+        "manual.settings.notifications.name": "Notifications",
+        "manual.settings.notifications.desc": "Show toast notifications for new clips",
+        "manual.settings.server.name": "Server Mode",
+        "manual.settings.server.desc": "Use bundled server or connect to your own self-hosted server",
+        "manual.settings.network.name": "Network Access",
+        "manual.settings.network.desc": "Allow connections from other devices on your network",
+        "manual.selfhost.title": "Self-Hosting with Docker",
+        "manual.selfhost.intro": "For multi-device sync, you can run your own Clipper server on a dedicated machine using Docker. This is the same server that the desktop app bundles—just running separately.",
+        "manual.selfhost.access": "Access the web interface at",
+        "manual.selfhost.config.title": "Configuration",
+        "manual.selfhost.config.intro": "The server can be configured via environment variables:",
+        "manual.selfhost.config.variable": "Variable",
+        "manual.selfhost.config.default": "Default",
+        "manual.selfhost.config.description": "Description",
+        "manual.selfhost.config.port": "Server port",
+        "manual.selfhost.config.db": "Database storage path",
+        "manual.selfhost.config.storage": "File attachment storage path",
+        "manual.selfhost.config.cleanup_enabled": "Enable automatic cleanup",
+        "manual.selfhost.config.cleanup_days": "Days to retain clips",
+        "manual.selfhost.config.cleanup_interval": "Hours between cleanups",
+        "manual.selfhost.config.bearer_token": "Bearer token for authentication",
+        "manual.selfhost.https.title": "HTTPS Configuration",
+        "manual.selfhost.https.intro": "For production use, configure TLS for secure connections:",
+        "manual.selfhost.https.manual.title": "Manual certificates",
+        "manual.selfhost.https.manual.desc": "Provide your own certificate and key files",
+        "manual.selfhost.https.acme.title": "ACME (Let's Encrypt)",
+        "manual.selfhost.https.acme.desc": "Automatic certificate provisioning and renewal",
+        "manual.selfhost.auth.title": "Authentication",
+        "manual.selfhost.auth.intro": "Secure your server with Bearer token authentication:",
+        "manual.selfhost.auth.usage": "When authentication is enabled:",
+        "manual.selfhost.auth.rest": "All REST API requests require the Authorization: Bearer <token> header",
+        "manual.selfhost.auth.websocket": "WebSocket connections authenticate via message after connecting",
+        "manual.selfhost.auth.files": "File downloads support ?token=xxx query parameter",
+        "manual.selfhost.auth.webui": "Web UI shows a login screen when authentication is required",
+        "faq.title": "FAQ",
+        "faq.security.q": "Is my clipboard data secure?",
+        "faq.security.a": "Yes. Clipper never sends your data to any third-party service. In both bundled and external server modes, you fully own and control the server. The bundled server stores data locally on your machine, while an external server runs on your own infrastructure. For network access, we recommend using HTTPS to encrypt data in transit.",
+        "faq.sync.q": "How does cross-device sync work?",
+        "faq.sync.a": "Connect multiple Clipper clients to the same server. When you copy something on one device, it's saved to the server and all connected devices receive a real-time notification via WebSocket. Each clip is tagged with the source device's hostname for easy identification.",
+        "faq.files.q": "What file types can I upload?",
+        "faq.files.a": "Clipper accepts any file type. Images (PNG, JPG, GIF, etc.) are displayed with preview thumbnails. Other files are stored as attachments that can be downloaded at any time.",
+        "faq.storage.q": "How much storage does Clipper use?",
+        "faq.storage.a": "Text clips use minimal storage (a few KB each). Images and file attachments use more space depending on their size. You can delete old clips at any time to free up storage. The server also supports automatic cleanup of old clips based on a configurable retention policy.",
+        "faq.web_only.q": "Can I use Clipper without the desktop app?",
+        "faq.web_only.a": "Yes! You can run the Clipper server (via Docker or the standalone binary) and access it through the web interface. However, the web UI cannot automatically monitor your clipboard - you'll need to manually send content using the \"Send Clipboard\" button or drag-and-drop files.",
+        "faq.offline.q": "Does Clipper work offline?",
+        "faq.offline.a": "When using the bundled server mode, Clipper works entirely offline. Your clips are stored locally and the app doesn't require an internet connection. If you're using a self-hosted external server for sync, you'll need network connectivity to that server.",
+        "troubleshooting.title": "Troubleshooting",
+        "troubleshooting.desktop.title": "Desktop App Issues",
+        "troubleshooting.desktop.crash.title": "App doesn't start / crashes on launch",
+        "troubleshooting.desktop.crash.requirements": "Check that your system meets the minimum requirements",
+        "troubleshooting.desktop.crash.macos": "On macOS, you may need to allow the app in System Preferences > Security & Privacy",
+        "troubleshooting.desktop.crash.settings": "Try deleting the settings file and restarting:",
+        "troubleshooting.desktop.clipboard.title": "Clipboard monitoring not working",
+        "troubleshooting.desktop.clipboard.permissions": "Ensure the app has accessibility permissions (required on macOS)",
+        "troubleshooting.desktop.clipboard.desktop": "Check that you're using the desktop app, not just the web interface",
+        "troubleshooting.desktop.clipboard.restart": "Restart the app if clipboard monitoring stops working",
+        "troubleshooting.desktop.server.title": "Can't connect to bundled server",
+        "troubleshooting.desktop.server.port": "Check if another application is using port 3000",
+        "troubleshooting.desktop.server.logs": "Look for error messages in the app's log files",
+        "troubleshooting.desktop.server.clear": "Try using \"Clear All Data\" in Settings to reset the database",
+        "troubleshooting.connection.title": "Connection Issues",
+        "troubleshooting.connection.ws.title": "WebSocket shows \"Disconnected\"",
+        "troubleshooting.connection.ws.url": "Verify the server URL is correct in Settings",
+        "troubleshooting.connection.ws.running": "Check if the server is running and accessible",
+        "troubleshooting.connection.ws.cert": "For HTTPS connections, ensure the certificate is valid",
+        "troubleshooting.connection.ws.firewall": "Firewalls may block WebSocket connections - check your network settings",
+        "troubleshooting.connection.access.title": "Can't access from other devices",
+        "troubleshooting.connection.access.enable": "Enable \"Listen on all interfaces\" in Settings",
+        "troubleshooting.connection.access.ip": "Use the displayed local IP address (not localhost) to connect",
+        "troubleshooting.connection.access.network": "Ensure devices are on the same network",
+        "troubleshooting.connection.access.firewall": "Check firewall rules on both the server and client machines",
+        "troubleshooting.data.title": "Data Issues",
+        "troubleshooting.data.sync.title": "Clips not syncing between devices",
+        "troubleshooting.data.sync.server": "Verify all devices are connected to the same server",
+        "troubleshooting.data.sync.status": "Check the WebSocket connection status (green dot = connected)",
+        "troubleshooting.data.sync.accessible": "Ensure the server is accessible from all devices",
+        "troubleshooting.data.search.title": "Search not finding expected results",
+        "troubleshooting.data.search.case": "Search is case-insensitive but matches whole words",
+        "troubleshooting.data.search.filters": "Clear any active filters (tags, date range, favorites)",
+        "troubleshooting.data.search.scope": "The search covers content and notes, but not tags - use tag filters for that",
+        "troubleshooting.data.images.title": "Images not displaying",
+        "troubleshooting.data.images.exists": "Check if the file attachment exists on the server",
+        "troubleshooting.data.images.loading": "Large images may take time to load on slow connections",
+        "troubleshooting.data.images.format": "Unsupported image formats may not display previews",
+        "troubleshooting.help.title": "Getting Help",
+        "troubleshooting.help.intro": "If you're still experiencing issues:",
+        "troubleshooting.help.check": "Check the",
+        "troubleshooting.help.known": "for known problems and solutions",
+        "troubleshooting.help.search": "Search existing issues before creating a new one",
+        "troubleshooting.help.report": "When reporting a bug, include:",
+        "troubleshooting.help.os": "Your operating system and version",
+        "troubleshooting.help.version": "Clipper version",
+        "troubleshooting.help.steps": "Steps to reproduce the issue",
+        "troubleshooting.help.errors": "Any error messages or logs",
+        "footer.releases": "Releases",
+        "footer.issues": "Report Issue",
+        "footer.license": "License",
+        "footer.copyright": "© 2025 Clipper. Open source under MIT License."
+      },
+      zh_fancy: {
+        "toggle.wtc": "这啥玩意儿？",
         "nav.features": "它梦见什么形状的阴影",
         "nav.download": "认领一个会呼吸的轮廓",
         "nav.manual": "与虚无对话的漫长指南",
@@ -1794,11 +2085,230 @@ clipper-server --bearer-token your-secret-token</code></pre>
         "footer.issues": "来报告梦境的 Bug",
         "footer.license": "开源的梦境",
         "footer.copyright": "© 2025 梦境机。虚空的协议，爱梦不梦。"
+      },
+      zh_normal: {
+        "toggle.wtc": "这啥玩意儿？",
+        "nav.features": "功能特性",
+        "nav.download": "下载",
+        "nav.manual": "使用手册",
+        "nav.faq": "常见问题",
+        "hero.tagline": "一个强大的剪贴板管理器，支持跨设备实时同步、全文搜索和文件附件。",
+        "hero.download": "下载",
+        "hero.github": "在 GitHub 上查看",
+        "features.title": "功能特性",
+        "features.intro": "Clipper 提供完整的剪贴板管理解决方案，具有强大的生产力功能。",
+        "features.history.title": "剪贴板历史",
+        "features.history.desc": "自动捕获并存储您复制的所有内容，包括文本、图片和文件。",
+        "features.search.title": "全文搜索",
+        "features.search.desc": "使用强大的 BM25 全文搜索快速找到任何剪贴内容。",
+        "features.sync.title": "实时同步",
+        "features.sync.desc": "基于 WebSocket 的实时同步让所有设备即时保持更新。",
+        "features.tags.title": "标签与整理",
+        "features.tags.desc": "使用自定义标签整理剪贴内容，标记收藏以便日后快速访问。",
+        "features.files.title": "文件附件",
+        "features.files.desc": "支持拖放上传，为剪贴内容添加图片和文档附件。",
+        "features.cross.title": "跨平台",
+        "features.cross.desc": "提供桌面应用（macOS、Windows、Linux）和浏览器访问。",
+        "features.cleanup.title": "自动清理",
+        "features.cleanup.desc": "根据可配置的保留策略自动删除旧的剪贴内容。保持剪贴板历史整洁。",
+        "features.auth.title": "身份验证",
+        "features.auth.desc": "可选的 Bearer 令牌身份验证来保护您的 API。在跨网络共享时保护您的剪贴板数据。",
+        "download.title": "下载",
+        "download.intro": "下载适用于您平台的 Clipper 或通过网页界面访问。",
+        "download.docker.desc": "服务器 + 网页界面",
+        "download.requirements": "系统要求",
+        "download.table.platform": "平台",
+        "download.table.version": "最低版本",
+        "download.table.arch": "架构",
+        "download.macos.version": "10.15 (Catalina) 或更高",
+        "download.macos.arch": "通用 (Intel + Apple Silicon)",
+        "download.windows.version": "Windows 10 (1809) 或更高",
+        "download.linux.version": "Ubuntu 20.04 或同等版本",
+        "download.linux.arch": "x64 / ARM64",
+        "manual.title": "使用手册",
+        "manual.getting_started.title": "快速入门",
+        "manual.getting_started.step1.title": "安装 Clipper",
+        "manual.getting_started.step1.desc": "下载并安装适用于您平台的桌面应用。",
+        "manual.getting_started.step2.title": "启动应用",
+        "manual.getting_started.step2.desc": "Clipper 在系统托盘启动并自动开始监控您的剪贴板。",
+        "manual.getting_started.step3.title": "复制任何内容",
+        "manual.getting_started.step3.desc": "您复制的文本、图片和文件会自动保存到剪贴板历史中。",
+        "manual.getting_started.step4.title": "访问您的剪贴内容",
+        "manual.getting_started.step4.desc": "点击托盘图标或使用全局快捷键打开 Clipper 窗口。",
+        "manual.desktop.title": "桌面应用",
+        "manual.desktop.intro": "桌面应用提供完整的 Clipper 体验，具有自动剪贴板监控功能。",
+        "manual.desktop.server_mode.title": "服务器模式",
+        "manual.desktop.server_mode.intro": "Clipper 可以在两种模式下运行。在这两种模式下，您完全拥有并控制服务器——不涉及任何第三方服务：",
+        "manual.desktop.server_mode.bundled.title": "内置服务器",
+        "manual.desktop.server_mode.bundled.desc": "（默认）- 在您的机器上自动运行本地服务器。完全离线工作。",
+        "manual.desktop.server_mode.external.title": "外部服务器",
+        "manual.desktop.server_mode.external.desc": "连接到您自己托管在另一台机器上的 Clipper 服务器以实现多设备同步。需要网络连接。",
+        "manual.desktop.server_mode.switch": "要切换模式，打开设置并选择您首选的服务器配置。",
+        "manual.desktop.network.title": "网络访问",
+        "manual.desktop.network.desc": "使用内置服务器时，您可以启用\"监听所有接口\"以从本地网络上的其他设备访问 Clipper。应用会显示您的本地 IP 地址以便连接。",
+        "manual.web.title": "网页界面",
+        "manual.web.intro": "网页界面提供基于浏览器的剪贴板历史访问。",
+        "manual.web.view.title": "查看与搜索",
+        "manual.web.view.desc": "使用无限滚动和全文搜索浏览所有剪贴内容。",
+        "manual.web.edit.title": "编辑",
+        "manual.web.edit.desc": "修改任何剪贴内容的标签和备注。",
+        "manual.web.upload.title": "上传",
+        "manual.web.upload.desc": "拖放文件上传，或使用\"发送剪贴板\"按钮。",
+        "manual.web.realtime.title": "实时更新",
+        "manual.web.realtime.desc": "通过 HTTPS 连接时，接收新剪贴内容的实时通知。",
+        "manual.clips.title": "处理剪贴内容",
+        "manual.clips.creating.title": "创建剪贴内容",
+        "manual.clips.creating.auto.title": "自动捕获",
+        "manual.clips.creating.auto.desc": "桌面应用监控您的剪贴板并自动保存新内容。",
+        "manual.clips.creating.manual.title": "手动上传",
+        "manual.clips.creating.manual.desc": "将文件拖放到应用窗口或网页界面。",
+        "manual.clips.creating.send.title": "发送剪贴板",
+        "manual.clips.creating.send.desc": "在网页界面中，点击剪贴板按钮手动发送当前剪贴板内容。",
+        "manual.clips.searching.title": "搜索",
+        "manual.clips.searching.intro": "使用搜索框按内容查找剪贴内容。搜索支持：",
+        "manual.clips.searching.fulltext": "跨剪贴内容和备注的全文搜索",
+        "manual.clips.searching.date": "使用日期选择器按日期范围筛选",
+        "manual.clips.searching.tags": "按标签筛选 - 点击标签筛选带有该标签的剪贴内容",
+        "manual.clips.searching.favorites": "使用切换开关仅显示收藏",
+        "manual.clips.organizing.title": "使用标签整理",
+        "manual.clips.organizing.intro": "标签帮助您快速整理和查找剪贴内容：",
+        "manual.clips.organizing.edit": "点击任何剪贴内容的编辑按钮添加或删除标签",
+        "manual.clips.organizing.add": "输入标签名称并按 Enter 添加",
+        "manual.clips.organizing.filter": "点击标签筛选所有带有该标签的剪贴内容",
+        "manual.clips.organizing.favorite_prefix": "",
+        "manual.clips.organizing.favorite_suffix": "标签将剪贴内容标记为收藏",
+        "manual.clips.host.title": "主机标签",
+        "manual.clips.host.desc": "跨设备同步时，剪贴内容会自动标记来源设备的主机名。这些标签具有独特的蓝色，帮助您识别每个剪贴内容的来源。",
+        "manual.settings.title": "设置",
+        "manual.settings.table.setting": "设置",
+        "manual.settings.table.description": "说明",
+        "manual.settings.theme.name": "主题",
+        "manual.settings.theme.desc": "选择浅色、深色或自动（跟随系统）",
+        "manual.settings.language.name": "语言",
+        "manual.settings.language.desc": "英文或中文（简体）",
+        "manual.settings.startup.name": "登录时启动",
+        "manual.settings.startup.desc": "登录时自动启动 Clipper",
+        "manual.settings.notifications.name": "通知",
+        "manual.settings.notifications.desc": "显示新剪贴内容的提示通知",
+        "manual.settings.server.name": "服务器模式",
+        "manual.settings.server.desc": "使用内置服务器或连接到您自己的服务器",
+        "manual.settings.network.name": "网络访问",
+        "manual.settings.network.desc": "允许网络上其他设备的连接",
+        "manual.selfhost.title": "使用 Docker 自托管",
+        "manual.selfhost.intro": "对于多设备同步，您可以使用 Docker 在专用机器上运行自己的 Clipper 服务器。这与桌面应用内置的服务器相同——只是独立运行。",
+        "manual.selfhost.access": "访问网页界面：",
+        "manual.selfhost.config.title": "配置",
+        "manual.selfhost.config.intro": "服务器可以通过环境变量配置：",
+        "manual.selfhost.config.variable": "变量",
+        "manual.selfhost.config.default": "默认值",
+        "manual.selfhost.config.description": "说明",
+        "manual.selfhost.config.port": "服务器端口",
+        "manual.selfhost.config.db": "数据库存储路径",
+        "manual.selfhost.config.storage": "文件附件存储路径",
+        "manual.selfhost.config.cleanup_enabled": "启用自动清理",
+        "manual.selfhost.config.cleanup_days": "保留天数",
+        "manual.selfhost.config.cleanup_interval": "清理间隔（小时）",
+        "manual.selfhost.config.bearer_token": "用于身份验证的 Bearer 令牌",
+        "manual.selfhost.https.title": "HTTPS 配置",
+        "manual.selfhost.https.intro": "对于生产使用，配置 TLS 以实现安全连接：",
+        "manual.selfhost.https.manual.title": "手动证书",
+        "manual.selfhost.https.manual.desc": "提供您自己的证书和密钥文件",
+        "manual.selfhost.https.acme.title": "ACME (Let's Encrypt)",
+        "manual.selfhost.https.acme.desc": "自动证书配置和续期",
+        "manual.selfhost.auth.title": "身份验证",
+        "manual.selfhost.auth.intro": "使用 Bearer 令牌身份验证保护您的服务器：",
+        "manual.selfhost.auth.usage": "启用身份验证后：",
+        "manual.selfhost.auth.rest": "所有 REST API 请求需要 Authorization: Bearer <token> 头",
+        "manual.selfhost.auth.websocket": "WebSocket 连接后通过消息进行身份验证",
+        "manual.selfhost.auth.files": "文件下载支持 ?token=xxx 查询参数",
+        "manual.selfhost.auth.webui": "需要身份验证时网页界面显示登录界面",
+        "faq.title": "常见问题",
+        "faq.security.q": "我的剪贴板数据安全吗？",
+        "faq.security.a": "是的。Clipper 从不将您的数据发送到任何第三方服务。在内置和外部服务器模式下，您完全拥有并控制服务器。内置服务器在您的机器本地存储数据，而外部服务器运行在您自己的基础设施上。对于网络访问，我们建议使用 HTTPS 加密传输中的数据。",
+        "faq.sync.q": "跨设备同步是如何工作的？",
+        "faq.sync.a": "将多个 Clipper 客户端连接到同一服务器。当您在一台设备上复制内容时，它会保存到服务器，所有连接的设备通过 WebSocket 接收实时通知。每个剪贴内容都标记有来源设备的主机名以便识别。",
+        "faq.files.q": "我可以上传哪些文件类型？",
+        "faq.files.a": "Clipper 接受任何文件类型。图片（PNG、JPG、GIF 等）显示预览缩略图。其他文件作为附件存储，可随时下载。",
+        "faq.storage.q": "Clipper 使用多少存储空间？",
+        "faq.storage.a": "文本剪贴内容使用很少的存储空间（每个几 KB）。图片和文件附件根据大小使用更多空间。您可以随时删除旧的剪贴内容以释放存储空间。服务器还支持根据可配置的保留策略自动清理旧的剪贴内容。",
+        "faq.web_only.q": "我可以不使用桌面应用吗？",
+        "faq.web_only.a": "可以！您可以运行 Clipper 服务器（通过 Docker 或独立二进制文件）并通过网页界面访问。但是，网页界面无法自动监控您的剪贴板——您需要使用\"发送剪贴板\"按钮或拖放文件手动发送内容。",
+        "faq.offline.q": "Clipper 可以离线工作吗？",
+        "faq.offline.a": "使用内置服务器模式时，Clipper 完全离线工作。您的剪贴内容存储在本地，应用不需要网络连接。如果您使用自托管的外部服务器进行同步，则需要到该服务器的网络连接。",
+        "troubleshooting.title": "故障排除",
+        "troubleshooting.desktop.title": "桌面应用问题",
+        "troubleshooting.desktop.crash.title": "应用无法启动 / 启动时崩溃",
+        "troubleshooting.desktop.crash.requirements": "检查您的系统是否满足最低要求",
+        "troubleshooting.desktop.crash.macos": "在 macOS 上，您可能需要在系统偏好设置 > 安全性与隐私中允许该应用",
+        "troubleshooting.desktop.crash.settings": "尝试删除设置文件并重新启动：",
+        "troubleshooting.desktop.clipboard.title": "剪贴板监控不工作",
+        "troubleshooting.desktop.clipboard.permissions": "确保应用具有辅助功能权限（macOS 上需要）",
+        "troubleshooting.desktop.clipboard.desktop": "检查您是否正在使用桌面应用，而不仅仅是网页界面",
+        "troubleshooting.desktop.clipboard.restart": "如果剪贴板监控停止工作，请重新启动应用",
+        "troubleshooting.desktop.server.title": "无法连接到内置服务器",
+        "troubleshooting.desktop.server.port": "检查是否有其他应用正在使用端口 3000",
+        "troubleshooting.desktop.server.logs": "在应用的日志文件中查找错误信息",
+        "troubleshooting.desktop.server.clear": "尝试在设置中使用\"清除所有数据\"重置数据库",
+        "troubleshooting.connection.title": "连接问题",
+        "troubleshooting.connection.ws.title": "WebSocket 显示\"已断开\"",
+        "troubleshooting.connection.ws.url": "验证设置中的服务器 URL 是否正确",
+        "troubleshooting.connection.ws.running": "检查服务器是否正在运行且可访问",
+        "troubleshooting.connection.ws.cert": "对于 HTTPS 连接，确保证书有效",
+        "troubleshooting.connection.ws.firewall": "防火墙可能阻止 WebSocket 连接——检查您的网络设置",
+        "troubleshooting.connection.access.title": "无法从其他设备访问",
+        "troubleshooting.connection.access.enable": "在设置中启用\"监听所有接口\"",
+        "troubleshooting.connection.access.ip": "使用显示的本地 IP 地址（而不是 localhost）进行连接",
+        "troubleshooting.connection.access.network": "确保设备在同一网络上",
+        "troubleshooting.connection.access.firewall": "检查服务器和客户端机器上的防火墙规则",
+        "troubleshooting.data.title": "数据问题",
+        "troubleshooting.data.sync.title": "设备之间的剪贴内容不同步",
+        "troubleshooting.data.sync.server": "验证所有设备是否连接到同一服务器",
+        "troubleshooting.data.sync.status": "检查 WebSocket 连接状态（绿点 = 已连接）",
+        "troubleshooting.data.sync.accessible": "确保所有设备都可以访问服务器",
+        "troubleshooting.data.search.title": "搜索未找到预期结果",
+        "troubleshooting.data.search.case": "搜索不区分大小写但匹配完整单词",
+        "troubleshooting.data.search.filters": "清除任何活动的筛选条件（标签、日期范围、收藏）",
+        "troubleshooting.data.search.scope": "搜索涵盖内容和备注，但不包括标签——使用标签筛选器",
+        "troubleshooting.data.images.title": "图片不显示",
+        "troubleshooting.data.images.exists": "检查服务器上是否存在文件附件",
+        "troubleshooting.data.images.loading": "在慢速连接上加载大图片可能需要时间",
+        "troubleshooting.data.images.format": "不支持的图片格式可能不显示预览",
+        "troubleshooting.help.title": "获取帮助",
+        "troubleshooting.help.intro": "如果您仍然遇到问题：",
+        "troubleshooting.help.check": "查看",
+        "troubleshooting.help.known": "了解已知问题和解决方案",
+        "troubleshooting.help.search": "在创建新问题之前搜索现有问题",
+        "troubleshooting.help.report": "报告 bug 时，请包含：",
+        "troubleshooting.help.os": "您的操作系统和版本",
+        "troubleshooting.help.version": "Clipper 版本",
+        "troubleshooting.help.steps": "重现问题的步骤",
+        "troubleshooting.help.errors": "任何错误信息或日志",
+        "footer.releases": "版本发布",
+        "footer.issues": "报告问题",
+        "footer.license": "许可证",
+        "footer.copyright": "© 2025 Clipper。基于 MIT 许可证开源。"
       }
     };
 
-    // Language switching
+    // Language and fancy mode switching
     let currentLang = localStorage.getItem('clipper-doc-lang') || 'en';
+    // Default to fancy mode (true). Only disable if explicitly set to 'true' (normal mode enabled)
+    let normalMode = localStorage.getItem('clipper-doc-normal') === 'true';
+
+    function getTranslationKey() {
+      const suffix = normalMode ? '_normal' : '_fancy';
+      return currentLang + suffix;
+    }
+
+    function applyTranslations() {
+      const key = getTranslationKey();
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const i18nKey = el.dataset.i18n;
+        if (translations[key] && translations[key][i18nKey]) {
+          el.textContent = translations[key][i18nKey];
+        }
+      });
+    }
 
     function setLanguage(lang) {
       currentLang = lang;
@@ -1810,16 +2320,18 @@ clipper-server --bearer-token your-secret-token</code></pre>
         btn.classList.toggle('active', btn.dataset.lang === lang);
       });
 
-      // Update all translatable elements
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.dataset.i18n;
-        if (translations[lang] && translations[lang][key]) {
-          el.textContent = translations[lang][key];
-        }
-      });
+      applyTranslations();
     }
 
-    // Initialize language
+    function setNormalMode(normal) {
+      normalMode = normal;
+      localStorage.setItem('clipper-doc-normal', normal);
+      // Toggle checked = "What's this crap?" is ON = show normal wording
+      document.getElementById('fancy-mode-toggle').checked = normal;
+      applyTranslations();
+    }
+
+    // Initialize language and fancy mode
     document.addEventListener('DOMContentLoaded', () => {
       // Set up language buttons
       document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -1828,9 +2340,21 @@ clipper-server --bearer-token your-secret-token</code></pre>
         });
       });
 
+      // Set up fancy mode toggle
+      // When toggle is checked ("What's this crap?" ON), show normal wording
+      const fancyToggle = document.getElementById('fancy-mode-toggle');
+      fancyToggle.addEventListener('change', () => {
+        setNormalMode(fancyToggle.checked);
+      });
+
       // Apply saved or detected language
       const browserLang = navigator.language.startsWith('zh') ? 'zh' : 'en';
       const savedLang = localStorage.getItem('clipper-doc-lang');
+
+      // Apply saved normal mode (default is false, meaning fancy mode)
+      normalMode = localStorage.getItem('clipper-doc-normal') === 'true';
+      fancyToggle.checked = normalMode;
+
       setLanguage(savedLang || browserLang);
     });
 
