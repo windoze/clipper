@@ -6,7 +6,9 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
-use clipper_indexer::{ClipboardEntry, PagedResult, PagingParams, SearchFilters, ShortUrl};
+use clipper_indexer::{
+    ClipboardEntry, ImportResult, PagedResult, PagingParams, SearchFilters, ShortUrl,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{error::Result, state::AppState};
@@ -30,6 +32,9 @@ pub fn routes() -> Router<AppState> {
         .route("/s/{code}", get(resolve_short_url))
         // Static assets for shared clip page (no auth required)
         .route("/shared-assets/{filename}", get(serve_asset))
+        // Export/Import endpoints
+        .route("/export", get(export_clips))
+        .route("/import", post(import_clips))
 }
 
 /// Version information response
@@ -825,4 +830,91 @@ async fn serve_asset(Path(filename): Path<String>) -> Result<Response> {
         .header(header::CACHE_CONTROL, "public, max-age=31536000, immutable")
         .body(Body::from(content))
         .unwrap())
+}
+
+// ==================== Export/Import Endpoints ====================
+
+/// Export all clips to a tar.gz archive
+///
+/// Returns a tar.gz file containing:
+/// - manifest.json: Metadata and list of all clips
+/// - files/: Directory containing all file attachments
+///
+/// Short URLs are NOT included in the export.
+async fn export_clips(State(state): State<AppState>) -> Result<Response> {
+    let archive_data = state.indexer.export_all().await?;
+
+    // Generate filename with timestamp
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let filename = format!("clipper_export_{}.tar.gz", timestamp);
+
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/gzip")
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{}\"", filename),
+        )
+        .header(header::CONTENT_LENGTH, archive_data.len())
+        .body(Body::from(archive_data))
+        .unwrap())
+}
+
+/// Import clips from a tar.gz archive
+///
+/// Accepts a multipart form with a single file field containing the tar.gz archive.
+/// Clips are deduplicated by ID and content hash.
+///
+/// Returns statistics about the import operation.
+async fn import_clips(
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> Result<Json<ImportResult>> {
+    let mut archive_data: Option<bytes::Bytes> = None;
+
+    // Process multipart form data
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| crate::error::ServerError::InvalidInput(format!("Multipart error: {}", e)))?
+    {
+        let field_name = field.name().unwrap_or("").to_string();
+
+        if field_name == "file" || field_name == "archive" {
+            archive_data = Some(field.bytes().await.map_err(|e| {
+                crate::error::ServerError::InvalidInput(format!("Failed to read file: {}", e))
+            })?);
+            break;
+        }
+    }
+
+    let archive_data = archive_data.ok_or_else(|| {
+        crate::error::ServerError::InvalidInput(
+            "Missing archive file. Upload a tar.gz file with field name 'file' or 'archive'"
+                .to_string(),
+        )
+    })?;
+
+    // Check file size limit (use same limit as regular uploads)
+    let max_size = state.config.upload.max_size_bytes;
+    if archive_data.len() as u64 > max_size {
+        let max_size_mb = max_size as f64 / (1024.0 * 1024.0);
+        let file_size_mb = archive_data.len() as f64 / (1024.0 * 1024.0);
+        return Err(crate::error::ServerError::PayloadTooLarge(format!(
+            "Archive size ({:.2} MB) exceeds maximum allowed size ({:.2} MB)",
+            file_size_mb, max_size_mb
+        )));
+    }
+
+    let result = state.indexer.import_archive(&archive_data).await?;
+
+    // Notify WebSocket clients about newly imported clips
+    for id in &result.imported_ids {
+        // Get the imported clip to notify with full details
+        if let Ok(entry) = state.indexer.get_entry(id).await {
+            state.notify_new_clip(entry.id, entry.content, entry.tags);
+        }
+    }
+
+    Ok(Json(result))
 }

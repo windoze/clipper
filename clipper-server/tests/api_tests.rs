@@ -2334,3 +2334,607 @@ async fn test_shared_clip_html_references_assets() {
     assert!(html.contains("const originalContent ="));
     assert!(html.contains("const expiresAtIso ="));
 }
+
+// ============================================================================
+// Export/Import Tests
+// ============================================================================
+
+async fn response_bytes(response: axum::response::Response) -> Vec<u8> {
+    let body = response.into_body();
+    let bytes = body.collect().await.unwrap().to_bytes();
+    bytes.to_vec()
+}
+
+#[tokio::test]
+async fn test_export_empty_database() {
+    let (app, _temp_dir) = create_test_app().await;
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/export")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Check headers
+    assert!(response
+        .headers()
+        .get("content-type")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .contains("application/gzip"));
+    assert!(response
+        .headers()
+        .get("content-disposition")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .contains("clipper_export_"));
+
+    // Verify archive can be parsed
+    let archive_data = response_bytes(response).await;
+    let parser = clipper_indexer::ImportParser::from_bytes(&archive_data).unwrap();
+    assert_eq!(parser.manifest().clip_count, 0);
+}
+
+#[tokio::test]
+async fn test_export_with_clips() {
+    let (app, _temp_dir) = create_test_app().await;
+
+    // Create some clips
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "First clip",
+                        "tags": ["tag1", "tag2"],
+                        "additional_notes": "Some notes"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "Second clip",
+                        "tags": ["tag3"]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Export
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/export")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let archive_data = response_bytes(response).await;
+    let parser = clipper_indexer::ImportParser::from_bytes(&archive_data).unwrap();
+    assert_eq!(parser.manifest().clip_count, 2);
+    assert_eq!(parser.manifest().attachment_count, 0);
+}
+
+#[tokio::test]
+async fn test_export_with_file_attachment() {
+    let (app, _temp_dir) = create_test_app().await;
+
+    // Upload a file
+    let file_content = b"This is test file content for export";
+    let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
+    let body_str = format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"file\"; filename=\"export_test.txt\"\r\n\
+         Content-Type: text/plain\r\n\
+         \r\n\
+         {file_content}\r\n\
+         --{boundary}\r\n\
+         Content-Disposition: form-data; name=\"tags\"\r\n\
+         \r\n\
+         document\r\n\
+         --{boundary}--\r\n",
+        boundary = boundary,
+        file_content = String::from_utf8_lossy(file_content)
+    );
+
+    app.clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips/upload")
+                .header(
+                    "content-type",
+                    format!("multipart/form-data; boundary={}", boundary),
+                )
+                .body(Body::from(body_str))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Export
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/export")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let archive_data = response_bytes(response).await;
+    let parser = clipper_indexer::ImportParser::from_bytes(&archive_data).unwrap();
+    assert_eq!(parser.manifest().clip_count, 1);
+    assert_eq!(parser.manifest().attachment_count, 1);
+
+    // Verify attachment is included
+    let clip = &parser.clips()[0];
+    assert!(clip.attachment_path.is_some());
+    let attachment = parser.get_attachment(clip.attachment_path.as_ref().unwrap());
+    assert!(attachment.is_some());
+    assert_eq!(
+        String::from_utf8(attachment.unwrap().to_vec()).unwrap(),
+        "This is test file content for export"
+    );
+}
+
+#[tokio::test]
+async fn test_import_empty_archive() {
+    let (app, _temp_dir) = create_test_app().await;
+
+    // Create an empty export first
+    let export_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/export")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let archive_data = response_bytes(export_response).await;
+
+    // Import the empty archive
+    let boundary = "----WebKitFormBoundaryImport";
+    let body = format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"file\"; filename=\"export.tar.gz\"\r\n\
+         Content-Type: application/gzip\r\n\
+         \r\n"
+    );
+    let mut body_bytes = body.into_bytes();
+    body_bytes.extend_from_slice(&archive_data);
+    body_bytes.extend_from_slice(format!("\r\n--{boundary}--\r\n", boundary = boundary).as_bytes());
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/import")
+                .header(
+                    "content-type",
+                    format!("multipart/form-data; boundary={}", boundary),
+                )
+                .body(Body::from(body_bytes))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    assert_eq!(body["imported_count"].as_u64().unwrap(), 0);
+    assert_eq!(body["skipped_count"].as_u64().unwrap(), 0);
+}
+
+#[tokio::test]
+async fn test_import_with_clips() {
+    // Create source app with clips
+    let (source_app, _source_temp_dir) = create_test_app().await;
+
+    source_app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "Imported clip 1",
+                        "tags": ["imported", "test"],
+                        "additional_notes": "Notes for clip 1"
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    source_app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "Imported clip 2",
+                        "tags": ["imported"]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Export from source
+    let export_response = source_app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/export")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let archive_data = response_bytes(export_response).await;
+
+    // Create destination app
+    let (dest_app, _dest_temp_dir) = create_test_app().await;
+
+    // Import into destination
+    let boundary = "----WebKitFormBoundaryImport";
+    let body = format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"file\"; filename=\"export.tar.gz\"\r\n\
+         Content-Type: application/gzip\r\n\
+         \r\n"
+    );
+    let mut body_bytes = body.into_bytes();
+    body_bytes.extend_from_slice(&archive_data);
+    body_bytes.extend_from_slice(format!("\r\n--{boundary}--\r\n", boundary = boundary).as_bytes());
+
+    let response = dest_app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/import")
+                .header(
+                    "content-type",
+                    format!("multipart/form-data; boundary={}", boundary),
+                )
+                .body(Body::from(body_bytes))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    assert_eq!(body["imported_count"].as_u64().unwrap(), 2);
+    assert_eq!(body["skipped_count"].as_u64().unwrap(), 0);
+
+    // Verify clips exist in destination
+    let list_response = dest_app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let list_body = response_json(list_response).await;
+    assert_eq!(list_body["total"].as_u64().unwrap(), 2);
+}
+
+#[tokio::test]
+async fn test_import_deduplication_by_id() {
+    let (app, _temp_dir) = create_test_app().await;
+
+    // Create a clip
+    let create_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&json!({
+                        "content": "Original clip",
+                        "tags": ["original"]
+                    }))
+                    .unwrap(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let create_body = response_json(create_response).await;
+    let _original_id = create_body["id"].as_str().unwrap();
+
+    // Export
+    let export_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/export")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let archive_data = response_bytes(export_response).await;
+
+    // Import the same archive back (should skip due to same ID)
+    let boundary = "----WebKitFormBoundaryImport";
+    let body = format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"file\"; filename=\"export.tar.gz\"\r\n\
+         Content-Type: application/gzip\r\n\
+         \r\n"
+    );
+    let mut body_bytes = body.into_bytes();
+    body_bytes.extend_from_slice(&archive_data);
+    body_bytes.extend_from_slice(format!("\r\n--{boundary}--\r\n", boundary = boundary).as_bytes());
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/import")
+                .header(
+                    "content-type",
+                    format!("multipart/form-data; boundary={}", boundary),
+                )
+                .body(Body::from(body_bytes))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    assert_eq!(body["imported_count"].as_u64().unwrap(), 0);
+    assert_eq!(body["skipped_count"].as_u64().unwrap(), 1);
+
+    // Verify only 1 clip exists
+    let list_response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/clips")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let list_body = response_json(list_response).await;
+    assert_eq!(list_body["total"].as_u64().unwrap(), 1);
+}
+
+#[tokio::test]
+async fn test_import_with_file_attachment() {
+    // Create source app with file
+    let (source_app, _source_temp_dir) = create_test_app().await;
+
+    let file_content = b"This is the file content for import test";
+    let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
+    let body_str = format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"file\"; filename=\"import_test.txt\"\r\n\
+         Content-Type: text/plain\r\n\
+         \r\n\
+         {file_content}\r\n\
+         --{boundary}\r\n\
+         Content-Disposition: form-data; name=\"tags\"\r\n\
+         \r\n\
+         document\r\n\
+         --{boundary}--\r\n",
+        boundary = boundary,
+        file_content = String::from_utf8_lossy(file_content)
+    );
+
+    let upload_response = source_app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/clips/upload")
+                .header(
+                    "content-type",
+                    format!("multipart/form-data; boundary={}", boundary),
+                )
+                .body(Body::from(body_str))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let upload_body = response_json(upload_response).await;
+    let source_clip_id = upload_body["id"].as_str().unwrap().to_string();
+
+    // Export from source
+    let export_response = source_app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/export")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let archive_data = response_bytes(export_response).await;
+
+    // Create destination app
+    let (dest_app, _dest_temp_dir) = create_test_app().await;
+
+    // Import into destination
+    let import_boundary = "----WebKitFormBoundaryImport";
+    let body = format!(
+        "--{import_boundary}\r\n\
+         Content-Disposition: form-data; name=\"file\"; filename=\"export.tar.gz\"\r\n\
+         Content-Type: application/gzip\r\n\
+         \r\n"
+    );
+    let mut body_bytes = body.into_bytes();
+    body_bytes.extend_from_slice(&archive_data);
+    body_bytes.extend_from_slice(
+        format!("\r\n--{import_boundary}--\r\n", import_boundary = import_boundary).as_bytes(),
+    );
+
+    let response = dest_app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/import")
+                .header(
+                    "content-type",
+                    format!("multipart/form-data; boundary={}", import_boundary),
+                )
+                .body(Body::from(body_bytes))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response_json(response).await;
+    assert_eq!(body["imported_count"].as_u64().unwrap(), 1);
+    assert_eq!(body["attachments_imported"].as_u64().unwrap(), 1);
+
+    // Verify clip with file exists in destination
+    let get_response = dest_app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/clips/{}", source_clip_id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(get_response.status(), StatusCode::OK);
+
+    let clip_body = response_json(get_response).await;
+    assert!(clip_body["file_attachment"].is_string());
+    assert_eq!(clip_body["original_filename"], "import_test.txt");
+
+    // Verify file content is accessible
+    let file_response = dest_app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/clips/{}/file", source_clip_id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(file_response.status(), StatusCode::OK);
+    let file_bytes = response_bytes(file_response).await;
+    assert_eq!(
+        String::from_utf8(file_bytes).unwrap(),
+        "This is the file content for import test"
+    );
+}
+
+#[tokio::test]
+async fn test_import_missing_file_field() {
+    let (app, _temp_dir) = create_test_app().await;
+
+    let boundary = "----WebKitFormBoundaryImport";
+    let body = format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"other_field\"\r\n\
+         \r\n\
+         some value\r\n\
+         --{boundary}--\r\n"
+    );
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/import")
+                .header(
+                    "content-type",
+                    format!("multipart/form-data; boundary={}", boundary),
+                )
+                .body(Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let body = response_json(response).await;
+    assert!(body["error"]
+        .as_str()
+        .unwrap()
+        .contains("Missing archive file"));
+}
