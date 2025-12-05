@@ -156,6 +156,61 @@ CLIPPER_ACME_EMAIL=admin@example.com \
 cargo run --bin clipper-server --features acme
 ```
 
+#### Using Self-Signed Certificates
+
+For development or internal deployments, you can use self-signed certificates:
+
+1. **Generate a self-signed certificate**:
+
+```bash
+# Generate a private key and self-signed certificate (valid for 365 days)
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
+  -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+```
+
+2. **Start the server with the self-signed certificate**:
+
+```bash
+CLIPPER_TLS_ENABLED=true \
+CLIPPER_TLS_CERT=./cert.pem \
+CLIPPER_TLS_KEY=./key.pem \
+cargo run --bin clipper-server --features tls
+```
+
+3. **Connect from CLI or desktop app**:
+
+When connecting to a server with a self-signed certificate, both the CLI and desktop app use SSH-like fingerprint verification:
+
+- **First connection**: The certificate's SHA-256 fingerprint is displayed for verification
+- **Trust decision**: You can choose to trust the certificate permanently or not
+- **Fingerprint storage**: Trusted fingerprints are stored in `~/.config/com.0d0a.clipper/settings.json`
+- **Security warning**: If the fingerprint changes (potential MITM attack), you'll see a warning similar to SSH's "REMOTE HOST IDENTIFICATION HAS CHANGED"
+
+Example CLI interaction:
+```
+$ clipper-cli --url https://clips.example.com:3000 list
+The authenticity of host 'clips.example.com' can't be established.
+The server's certificate is not signed by a trusted Certificate Authority (CA).
+This could mean:
+  - The server is using a self-signed certificate
+  - The server's CA is not in your system's trust store
+  - Someone may be intercepting your connection (man-in-the-middle attack)
+
+Certificate SHA256 fingerprint:
+  a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2
+
+Full fingerprint (verify with server administrator):
+  A1:B2:C3:D4:E5:F6:A7:B8
+  C9:D0:E1:F2:A3:B4:C5:D6
+  E7:F8:A9:B0:C1:D2:E3:F4
+  A5:B6:C7:D8:E9:F0:A1:B2
+
+Are you sure you want to trust this certificate and continue connecting (yes/no)?
+```
+
+The CLI and desktop app share the same trusted certificates store, so a certificate trusted in one will be automatically trusted in the other.
+
 ### Running the Server
 
 Basic usage:
