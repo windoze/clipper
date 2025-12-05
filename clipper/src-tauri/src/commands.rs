@@ -779,8 +779,7 @@ pub async fn restart_app(
 
     #[cfg(not(target_os = "macos"))]
     {
-        // On Windows and Linux, use tauri-plugin-process restart
-        use tauri_plugin_process::ProcessExt;
+        // On Windows and Linux, use Tauri's built-in restart
         app.restart();
     }
 
