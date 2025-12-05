@@ -1,6 +1,7 @@
 use crate::error::{IndexerError, Result};
 use crate::models::{ClipboardEntry, PagedResult, PagingParams, SearchFilters, ShortUrl};
 use crate::storage::FileStorage;
+use crate::storage_config::StorageBackendConfig;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -64,7 +65,57 @@ pub struct ClipperIndexer {
 }
 
 impl ClipperIndexer {
+    /// Create a new ClipperIndexer with local file storage.
+    ///
+    /// This is a convenience method for backward compatibility.
+    /// For cloud storage support, use `new_with_config` instead.
+    ///
+    /// # Arguments
+    /// * `db_path` - Path to the SurrealDB database directory
+    /// * `storage_path` - Path to the local file storage directory
     pub async fn new(db_path: impl AsRef<Path>, storage_path: impl AsRef<Path>) -> Result<Self> {
+        let storage_config = StorageBackendConfig::local(storage_path.as_ref().to_string_lossy());
+        Self::new_with_config(db_path, storage_config).await
+    }
+
+    /// Create a new ClipperIndexer with configurable storage backend.
+    ///
+    /// This method supports multiple storage backends including:
+    /// - Local filesystem (default)
+    /// - AWS S3 (requires `aws` feature)
+    /// - Azure Blob Storage (requires `azure` feature)
+    ///
+    /// # Arguments
+    /// * `db_path` - Path to the SurrealDB database directory
+    /// * `storage_config` - Storage backend configuration
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// // Local storage
+    /// let indexer = ClipperIndexer::new_with_config(
+    ///     "./data/db",
+    ///     StorageBackendConfig::local("./data/storage"),
+    /// ).await?;
+    ///
+    /// // S3 storage (requires `aws` feature)
+    /// #[cfg(feature = "aws")]
+    /// let indexer = ClipperIndexer::new_with_config(
+    ///     "./data/db",
+    ///     StorageBackendConfig::s3("my-bucket", "us-east-1"),
+    /// ).await?;
+    ///
+    /// // Azure storage (requires `azure` feature)
+    /// #[cfg(feature = "azure")]
+    /// let indexer = ClipperIndexer::new_with_config(
+    ///     "./data/db",
+    ///     StorageBackendConfig::azure("myaccount", "mycontainer"),
+    /// ).await?;
+    /// ```
+    pub async fn new_with_config(
+        db_path: impl AsRef<Path>,
+        storage_config: StorageBackendConfig,
+    ) -> Result<Self> {
         // Initialize SurrealDB with RocksDB backend
         let db = Surreal::new::<RocksDb>(db_path.as_ref()).await?;
 
@@ -75,10 +126,25 @@ impl ClipperIndexer {
         Self::initialize_schema(&db).await?;
         Self::run_migrations(&db).await?;
 
-        // Initialize file storage
-        let storage = FileStorage::new(storage_path)?;
+        // Initialize file storage from config
+        let storage = FileStorage::from_config(&storage_config)?;
+
+        tracing::info!(
+            "Initialized ClipperIndexer with {} storage backend",
+            storage.backend_type()
+        );
 
         Ok(Self { db, storage })
+    }
+
+    /// Get the storage backend type.
+    pub fn storage_backend_type(&self) -> &'static str {
+        self.storage.backend_type()
+    }
+
+    /// Check if using cloud storage.
+    pub fn is_cloud_storage(&self) -> bool {
+        self.storage.is_cloud()
     }
 
     async fn initialize_schema(db: &Surreal<Db>) -> Result<()> {

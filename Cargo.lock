@@ -1754,6 +1754,8 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.17",
  "tokio",
+ "tracing",
+ "url",
  "uuid",
 ]
 
@@ -6204,9 +6206,11 @@ dependencies = [
  "futures",
  "http",
  "http-body-util",
+ "httparse",
  "humantime",
  "hyper",
  "itertools 0.14.0",
+ "md-5",
  "parking_lot",
  "percent-encoding",
  "quick-xml 0.38.4",

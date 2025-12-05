@@ -81,7 +81,7 @@ async fn main() {
 
     tracing::info!("Configuration loaded:");
     tracing::info!("  Database path: {}", config.database.path);
-    tracing::info!("  Storage path: {}", config.storage.path);
+    tracing::info!("  Storage: {}", config.storage.backend_description());
     tracing::info!("  Listen address: {}", config.server.listen_addr);
     tracing::info!("  HTTP Port: {}", config.server.port);
     #[cfg(feature = "tls")]
@@ -102,10 +102,21 @@ async fn main() {
         }
     }
 
-    // Initialize the indexer
-    let indexer = ClipperIndexer::new(&config.database.path, &config.storage.path)
+    // Convert storage config to backend config
+    let storage_backend_config = config.storage.to_backend_config().unwrap_or_else(|err| {
+        eprintln!("Storage configuration error: {}", err);
+        std::process::exit(1);
+    });
+
+    // Initialize the indexer with storage backend
+    let indexer = ClipperIndexer::new_with_config(&config.database.path, storage_backend_config)
         .await
         .expect("Failed to initialize indexer");
+
+    tracing::info!(
+        "Indexer initialized with {} storage backend",
+        indexer.storage_backend_type()
+    );
 
     // Create application state
     let state = AppState::new(indexer, config.clone());

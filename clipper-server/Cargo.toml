@@ -27,6 +27,12 @@ acme = [
 secure-storage = ["dep:keyring"]
 # Full TLS with ACME and secure storage
 full-tls = ["acme", "secure-storage"]
+# AWS S3 storage backend support
+aws = ["clipper_indexer/aws"]
+# Azure Blob Storage backend support (includes Managed Identity / Workload Identity)
+azure = ["clipper_indexer/azure"]
+# Enable all cloud storage backends
+cloud = ["aws", "azure"]
 
 [dependencies]
 rust-embed = { version = "8", optional = true }
