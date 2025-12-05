@@ -2,6 +2,10 @@
 
 A clipboard management server with REST API, WebSocket support, and built-in Web UI.
 
+[![Homepage](https://img.shields.io/badge/homepage-clipper.unwritten.codes-blue)](https://clipper.unwritten.codes)
+[![GitHub](https://img.shields.io/badge/github-windoze/clipper-blue?logo=github)](https://github.com/windoze/clipper)
+![Version](https://img.shields.io/badge/version-0.16.0-blue)
+
 ## Features
 
 - **REST API** for CRUD operations on clipboard entries
@@ -9,7 +13,9 @@ A clipboard management server with REST API, WebSocket support, and built-in Web
 - **WebSocket** for real-time updates
 - **File attachment** support (text, images, binary files)
 - **Built-in Web UI** with drag-and-drop upload
-- **TLS/HTTPS** with manual or automatic (Let's Encrypt) certificates
+- **TLS/HTTPS** with manual, automatic (Let's Encrypt), or self-signed certificates
+- **Self-signed certificate support** with SSH-like fingerprint verification
+- **Clip sharing** via short URLs with optional expiration
 - **Auto-cleanup** for old clips
 - **Multi-architecture** support (amd64, arm64)
 
@@ -76,6 +82,15 @@ When `CLIPPER_BEARER_TOKEN` is set, all API requests require authentication:
 - **WebSocket**: Send `{"type": "auth", "token": "<token>"}` message after connecting
 - **Web UI**: Login screen appears automatically when authentication is required
 - **File downloads**: Use `?token=<token>` query parameter for direct file links
+
+### Clip Sharing (Short URLs)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLIPPER_SHORT_URL_BASE` | - | Base URL for sharing (enables sharing feature) |
+| `CLIPPER_SHORT_URL_EXPIRATION_HOURS` | `24` | Default short URL expiration in hours |
+
+When `CLIPPER_SHORT_URL_BASE` is set (e.g., `https://clips.example.com`), clips can be shared publicly via short URLs. The share button appears in the Web UI and desktop app.
 
 ### Upload Limits
 
@@ -220,6 +235,8 @@ volumes:
 - `PUT /clips/:id` - Update a clip
 - `DELETE /clips/:id` - Delete a clip
 - `GET /clips/:id/file` - Download file attachment
+- `POST /clips/:id/short-url` - Create short URL for sharing
+- `GET /s/:code` - Resolve short URL (public, no auth required)
 
 ## WebSocket
 
@@ -256,5 +273,7 @@ The server will respond with:
 
 ## Links
 
-- [GitHub Repository](https://github.com/user/clipper)
-- [Full Documentation](https://github.com/user/clipper/blob/main/clipper-server/README.md)
+- [Homepage](https://clipper.unwritten.codes)
+- [GitHub Repository](https://github.com/windoze/clipper)
+- [Full Documentation](https://github.com/windoze/clipper/blob/main/clipper-server/README.md)
+- [Desktop App Downloads](https://github.com/windoze/clipper/releases)
