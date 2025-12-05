@@ -9,6 +9,7 @@
 - **存储账户**：启用文件共享的标准 LRS 存储
 - **文件共享**：用于持久化数据存储（挂载到 `/data`）
 - **容器实例**：运行带公网 IP 和 DNS 标签的 clipper-server
+- **Log Analytics 工作区**（可选）：当 `enableLogging` 设置为 true 时用于容器日志记录
 
 ## 前提条件
 
@@ -46,6 +47,8 @@ az deployment group create \
    - `acmeEmail`：Let's Encrypt 证书通知邮箱（必填）
    - `location`：Azure 区域（留空使用资源组位置）
    - `dnsNameLabel`：公网 URL 的 DNS 标签（留空则使用容器名称）
+   - `enableLogging`：设置为 true 启用 Log Analytics 日志记录（默认：false）
+   - `logAnalyticsWorkspaceName`：留空自动生成，或指定您自己的名称
 
 2. 部署：
 
@@ -71,6 +74,7 @@ az deployment group create \
 - `containerUrl`：访问服务器的 HTTPS URL（例如 `https://clipper-server.eastus.azurecontainer.io`）
 - `containerIpAddress`：容器的公网 IP 地址
 - `storageAccountName`：创建的存储账户名称
+- `logAnalyticsWorkspaceName`：Log Analytics 工作区名称（仅在启用日志时输出）
 
 ## 配置
 
@@ -112,7 +116,7 @@ az deployment group create \
 |------|----------------|----------------|
 | 内置 HTTPS | 否（需手动设置） | 是（自动） |
 | 缩放 | 不支持自动缩放 | 支持自动缩放 |
-| 日志 | 基本容器日志 | 包含 Log Analytics |
+| 日志 | 可选（Log Analytics） | 包含 Log Analytics |
 | 自定义域名 | 需要 DNS 设置 | 易于配置 |
 | 计费模式 | 按运行秒数付费 | 按使用量付费 |
 | 复杂度 | 简单 | 功能更多 |

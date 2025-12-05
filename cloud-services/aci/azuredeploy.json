@@ -69,6 +69,20 @@
             "metadata": {
                 "description": "Contact email for Let's Encrypt certificate notifications (required)"
             }
+        },
+        "enableLogging": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable logging to Azure Log Analytics workspace"
+            }
+        },
+        "logAnalyticsWorkspaceName": {
+            "type": "string",
+            "defaultValue": "[concat('clipper-logs-', uniqueString(resourceGroup().id))]",
+            "metadata": {
+                "description": "Name for the Log Analytics workspace (only used if enableLogging is true)"
+            }
         }
     },
     "variables": {
@@ -111,14 +125,29 @@
             }
         },
         {
+            "condition": "[parameters('enableLogging')]",
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2015-11-01-preview",
+            "name": "[parameters('logAnalyticsWorkspaceName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "PerGB2018"
+                },
+                "retentionInDays": 30
+            }
+        },
+        {
             "type": "Microsoft.ContainerInstance/containerGroups",
             "apiVersion": "2023-05-01",
             "name": "[parameters('containerGroupName')]",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', parameters('fileShareName'))]"
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', parameters('fileShareName'))]",
+                "[if(parameters('enableLogging'), resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '')]"
             ],
             "properties": {
+                "diagnostics": "[if(parameters('enableLogging'), createObject('logAnalytics', createObject('workspaceId', reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2015-11-01-preview').customerId, 'workspaceKey', listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2015-11-01-preview').primarySharedKey, 'logType', 'ContainerInsights')), null())]",
                 "containers": [
                     {
                         "name": "[parameters('containerGroupName')]",
@@ -232,6 +261,11 @@
         "storageAccountName": {
             "type": "string",
             "value": "[parameters('storageAccountName')]"
+        },
+        "logAnalyticsWorkspaceName": {
+            "condition": "[parameters('enableLogging')]",
+            "type": "string",
+            "value": "[parameters('logAnalyticsWorkspaceName')]"
         }
     }
 }
