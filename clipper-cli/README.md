@@ -379,6 +379,42 @@ CLIPPER_TOKEN=your-secret-token clipper-cli search "hello"
 
 The token is sent as an `Authorization: Bearer <token>` header with all requests.
 
+## Self-Signed Certificate Support
+
+When connecting to an HTTPS server with a self-signed certificate, clipper-cli provides SSH-like certificate verification:
+
+1. **First connection**: The CLI detects the untrusted certificate and displays:
+   - A warning that the certificate is not signed by a trusted CA
+   - Possible reasons (self-signed, unknown CA, or potential MITM attack)
+   - The server's SHA-256 certificate fingerprint for verification
+
+2. **User confirmation**: You'll be prompted to confirm: `Are you sure you want to continue connecting (yes/no)?`
+
+3. **Trust persistence**: If confirmed, the fingerprint is saved to the settings file for future connections
+
+4. **Security warning**: If a previously trusted certificate's fingerprint changes, the CLI displays a prominent warning (similar to SSH's "REMOTE HOST IDENTIFICATION HAS CHANGED") and aborts the connection
+
+Example output:
+```
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@    WARNING: UNTRUSTED SERVER CERTIFICATE!              @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+The server's certificate is not signed by a trusted Certificate Authority (CA).
+This could mean:
+  - The server is using a self-signed certificate
+  - The server's CA is not in your system's trust store
+  - Someone may be intercepting your connection (man-in-the-middle attack)
+
+Host: example.com:443
+SHA-256 Fingerprint:
+  AB:CD:EF:12:34:56:...
+
+Are you sure you want to continue connecting (yes/no)?
+```
+
+Trusted certificates are stored in `trustedCertificates` in the settings.json file (shared with the Clipper desktop app).
+
 ## Requirements
 
 - Rust 1.70 or later (for building)

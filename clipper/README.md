@@ -77,6 +77,21 @@ Settings are stored in platform-specific locations:
 | `notificationsEnabled` | boolean | `true` | Show toast notifications |
 | `defaultSaveLocation` | string | `null` | Default path for file downloads |
 
+### Self-Signed Certificate Support
+
+When connecting to an external HTTPS server with a self-signed certificate:
+
+1. The app displays a security dialog showing:
+   - A warning that the certificate is not signed by a trusted CA
+   - Possible reasons (self-signed, unknown CA, or potential MITM attack)
+   - The server's SHA-256 fingerprint for verification
+
+2. You can choose to trust the certificate, which saves it for future connections
+
+3. If a previously trusted certificate changes, you'll be prompted to verify the new fingerprint
+
+Trusted certificates are stored in `trustedCertificates` in the settings file.
+
 ## Architecture
 
 ```

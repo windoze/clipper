@@ -80,6 +80,7 @@ Settings stored in platform-specific config directory:
 - `notificationsEnabled`: Show toast notifications
 - `bundledServerToken`: Bearer token for bundled server authentication (auto-generated when network access is enabled)
 - `externalServerToken`: Bearer token for external server authentication
+- `trustedCertificates`: Map of host -> SHA-256 fingerprint for trusted self-signed certificates
 
 ## Tauri Commands
 
@@ -145,6 +146,7 @@ The Tauri app implements clip sharing via the `tauriClient.ts` API adapter:
 
 - **Tauri State**: Uses Tauri's managed state for AppState and SettingsManager
 - **Clipboard Loop Prevention**: Last synced content tracked to prevent infinite clipboard-to-server loop
+- **Self-Signed Certificate Trust**: When connecting to HTTPS servers with untrusted certificates, the app shows a dialog explaining the security implications and allowing users to trust the certificate after verifying the fingerprint
 
 ## Error Handling
 

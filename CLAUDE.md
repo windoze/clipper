@@ -144,6 +144,16 @@ Clips can be shared publicly via short URLs:
 - **Expiration**: Default 24 hours, configurable via `CLIPPER_SHORT_URL_EXPIRATION_HOURS`
 - **UI**: Share button appears in Tauri app and Web UI when enabled
 
+### Self-Signed Certificate Trust
+
+Both the CLI and desktop app support connecting to HTTPS servers with self-signed certificates:
+- **Storage**: Trusted certificate fingerprints stored in `trustedCertificates` field of settings.json
+- **Verification**: SHA-256 fingerprint displayed for user verification (similar to SSH)
+- **Security**: Fingerprint change detection warns users (like SSH's "REMOTE HOST IDENTIFICATION HAS CHANGED")
+- **CLI**: Interactive prompt on first connection to untrusted server
+- **Desktop**: UI dialog showing certificate details and trust options
+- **Shared storage**: Both CLI and desktop app share the same trusted certificates store
+
 ### Error Handling
 
 - `clipper_indexer::IndexerError` - core library errors

@@ -19,6 +19,7 @@ English | [简体中文](README.zh-CN.md)
 - **Bundled Server** - Zero-configuration setup with embedded server
 - **Network Sharing** - Share clips across your local network
 - **HTTPS/TLS Support** - Secure connections with manual certificates or automatic Let's Encrypt
+- **Self-Signed Certificates** - Trust self-signed certificates with SSH-like fingerprint verification
 - **Authentication** - Optional Bearer token authentication for API security
 - **Auto-cleanup** - Automatic deletion of old clips based on retention policy
 - **Clip Sharing** - Share clips publicly via short URLs with optional expiration
