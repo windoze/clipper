@@ -9,7 +9,8 @@ use axum::{
 use clap::Parser;
 use clipper_indexer::ClipperIndexer;
 use clipper_server::{
-    AppState, Cli, ServerConfig, api, auth_middleware, run_cleanup_task, websocket,
+    AppState, Cli, ServerConfig, api, auth_middleware, run_clip_cleanup_task,
+    run_short_url_cleanup_task, websocket,
 };
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -109,7 +110,7 @@ async fn main() {
     // Create application state
     let state = AppState::new(indexer, config.clone());
 
-    // Start cleanup task if enabled
+    // Start clip cleanup task if enabled
     if config.cleanup.is_active() {
         tracing::info!(
             "Auto-cleanup enabled: retention={} days, interval={} hours",
@@ -119,7 +120,15 @@ async fn main() {
         let cleanup_state = state.clone();
         let cleanup_config = config.cleanup.clone();
         tokio::spawn(async move {
-            run_cleanup_task(cleanup_state, cleanup_config).await;
+            run_clip_cleanup_task(cleanup_state, cleanup_config).await;
+        });
+    }
+
+    // Start short URL cleanup task (always runs to clean expired short URLs)
+    {
+        let short_url_cleanup_state = state.clone();
+        tokio::spawn(async move {
+            run_short_url_cleanup_task(short_url_cleanup_state).await;
         });
     }
 
