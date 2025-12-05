@@ -51,7 +51,34 @@
   color: #212529;
   font-size: 0.9rem;
   line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.cert-dialog-reasons {
   margin-bottom: 16px;
+}
+
+.cert-dialog-explanation {
+  font-size: 0.85rem;
+  color: #495057;
+  margin: 0 0 8px 0;
+}
+
+.cert-dialog-reason-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.85rem;
+  color: #495057;
+  line-height: 1.6;
+}
+
+.cert-dialog-reason-list li {
+  margin-bottom: 4px;
+}
+
+.cert-dialog-reason-list li:last-child {
+  margin-bottom: 0;
+  color: #dc3545;
 }
 
 .cert-dialog-info {
@@ -102,6 +129,13 @@
   padding: 4px 8px;
   border-radius: 4px;
   color: #212529;
+}
+
+.cert-fingerprint-hint {
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-style: italic;
+  margin-top: 8px;
 }
 
 .cert-dialog-hint {
@@ -188,6 +222,22 @@
   color: #9ca3af;
 }
 
+:root[data-theme="dark"] .cert-dialog-explanation {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .cert-dialog-reason-list {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .cert-dialog-reason-list li:last-child {
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .cert-fingerprint-hint {
+  color: #9ca3af;
+}
+
 :root[data-theme="dark"] .cert-btn.secondary {
   background: #404040;
   color: #e9ecef;
@@ -233,6 +283,22 @@
   }
 
   :root:not([data-theme="light"]) .cert-dialog-hint {
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .cert-dialog-explanation {
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .cert-dialog-reason-list {
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .cert-dialog-reason-list li:last-child {
+    color: #f87171;
+  }
+
+  :root:not([data-theme="light"]) .cert-fingerprint-hint {
     color: #9ca3af;
   }
 

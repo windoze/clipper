@@ -1,9 +1,12 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
-use clipper_client::{ClipperClient, SearchFilters};
+use clipper_client::{fetch_server_certificate, ClipperClient, SearchFilters};
+use std::collections::HashMap;
+use std::io::{self, Write};
 use std::path::PathBuf;
 use tokio::sync::mpsc;
+use url::Url;
 
 mod config;
 
@@ -200,11 +203,30 @@ async fn main() -> Result<()> {
     // Resolve token: CLI arg > env var > config file > None
     let token = cli
         .token
-        .or_else(|| file_config.and_then(|c| c.token));
+        .clone()
+        .or_else(|| file_config.as_ref().and_then(|c| c.token.clone()));
 
-    let client = match token {
-        Some(token) => ClipperClient::new_with_token(url, token),
-        None => ClipperClient::new(url),
+    // Get trusted certificates from config
+    let mut trusted_certificates = file_config
+        .as_ref()
+        .map(|c| c.trusted_certificates.clone())
+        .unwrap_or_default();
+
+    // Get config path for saving trusted certificates
+    let config_path = cli
+        .config
+        .clone()
+        .or_else(|| file_config.as_ref().and_then(|c| c.config_path.clone()))
+        .or_else(config::get_default_config_path);
+
+    // Check certificate for HTTPS URLs
+    if url.starts_with("https://") {
+        trusted_certificates = check_and_trust_certificate(&url, trusted_certificates, config_path.as_deref()).await?;
+    }
+
+    let client = match &token {
+        Some(token) => ClipperClient::new_with_trusted_certs(&url, Some(token.clone()), trusted_certificates),
+        None => ClipperClient::new_with_trusted_certs(&url, None, trusted_certificates),
     };
 
     match cli.command {
@@ -446,4 +468,116 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Check if the server's certificate is trusted, and prompt user to trust if not.
+/// Returns the updated trusted certificates map.
+async fn check_and_trust_certificate(
+    server_url: &str,
+    mut trusted_certificates: HashMap<String, String>,
+    config_path: Option<&std::path::Path>,
+) -> Result<HashMap<String, String>> {
+    // Parse URL to get host and port
+    let parsed_url = Url::parse(server_url).context("Invalid server URL")?;
+    let host = parsed_url
+        .host_str()
+        .context("URL has no host")?
+        .to_string();
+    let port = parsed_url.port().unwrap_or(443);
+
+    // Fetch the certificate
+    let cert_info = match fetch_server_certificate(&host, port).await {
+        Ok(info) => info,
+        Err(e) => {
+            // Connection failed, but might be a different error
+            anyhow::bail!("Failed to connect to {}: {}", server_url, e);
+        }
+    };
+
+    // Check if certificate is system-trusted (valid CA chain)
+    if cert_info.is_system_trusted {
+        return Ok(trusted_certificates);
+    }
+
+    // Check if we already trust this certificate
+    if let Some(trusted_fp) = trusted_certificates.get(&host) {
+        if trusted_fp == &cert_info.fingerprint {
+            return Ok(trusted_certificates);
+        }
+        // Fingerprint changed! Warn the user
+        eprintln!();
+        eprintln!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+        eprintln!("@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!    @");
+        eprintln!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+        eprintln!("IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!");
+        eprintln!("Someone could be eavesdropping on you right now (man-in-the-middle attack)!");
+        eprintln!("It is also possible that the host certificate has just been changed.");
+        eprintln!();
+        eprintln!("Host: {}", host);
+        eprintln!("Expected fingerprint: {}", trusted_fp);
+        eprintln!("Received fingerprint: {}", cert_info.fingerprint);
+        eprintln!();
+        anyhow::bail!("Host certificate verification failed. If you trust this change, remove the old entry from your config file and try again.");
+    }
+
+    // New untrusted certificate - prompt user like SSH does
+    eprintln!();
+    eprintln!("The authenticity of host '{}' can't be established.", host);
+    eprintln!("The server's certificate is not signed by a trusted Certificate Authority (CA).");
+    eprintln!("This could mean:");
+    eprintln!("  - The server is using a self-signed certificate");
+    eprintln!("  - The server's CA is not in your system's trust store");
+    eprintln!("  - Someone may be intercepting your connection (man-in-the-middle attack)");
+    eprintln!();
+    eprintln!("Certificate SHA256 fingerprint:");
+    eprintln!("  {}", format_fingerprint_short(&cert_info.fingerprint));
+    eprintln!();
+
+    // Show full fingerprint in a more readable format
+    eprintln!("Full fingerprint (verify with server administrator):");
+    for chunk in cert_info.fingerprint.split(':').collect::<Vec<_>>().chunks(8) {
+        eprintln!("  {}", chunk.join(":"));
+    }
+    eprintln!();
+
+    // Ask for confirmation
+    eprint!("Are you sure you want to trust this certificate and continue connecting (yes/no)? ");
+    io::stderr().flush()?;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    let input = input.trim().to_lowercase();
+
+    if input != "yes" && input != "y" {
+        anyhow::bail!("Host certificate not trusted. Connection aborted.");
+    }
+
+    // User confirmed - save the certificate
+    trusted_certificates.insert(host.clone(), cert_info.fingerprint.clone());
+
+    // Try to save to config file
+    if let Some(path) = config_path {
+        match config::save_trusted_certificate(path, &host, &cert_info.fingerprint) {
+            Ok(()) => {
+                eprintln!();
+                eprintln!("Warning: Permanently added '{}' to the list of trusted hosts.", host);
+            }
+            Err(e) => {
+                eprintln!();
+                eprintln!("Warning: Could not save trusted certificate to config: {}", e);
+                eprintln!("The certificate will be trusted for this session only.");
+            }
+        }
+    } else {
+        eprintln!();
+        eprintln!("Warning: No config file available. Certificate trusted for this session only.");
+    }
+
+    Ok(trusted_certificates)
+}
+
+/// Format fingerprint in a shorter display format (first 16 bytes as base64-like)
+fn format_fingerprint_short(fingerprint: &str) -> String {
+    // Just show the fingerprint in a condensed format
+    fingerprint.replace(":", "").to_lowercase()
 }

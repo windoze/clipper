@@ -149,9 +149,14 @@ export const en = {
   // Certificate Trust Dialog
   "certificate.title": "Untrusted Certificate",
   "certificate.warning":
-    "The server is using a self-signed or untrusted certificate. Only proceed if you trust this server and have verified the certificate fingerprint.",
+    "The server's certificate is not signed by a trusted Certificate Authority (CA).",
+  "certificate.explanation": "This could mean:",
+  "certificate.reason1": "The server is using a self-signed certificate",
+  "certificate.reason2": "The server's CA is not in your system's trust store",
+  "certificate.reason3": "Someone may be intercepting your connection (man-in-the-middle attack)",
   "certificate.host": "Server",
   "certificate.fingerprint": "SHA-256 Fingerprint",
+  "certificate.fingerprintHint": "Verify this fingerprint with your server administrator",
   "certificate.hint":
     "If you trust this certificate, it will be saved and you won't be prompted again for this server.",
   "certificate.trust": "Trust Certificate",

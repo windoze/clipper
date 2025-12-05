@@ -66,6 +66,15 @@ export function CertificateConfirmDialog({
         <div className="cert-dialog-content">
           <p className="cert-dialog-warning">{t("certificate.warning")}</p>
 
+          <div className="cert-dialog-reasons">
+            <p className="cert-dialog-explanation">{t("certificate.explanation")}</p>
+            <ul className="cert-dialog-reason-list">
+              <li>{t("certificate.reason1")}</li>
+              <li>{t("certificate.reason2")}</li>
+              <li>{t("certificate.reason3")}</li>
+            </ul>
+          </div>
+
           <div className="cert-dialog-info">
             <div className="cert-info-row">
               <span className="cert-info-label">{t("certificate.host")}</span>
@@ -81,6 +90,7 @@ export function CertificateConfirmDialog({
                   </code>
                 ))}
               </div>
+              <span className="cert-fingerprint-hint">{t("certificate.fingerprintHint")}</span>
             </div>
           </div>
 

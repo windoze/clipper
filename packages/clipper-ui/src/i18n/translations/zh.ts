@@ -148,9 +148,14 @@ export const zh = {
   // Certificate Trust Dialog
   "certificate.title": "不受信任的证书",
   "certificate.warning":
-    "服务器使用的是自签名或不受信任的证书。只有在您信任此服务器并已验证证书指纹的情况下才能继续。",
+    "服务器的证书未经受信任的证书颁发机构（CA）签名。",
+  "certificate.explanation": "这可能意味着：",
+  "certificate.reason1": "服务器使用的是自签名证书",
+  "certificate.reason2": "服务器的 CA 不在您的系统信任存储中",
+  "certificate.reason3": "有人可能正在拦截您的连接（中间人攻击）",
   "certificate.host": "服务器",
   "certificate.fingerprint": "SHA-256 指纹",
+  "certificate.fingerprintHint": "请向服务器管理员核实此指纹",
   "certificate.hint":
     "如果您信任此证书，它将被保存，以后连接此服务器时不会再提示。",
   "certificate.trust": "信任证书",

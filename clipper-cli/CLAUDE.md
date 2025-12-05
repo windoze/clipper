@@ -38,6 +38,19 @@ clipper-cli share <id> [--expires <hours>]  # Create a short URL for sharing (re
 - `CLIPPER_URL` - Server URL (default: `http://localhost:3000`)
 - `CLIPPER_TOKEN` - Bearer token for authentication (optional)
 
+## Self-Signed Certificate Support
+
+When connecting to an HTTPS server with a self-signed certificate, clipper-cli will:
+
+1. Detect the untrusted certificate
+2. Display the certificate fingerprint (similar to SSH first-time connection)
+3. Prompt for confirmation: `Are you sure you want to continue connecting (yes/no)?`
+4. If confirmed, save the trusted fingerprint to the config file for future connections
+
+If a previously trusted certificate's fingerprint changes, clipper-cli will display a warning similar to SSH's "REMOTE HOST IDENTIFICATION HAS CHANGED" and abort the connection for security.
+
+Trusted certificates are stored in the `trustedCertificates` field of the settings.json file (shared with the Clipper desktop app).
+
 ## Error Handling
 
 - CLI uses anyhow for error context

@@ -4,7 +4,8 @@
 //! settings file. If the settings file is not available, it falls back to
 //! default values which can be overridden by environment variables or CLI args.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 const APP_IDENTIFIER: &str = "codes.unwritten.clipper";
@@ -12,7 +13,7 @@ const SETTINGS_FILE_NAME: &str = "settings.json";
 
 /// Minimal settings structure that mirrors the desktop app's settings.json
 /// We only deserialize the fields we need for the CLI.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DesktopSettings {
     /// Server address for syncing clips (used when use_bundled_server is false)
@@ -29,6 +30,9 @@ struct DesktopSettings {
     /// Bearer token for bundled server when external access is enabled
     #[serde(default)]
     bundled_server_token: Option<String>,
+    /// Trusted certificate fingerprints (host -> SHA-256 fingerprint)
+    #[serde(default)]
+    trusted_certificates: HashMap<String, String>,
 }
 
 /// Configuration resolved from the desktop app's settings
@@ -36,6 +40,9 @@ struct DesktopSettings {
 pub struct ResolvedConfig {
     pub server_url: String,
     pub token: Option<String>,
+    pub trusted_certificates: HashMap<String, String>,
+    /// Path to the config file (for saving trusted certificates)
+    pub config_path: Option<PathBuf>,
 }
 
 /// Get the platform-specific config directory for the Clipper desktop app
@@ -81,7 +88,12 @@ pub fn load_config_from_path(path: &Path) -> Option<ResolvedConfig> {
         (settings.server_address, settings.external_server_token)
     };
 
-    Some(ResolvedConfig { server_url, token })
+    Some(ResolvedConfig {
+        server_url,
+        token,
+        trusted_certificates: settings.trusted_certificates,
+        config_path: Some(path.to_path_buf()),
+    })
 }
 
 /// Try to load configuration from the Clipper desktop app's settings file.
@@ -90,6 +102,40 @@ pub fn load_desktop_config() -> Option<ResolvedConfig> {
     let config_dir = get_app_config_dir()?;
     let settings_path = config_dir.join(SETTINGS_FILE_NAME);
     load_config_from_path(&settings_path)
+}
+
+/// Get the default config path (desktop app's settings file)
+pub fn get_default_config_path() -> Option<PathBuf> {
+    get_app_config_dir().map(|dir| dir.join(SETTINGS_FILE_NAME))
+}
+
+/// Save a trusted certificate to the config file
+/// This updates the trustedCertificates field in the settings.json
+pub fn save_trusted_certificate(config_path: &Path, host: &str, fingerprint: &str) -> std::io::Result<()> {
+    // Read existing config or create new one
+    let contents = std::fs::read_to_string(config_path).unwrap_or_else(|_| "{}".to_string());
+
+    // Parse as generic JSON to preserve all fields
+    let mut json: serde_json::Value = serde_json::from_str(&contents)
+        .unwrap_or_else(|_| serde_json::json!({}));
+
+    // Ensure trustedCertificates exists
+    if json.get("trustedCertificates").is_none() {
+        json["trustedCertificates"] = serde_json::json!({});
+    }
+
+    // Add the new certificate
+    json["trustedCertificates"][host] = serde_json::Value::String(fingerprint.to_string());
+
+    // Ensure parent directory exists
+    if let Some(parent) = config_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    // Write back
+    let output = serde_json::to_string_pretty(&json)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    std::fs::write(config_path, output)
 }
 
 #[cfg(test)]
