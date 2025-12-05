@@ -11,7 +11,7 @@ mod websocket;
 
 use log::{error, info, warn};
 use server::{ServerManager, get_server_data_dir};
-use settings::{SettingsManager, get_app_config_dir};
+use settings::{MainWindowGeometry, SettingsManager, get_app_config_dir};
 use state::AppState;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
@@ -317,6 +317,28 @@ pub fn run() {
                 let _ = app_handle.set_activation_policy(ActivationPolicy::Accessory);
             }
 
+            // Restore main window geometry from settings
+            if let Some(window) = app_handle.get_webview_window("main") {
+                let geometry = settings_manager.get_main_window_geometry();
+
+                // Restore size if saved
+                if let (Some(width), Some(height)) = (geometry.width, geometry.height) {
+                    let size = tauri::LogicalSize::new(width as f64, height as f64);
+                    let _ = window.set_size(size);
+                }
+
+                // Restore position if saved
+                if let (Some(x), Some(y)) = (geometry.x, geometry.y) {
+                    let position = tauri::LogicalPosition::new(x as f64, y as f64);
+                    let _ = window.set_position(position);
+                }
+
+                // Restore maximized state if saved
+                if let Some(true) = geometry.maximized {
+                    let _ = window.maximize();
+                }
+            }
+
             // Setup system tray with language from settings
             let settings_for_tray = settings_manager.get();
             let tray_language = settings_for_tray.language.as_deref().unwrap_or("en");
@@ -418,6 +440,46 @@ pub fn run() {
                     let _ = window
                         .app_handle()
                         .set_activation_policy(ActivationPolicy::Accessory);
+                }
+                tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
+                    // Save window geometry when moved or resized
+                    // Only save for the main window
+                    if window.label() == "main" {
+                        let app = window.app_handle().clone();
+                        let window_clone = window.clone();
+                        tauri::async_runtime::spawn(async move {
+                            // Get current window state
+                            let is_maximized = window_clone.is_maximized().unwrap_or(false);
+
+                            // Only save geometry if not maximized (to preserve the normal window size)
+                            let geometry = if is_maximized {
+                                MainWindowGeometry {
+                                    width: None,
+                                    height: None,
+                                    x: None,
+                                    y: None,
+                                    maximized: Some(true),
+                                }
+                            } else {
+                                let size = window_clone.outer_size().ok();
+                                let position = window_clone.outer_position().ok();
+                                let scale_factor = window_clone.scale_factor().unwrap_or(1.0);
+
+                                MainWindowGeometry {
+                                    width: size.map(|s| (s.width as f64 / scale_factor) as u32),
+                                    height: size.map(|s| (s.height as f64 / scale_factor) as u32),
+                                    x: position.map(|p| (p.x as f64 / scale_factor) as i32),
+                                    y: position.map(|p| (p.y as f64 / scale_factor) as i32),
+                                    maximized: Some(false),
+                                }
+                            };
+
+                            let settings_manager = app.state::<SettingsManager>();
+                            if let Err(e) = settings_manager.save_main_window_geometry(geometry).await {
+                                log::warn!("Failed to save window geometry: {}", e);
+                            }
+                        });
+                    }
                 }
                 tauri::WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) => {
                     const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB

@@ -41,6 +41,22 @@ pub struct SettingsWindowGeometry {
     pub y: Option<i32>,
 }
 
+/// Main window geometry (size and position)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct MainWindowGeometry {
+    /// Window width
+    pub width: Option<u32>,
+    /// Window height
+    pub height: Option<u32>,
+    /// Window X position (logical)
+    pub x: Option<i32>,
+    /// Window Y position (logical)
+    pub y: Option<i32>,
+    /// Whether the window is maximized
+    pub maximized: Option<bool>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
@@ -94,6 +110,9 @@ pub struct Settings {
     /// Settings dialog window geometry (size and position)
     #[serde(default)]
     pub settings_window_geometry: SettingsWindowGeometry,
+    /// Main window geometry (size and position)
+    #[serde(default)]
+    pub main_window_geometry: MainWindowGeometry,
     /// Trusted certificate fingerprints for self-signed HTTPS servers
     /// Maps server hostname to SHA-256 fingerprint (hex encoded)
     #[serde(default)]
@@ -148,6 +167,7 @@ impl Default for Settings {
             bundled_server_token: None,
             max_upload_size_mb: default_max_upload_size_mb(),
             settings_window_geometry: SettingsWindowGeometry::default(),
+            main_window_geometry: MainWindowGeometry::default(),
             trusted_certificates: std::collections::HashMap::new(),
         }
     }
@@ -309,6 +329,19 @@ impl SettingsManager {
                 .unwrap()
                 .trusted_certificates
                 .remove(host);
+        }
+        self.save().await
+    }
+
+    /// Get the main window geometry
+    pub fn get_main_window_geometry(&self) -> MainWindowGeometry {
+        self.settings.read().unwrap().main_window_geometry.clone()
+    }
+
+    /// Save the main window geometry
+    pub async fn save_main_window_geometry(&self, geometry: MainWindowGeometry) -> Result<(), String> {
+        {
+            self.settings.write().unwrap().main_window_geometry = geometry;
         }
         self.save().await
     }
