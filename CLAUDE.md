@@ -34,6 +34,7 @@ The version info is in following files:
 
 - `Cargo.toml` (workspace and each package)
 - `clipper-server/web/package.json` (Server web UI)
+- `clipper/package.json`
 - `clipper/src-tauri/package.json`
 - `clipper/src-tauri/tauri.conf.json`
 - `packages/clipper-ui/package.json`

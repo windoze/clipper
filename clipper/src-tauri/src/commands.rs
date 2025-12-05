@@ -4,7 +4,7 @@ use crate::settings::{Settings, SettingsManager};
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
 use clipper_client::models::PagedResult;
-use clipper_client::{fetch_server_certificate, Clip, SearchFilters, ServerInfo};
+use clipper_client::{Clip, SearchFilters, ServerInfo, fetch_server_certificate};
 use gethostname::gethostname;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -404,7 +404,8 @@ pub async fn switch_to_external_server(
     // Check if the external server is reachable (but don't block the switch)
     // Use current trusted fingerprints for certificate verification
     let trusted_fingerprints = state.get_trusted_fingerprints();
-    let connection_error = check_server_reachable(&server_url, token.as_deref(), trusted_fingerprints).await;
+    let connection_error =
+        check_server_reachable(&server_url, token.as_deref(), trusted_fingerprints).await;
 
     if let Some(ref err) = connection_error {
         eprintln!(
@@ -558,10 +559,7 @@ pub fn update_global_shortcut(app: tauri::AppHandle, shortcut: String) -> Result
 #[tauri::command]
 pub async fn get_server_info(state: State<'_, AppState>) -> Result<ServerInfo, String> {
     let client = state.client();
-    let info = client
-        .get_server_info()
-        .await
-        .map_err(|e| e.to_string())?;
+    let info = client.get_server_info().await.map_err(|e| e.to_string())?;
 
     // Update the max upload size in app state
     state.set_max_upload_size_bytes(info.config.max_upload_size_bytes);
@@ -617,10 +615,27 @@ pub async fn check_for_updates(app: tauri::AppHandle) -> Result<Option<UpdateInf
     }
 }
 
+/// Progress information for update download
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadProgress {
+    /// Bytes downloaded so far
+    pub downloaded_bytes: u64,
+    /// Total bytes to download (if known)
+    pub total_bytes: Option<u64>,
+    /// Download percentage (0-100)
+    pub percentage: Option<u32>,
+    /// Download speed in bytes per second
+    pub speed_bytes_per_sec: Option<u64>,
+}
+
 /// Download and install the available update
 /// This will download the update and prompt the user to restart
 #[tauri::command]
 pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::Instant;
     use tauri::Emitter;
     use tauri_plugin_updater::UpdaterExt;
 
@@ -628,30 +643,143 @@ pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
 
     match updater.check().await {
         Ok(Some(update)) => {
-            // Emit progress events during download
+            // Track download progress with timing for speed calculation
+            let downloaded_bytes = Arc::new(AtomicU64::new(0));
+            let start_time = Arc::new(std::sync::Mutex::new(Instant::now()));
+            let last_emit_time = Arc::new(std::sync::Mutex::new(Instant::now()));
+
             let app_handle = app.clone();
+            let downloaded_bytes_clone = downloaded_bytes.clone();
+            let start_time_clone = start_time.clone();
+            let last_emit_time_clone = last_emit_time.clone();
+
+            let app_handle_finished = app.clone();
+            let downloaded_bytes_finished = downloaded_bytes.clone();
+
             update
                 .download_and_install(
-                    |chunk_length, content_length| {
-                        let progress = content_length.map(|total| {
-                            (chunk_length as f64 / total as f64 * 100.0) as u32
+                    move |chunk_length, content_length| {
+                        // Update total downloaded bytes
+                        let current_downloaded = downloaded_bytes_clone
+                            .fetch_add(chunk_length as u64, Ordering::SeqCst)
+                            + chunk_length as u64;
+
+                        // Throttle emissions to avoid overwhelming the frontend (max every 100ms)
+                        let now = Instant::now();
+                        let mut last_emit = last_emit_time_clone.lock().unwrap();
+                        if now.duration_since(*last_emit).as_millis() < 100 {
+                            return;
+                        }
+                        *last_emit = now;
+                        drop(last_emit);
+
+                        // Calculate speed
+                        let elapsed = {
+                            let start = start_time_clone.lock().unwrap();
+                            now.duration_since(*start).as_secs_f64()
+                        };
+                        let speed_bytes_per_sec = if elapsed > 0.0 {
+                            Some((current_downloaded as f64 / elapsed) as u64)
+                        } else {
+                            None
+                        };
+
+                        // Calculate percentage
+                        let percentage = content_length.map(|total| {
+                            ((current_downloaded as f64 / total as f64) * 100.0) as u32
                         });
+
+                        let progress = DownloadProgress {
+                            downloaded_bytes: current_downloaded,
+                            total_bytes: content_length,
+                            percentage,
+                            speed_bytes_per_sec,
+                        };
                         let _ = app_handle.emit("update-download-progress", progress);
                     },
-                    || {
-                        let _ = app_handle.emit("update-download-finished", ());
+                    move || {
+                        // Download finished callback - emit update-ready event immediately
+                        // This fires when the download completes, before install starts
+                        let total = downloaded_bytes_finished.load(Ordering::SeqCst);
+                        let progress = DownloadProgress {
+                            downloaded_bytes: total,
+                            total_bytes: Some(total),
+                            percentage: Some(100),
+                            speed_bytes_per_sec: None,
+                        };
+                        let _ = app_handle_finished.emit("update-download-progress", progress);
+                        let _ = app_handle_finished.emit("update-ready", ());
                     },
                 )
                 .await
                 .map_err(|e| e.to_string())?;
 
-            // Emit event that update is ready and app needs restart
+            // Also emit here in case the finished callback didn't fire
             let _ = app.emit("update-ready", ());
 
             Ok(())
         }
         Ok(None) => Err("No update available".to_string()),
         Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Quit the application
+#[tauri::command]
+pub fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+/// Restart the application (quit and relaunch)
+/// On macOS: Uses a detached shell process to relaunch after the current instance exits
+///           (workaround for Tauri v2's broken relaunch() on macOS)
+/// On Windows/Linux: Uses tauri-plugin-process restart which works correctly
+#[tauri::command]
+pub async fn restart_app(
+    app: tauri::AppHandle,
+    server_manager: State<'_, ServerManager>,
+) -> Result<(), String> {
+    // Stop the bundled server first to release the port
+    // This ensures the new instance can start its server without conflicts
+    if let Err(e) = server_manager.stop().await {
+        log::warn!("Failed to stop bundled server during restart: {}", e);
+        // Continue with restart even if server stop fails
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+
+        // Get the path to the current executable
+        if let Ok(exe_path) = std::env::current_exe() {
+            // The exe is at Something.app/Contents/MacOS/something
+            // We want to open Something.app
+            if let Some(macos_dir) = exe_path.parent()
+                && let Some(contents_dir) = macos_dir.parent()
+                && let Some(app_dir) = contents_dir.parent()
+            {
+                let app_path = app_dir.to_string_lossy().to_string();
+                // Use a shell command that waits for the app to exit, then relaunches
+                // The shell process is detached and will survive the app exit
+                let _ = Command::new("sh")
+                    .arg("-c")
+                    .arg(format!(
+                        "sleep 1 && open '{}'",
+                        app_path.replace("'", "'\\''")
+                    ))
+                    .spawn();
+            }
+        }
+        // Exit the current instance
+        app.exit(0);
+
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        // On Windows and Linux, use Tauri's built-in restart
+        app.restart();
     }
 }
 
@@ -697,8 +825,7 @@ pub async fn check_server_certificate(
     use tauri::Url;
 
     // Parse the URL to get host and port
-    let url = Url::parse(&server_url)
-        .map_err(|e| format!("Invalid URL: {}", e))?;
+    let url = Url::parse(&server_url).map_err(|e| format!("Invalid URL: {}", e))?;
 
     // Check if it's HTTPS
     let is_https = url.scheme() == "https";
@@ -714,7 +841,8 @@ pub async fn check_server_certificate(
         });
     }
 
-    let host = url.host_str()
+    let host = url
+        .host_str()
         .ok_or_else(|| "URL has no host".to_string())?
         .to_string();
     let port = url.port().unwrap_or(443);
@@ -733,7 +861,8 @@ pub async fn check_server_certificate(
 
             // CRITICAL: Check for fingerprint mismatch - potential MITM attack
             // This happens when we have a stored fingerprint but it doesn't match
-            let fingerprint_mismatch = stored_fingerprint.as_ref()
+            let fingerprint_mismatch = stored_fingerprint
+                .as_ref()
                 .map(|stored| stored != &fingerprint)
                 .unwrap_or(false);
 
@@ -744,7 +873,8 @@ pub async fn check_server_certificate(
             // 1. Certificate is NOT system trusted (self-signed or invalid chain)
             // 2. AND user has NOT already trusted it
             // 3. AND there's no fingerprint mismatch (mismatch gets its own dialog)
-            let needs_trust_confirmation = !is_system_trusted && !is_user_trusted && !fingerprint_mismatch;
+            let needs_trust_confirmation =
+                !is_system_trusted && !is_user_trusted && !fingerprint_mismatch;
 
             Ok(ServerCertificateCheckResult {
                 is_https: true,
@@ -756,7 +886,11 @@ pub async fn check_server_certificate(
                 is_trusted,
                 needs_trust_confirmation,
                 fingerprint_mismatch,
-                stored_fingerprint: if fingerprint_mismatch { stored_fingerprint } else { None },
+                stored_fingerprint: if fingerprint_mismatch {
+                    stored_fingerprint
+                } else {
+                    None
+                },
                 error: None,
             })
         }
@@ -784,7 +918,9 @@ pub async fn trust_certificate(
     fingerprint: String,
 ) -> Result<(), String> {
     // Save to settings
-    settings_manager.trust_certificate(host.clone(), fingerprint.clone()).await?;
+    settings_manager
+        .trust_certificate(host.clone(), fingerprint.clone())
+        .await?;
 
     // Update AppState with new trusted fingerprints
     let trusted = settings_manager.get_trusted_certificates();
@@ -793,7 +929,10 @@ pub async fn trust_certificate(
     // Signal WebSocket to reconnect with the new trusted certificate
     state.signal_ws_reconnect();
 
-    eprintln!("[clipper] Trusted certificate for {}: {}", host, fingerprint);
+    eprintln!(
+        "[clipper] Trusted certificate for {}: {}",
+        host, fingerprint
+    );
     Ok(())
 }
 
@@ -869,14 +1008,17 @@ pub async fn ensure_window_size(
             .outer_size()
             .map_err(|e| format!("Failed to get outer size: {}", e))?;
 
-        let chrome_width = ((outer_size.width as f64 - inner_size.width as f64) / scale_factor) as u32;
-        let chrome_height = ((outer_size.height as f64 - inner_size.height as f64) / scale_factor) as u32;
+        let chrome_width =
+            ((outer_size.width as f64 - inner_size.width as f64) / scale_factor) as u32;
+        let chrome_height =
+            ((outer_size.height as f64 - inner_size.height as f64) / scale_factor) as u32;
 
         // Set outer size to achieve desired inner size
         let target_outer_width = new_width + chrome_width;
         let target_outer_height = new_height + chrome_height;
 
-        let new_size = tauri::LogicalSize::new(target_outer_width as f64, target_outer_height as f64);
+        let new_size =
+            tauri::LogicalSize::new(target_outer_width as f64, target_outer_height as f64);
         window
             .set_size(new_size)
             .map_err(|e| format!("Failed to set window size: {}", e))?;

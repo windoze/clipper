@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.16.2] - 2025-12-06
+
+### Added
+- Download progress bar with speed indicator in update settings dialog
+- Restart functionality after update download (spawns new instance after exit)
+
+### Fixed
+- "Download and Install" button remaining visible after update download on macOS
+- "Quit Now" button not working after update download
+- Graceful server shutdown before app restart to avoid port conflicts
+
 ## [0.16.0] - 2025-12-05
 
 ### Added

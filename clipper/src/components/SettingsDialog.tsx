@@ -147,6 +147,13 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateReady, setUpdateReady] = useState(false);
   const [updateChecked, setUpdateChecked] = useState(false);
+  // Download progress state
+  const [downloadProgress, setDownloadProgress] = useState<{
+    percentage: number | null;
+    downloadedBytes: number;
+    totalBytes: number | null;
+    speedBytesPerSec: number | null;
+  } | null>(null);
   // App version for About tab
   const [appVersion, setAppVersion] = useState<string>("");
   // Dialog resizing state
@@ -732,12 +739,19 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const handleInstallUpdate = async () => {
     setInstallingUpdate(true);
     setUpdateError(null);
+    setDownloadProgress(null);
     try {
       await invoke("install_update");
-      // The update-ready event will be emitted by the backend
+      // The command completed successfully, update is ready
+      // Set the state directly in case the event listener misses the event
+      setInstallingUpdate(false);
+      setUpdateReady(true);
+      setDownloadProgress(null);
+      setUpdateInfo(null);
     } catch (e) {
       setUpdateError(String(e));
       setInstallingUpdate(false);
+      setDownloadProgress(null);
     }
   };
 
@@ -746,34 +760,60 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     const unlistenUpdateReady = listen("update-ready", () => {
       setInstallingUpdate(false);
       setUpdateReady(true);
-      // Show different toast message for macOS (relaunch doesn't work on macOS in Tauri v2)
-      showToast(isMac ? t("toast.updateDownloadedMac") : t("toast.updateDownloaded"));
+      setDownloadProgress(null);
+      setUpdateInfo(null); // Clear update info so the download button disappears
+      showToast(t("toast.updateDownloaded"));
+    });
+
+    // Listen for download progress events
+    const unlistenProgress = listen<{
+      downloadedBytes: number;
+      totalBytes: number | null;
+      percentage: number | null;
+      speedBytesPerSec: number | null;
+    }>("update-download-progress", (event) => {
+      setDownloadProgress({
+        percentage: event.payload.percentage ?? null,
+        downloadedBytes: event.payload.downloadedBytes,
+        totalBytes: event.payload.totalBytes ?? null,
+        speedBytesPerSec: event.payload.speedBytesPerSec ?? null,
+      });
     });
 
     return () => {
       unlistenUpdateReady.then((fn) => fn());
+      unlistenProgress.then((fn) => fn());
     };
   }, [showToast, t, isMac]);
 
   // Restart to apply update
   const handleRestartToUpdate = async () => {
     try {
-      // On macOS, relaunch() doesn't work in Tauri v2 (known bug: https://github.com/tauri-apps/tauri/issues/13923)
-      // So we just exit and let the user reopen the app manually
-      if (isMac) {
-        const { exit } = await import("@tauri-apps/plugin-process");
-        await exit(0);
-      } else {
-        // On Windows/Linux, relaunch should work
-        const { relaunch } = await import("@tauri-apps/plugin-process");
-        await relaunch();
-      }
+      // Use our custom restart_app command that spawns a delayed relaunch
+      // before exiting, working around Tauri v2's broken relaunch() on macOS
+      await invoke("restart_app");
     } catch (e) {
       console.error("Failed to restart:", e);
-      // Fallback: just close the app
-      const { exit } = await import("@tauri-apps/plugin-process");
-      await exit(0);
+      // Fallback: try quit_app
+      try {
+        await invoke("quit_app");
+      } catch (e2) {
+        console.error("Fallback exit also failed:", e2);
+      }
     }
+  };
+
+  // Format bytes to human readable string
+  const formatBytes = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  };
+
+  // Format download speed to human readable string
+  const formatSpeed = (bytesPerSec: number): string => {
+    return `${formatBytes(bytesPerSec)}/s`;
   };
 
   // Format shortcut for display (replace Ctrl/Command based on platform)
@@ -1394,14 +1434,14 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
           {updateReady ? (
             <>
               <p className="settings-update-ready">
-                {isMac ? t("settings.updates.restartRequiredMac") : t("settings.updates.restartRequired")}
+                {t("settings.updates.restartRequired")}
               </p>
               <button
                 type="button"
                 className="settings-btn primary"
                 onClick={handleRestartToUpdate}
               >
-                {isMac ? t("settings.updates.quitNow") : t("settings.updates.restartNow")}
+                {t("settings.updates.restartNow")}
               </button>
             </>
           ) : updateInfo ? (
@@ -1419,6 +1459,27 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
                   <pre>{updateInfo.body}</pre>
                 </div>
               )}
+              {installingUpdate && downloadProgress && (
+                <div className="settings-download-progress">
+                  <div className="settings-progress-bar">
+                    <div
+                      className="settings-progress-bar-fill"
+                      style={{ width: `${downloadProgress.percentage ?? 0}%` }}
+                    />
+                  </div>
+                  <div className="settings-progress-info">
+                    <span className="settings-progress-size">
+                      {formatBytes(downloadProgress.downloadedBytes)}
+                      {downloadProgress.totalBytes && ` / ${formatBytes(downloadProgress.totalBytes)}`}
+                    </span>
+                    {downloadProgress.speedBytesPerSec && (
+                      <span className="settings-progress-speed">
+                        {formatSpeed(downloadProgress.speedBytesPerSec)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
               <button
                 type="button"
                 className="settings-btn primary"
@@ -1426,7 +1487,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
                 disabled={installingUpdate}
               >
                 {installingUpdate
-                  ? t("settings.updates.downloading")
+                  ? downloadProgress?.percentage != null
+                    ? `${t("settings.updates.downloading")} ${downloadProgress.percentage}%`
+                    : t("settings.updates.downloading")
                   : t("settings.updates.downloadAndInstall")}
               </button>
             </>

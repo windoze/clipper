@@ -1621,7 +1621,7 @@ dependencies = [
 
 [[package]]
 name = "clipper"
-version = "0.16.1"
+version = "0.16.2"
 dependencies = [
  "arboard",
  "chrono",
@@ -1658,7 +1658,7 @@ dependencies = [
 
 [[package]]
 name = "clipper-cli"
-version = "0.16.1"
+version = "0.16.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1674,7 +1674,7 @@ dependencies = [
 
 [[package]]
 name = "clipper-client"
-version = "0.16.1"
+version = "0.16.2"
 dependencies = [
  "chrono",
  "futures-util",
@@ -1697,7 +1697,7 @@ dependencies = [
 
 [[package]]
 name = "clipper-server"
-version = "0.16.1"
+version = "0.16.2"
 dependencies = [
  "axum",
  "axum-server",
@@ -1738,7 +1738,7 @@ dependencies = [
 
 [[package]]
 name = "clipper-slint"
-version = "0.16.1"
+version = "0.16.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1758,7 +1758,7 @@ dependencies = [
 
 [[package]]
 name = "clipper_indexer"
-version = "0.16.1"
+version = "0.16.2"
 dependencies = [
  "async-compression",
  "bytes",
