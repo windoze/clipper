@@ -616,6 +616,8 @@ pub fn run() {
             commands::untrust_certificate,
             commands::get_trusted_certificates,
             commands::ensure_window_size,
+            commands::quit_app,
+            commands::restart_app,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

@@ -1748,6 +1748,45 @@ body {
   margin-bottom: 8px;
 }
 
+/* Download Progress Bar */
+.settings-download-progress {
+  margin: 12px 0;
+}
+
+.settings-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.settings-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+  transition: width 0.2s ease-out;
+}
+
+.settings-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.settings-progress-size {
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-progress-speed {
+  font-variant-numeric: tabular-nums;
+  color: #667eea;
+  font-weight: 500;
+}
+
 /* Server Info Display */
 .settings-server-info {
   background: #f8f9fa;
@@ -1856,6 +1895,18 @@ body {
   color: #28a745;
 }
 
+:root[data-theme="dark"] .settings-progress-bar {
+  background: #404040;
+}
+
+:root[data-theme="dark"] .settings-progress-info {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-progress-speed {
+  color: #99aaf7;
+}
+
 :root[data-theme="dark"] .settings-server-info {
   background: #363636;
   border-color: #404040;
@@ -1934,6 +1985,18 @@ body {
 
   :root:not([data-theme="light"]) .settings-update-uptodate {
     color: #28a745;
+  }
+
+  :root:not([data-theme="light"]) .settings-progress-bar {
+    background: #404040;
+  }
+
+  :root:not([data-theme="light"]) .settings-progress-info {
+    color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .settings-progress-speed {
+    color: #99aaf7;
   }
 
   :root:not([data-theme="light"]) .settings-server-info {

@@ -617,10 +617,27 @@ pub async fn check_for_updates(app: tauri::AppHandle) -> Result<Option<UpdateInf
     }
 }
 
+/// Progress information for update download
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadProgress {
+    /// Bytes downloaded so far
+    pub downloaded_bytes: u64,
+    /// Total bytes to download (if known)
+    pub total_bytes: Option<u64>,
+    /// Download percentage (0-100)
+    pub percentage: Option<u32>,
+    /// Download speed in bytes per second
+    pub speed_bytes_per_sec: Option<u64>,
+}
+
 /// Download and install the available update
 /// This will download the update and prompt the user to restart
 #[tauri::command]
 pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Arc;
+    use std::time::Instant;
     use tauri::Emitter;
     use tauri_plugin_updater::UpdaterExt;
 
@@ -628,24 +645,78 @@ pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
 
     match updater.check().await {
         Ok(Some(update)) => {
-            // Emit progress events during download
+            // Track download progress with timing for speed calculation
+            let downloaded_bytes = Arc::new(AtomicU64::new(0));
+            let start_time = Arc::new(std::sync::Mutex::new(Instant::now()));
+            let last_emit_time = Arc::new(std::sync::Mutex::new(Instant::now()));
+
             let app_handle = app.clone();
+            let downloaded_bytes_clone = downloaded_bytes.clone();
+            let start_time_clone = start_time.clone();
+            let last_emit_time_clone = last_emit_time.clone();
+
+            let app_handle_finished = app.clone();
+            let downloaded_bytes_finished = downloaded_bytes.clone();
+
             update
                 .download_and_install(
-                    |chunk_length, content_length| {
-                        let progress = content_length.map(|total| {
-                            (chunk_length as f64 / total as f64 * 100.0) as u32
+                    move |chunk_length, content_length| {
+                        // Update total downloaded bytes
+                        let current_downloaded =
+                            downloaded_bytes_clone.fetch_add(chunk_length as u64, Ordering::SeqCst)
+                                + chunk_length as u64;
+
+                        // Throttle emissions to avoid overwhelming the frontend (max every 100ms)
+                        let now = Instant::now();
+                        let mut last_emit = last_emit_time_clone.lock().unwrap();
+                        if now.duration_since(*last_emit).as_millis() < 100 {
+                            return;
+                        }
+                        *last_emit = now;
+                        drop(last_emit);
+
+                        // Calculate speed
+                        let elapsed = {
+                            let start = start_time_clone.lock().unwrap();
+                            now.duration_since(*start).as_secs_f64()
+                        };
+                        let speed_bytes_per_sec = if elapsed > 0.0 {
+                            Some((current_downloaded as f64 / elapsed) as u64)
+                        } else {
+                            None
+                        };
+
+                        // Calculate percentage
+                        let percentage = content_length.map(|total| {
+                            ((current_downloaded as f64 / total as f64) * 100.0) as u32
                         });
+
+                        let progress = DownloadProgress {
+                            downloaded_bytes: current_downloaded,
+                            total_bytes: content_length,
+                            percentage,
+                            speed_bytes_per_sec,
+                        };
                         let _ = app_handle.emit("update-download-progress", progress);
                     },
-                    || {
-                        let _ = app_handle.emit("update-download-finished", ());
+                    move || {
+                        // Download finished callback - emit update-ready event immediately
+                        // This fires when the download completes, before install starts
+                        let total = downloaded_bytes_finished.load(Ordering::SeqCst);
+                        let progress = DownloadProgress {
+                            downloaded_bytes: total,
+                            total_bytes: Some(total),
+                            percentage: Some(100),
+                            speed_bytes_per_sec: None,
+                        };
+                        let _ = app_handle_finished.emit("update-download-progress", progress);
+                        let _ = app_handle_finished.emit("update-ready", ());
                     },
                 )
                 .await
                 .map_err(|e| e.to_string())?;
 
-            // Emit event that update is ready and app needs restart
+            // Also emit here in case the finished callback didn't fire
             let _ = app.emit("update-ready", ());
 
             Ok(())
@@ -653,6 +724,77 @@ pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
         Ok(None) => Err("No update available".to_string()),
         Err(e) => Err(e.to_string()),
     }
+}
+
+/// Quit the application
+#[tauri::command]
+pub fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+/// Restart the application (quit and relaunch)
+/// Uses a detached shell process to relaunch after the current instance exits
+#[tauri::command]
+pub async fn restart_app(
+    app: tauri::AppHandle,
+    server_manager: State<'_, ServerManager>,
+) -> Result<(), String> {
+    use std::process::Command;
+
+    // Stop the bundled server first to release the port
+    // This ensures the new instance can start its server without conflicts
+    if let Err(e) = server_manager.stop().await {
+        log::warn!("Failed to stop bundled server during restart: {}", e);
+        // Continue with restart even if server stop fails
+    }
+
+    // Get the path to the current executable
+    if let Ok(exe_path) = std::env::current_exe() {
+        #[cfg(target_os = "macos")]
+        {
+            // The exe is at Something.app/Contents/MacOS/something
+            // We want to open Something.app
+            if let Some(macos_dir) = exe_path.parent() {
+                if let Some(contents_dir) = macos_dir.parent() {
+                    if let Some(app_dir) = contents_dir.parent() {
+                        let app_path = app_dir.to_string_lossy().to_string();
+                        // Use a shell command that waits for the app to exit, then relaunches
+                        // The shell process is detached and will survive the app exit
+                        let _ = Command::new("sh")
+                            .arg("-c")
+                            .arg(format!(
+                                "sleep 1 && open '{}'",
+                                app_path.replace("'", "'\\''")
+                            ))
+                            .spawn();
+                    }
+                }
+            }
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            let exe = exe_path.to_string_lossy().to_string();
+            // Use cmd to delay and restart
+            let _ = Command::new("cmd")
+                .args(["/C", "timeout", "/t", "1", "/nobreak", ">nul", "&&", &exe])
+                .spawn();
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            let exe = exe_path.to_string_lossy().to_string();
+            let _ = Command::new("sh")
+                .arg("-c")
+                .arg(format!("sleep 1 && '{}'", exe.replace("'", "'\\''")))
+                .spawn();
+        }
+    }
+
+    // Exit the current instance
+    app.exit(0);
+
+    Ok(())
 }
 
 // ============ Certificate Commands ============
