@@ -64,9 +64,32 @@ async fn check_and_emit_certificate_trust(app: &AppHandle, url: &str) -> bool {
             Ok(cert_info) => {
                 let fingerprint = cert_info.fingerprint.clone();
                 let is_system_trusted = cert_info.is_system_trusted;
+
+                // Check if we have a stored fingerprint for this host
+                let stored_fingerprint = settings_manager.get_stored_fingerprint(&host);
                 let is_user_trusted = settings_manager.is_certificate_trusted(&host, &fingerprint);
 
-                // Only emit if certificate is not trusted at all
+                // CRITICAL: Check for fingerprint mismatch - potential MITM attack
+                let fingerprint_mismatch = stored_fingerprint.as_ref()
+                    .map(|stored| stored != &fingerprint)
+                    .unwrap_or(false);
+
+                if fingerprint_mismatch {
+                    // This is a critical security warning - fingerprint changed!
+                    eprintln!("CRITICAL: Certificate fingerprint mismatch for {}!", host);
+                    let _ = app.emit(
+                        "certificate-fingerprint-mismatch",
+                        serde_json::json!({
+                            "host": host,
+                            "fingerprint": fingerprint,
+                            "storedFingerprint": stored_fingerprint,
+                            "isTrusted": false
+                        }),
+                    );
+                    return true;
+                }
+
+                // Only emit trust required if certificate is not trusted at all
                 if !is_system_trusted && !is_user_trusted {
                     eprintln!("Certificate trust required for {}", host);
                     let _ = app.emit(

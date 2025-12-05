@@ -678,6 +678,11 @@ pub struct ServerCertificateCheckResult {
     pub is_trusted: bool,
     /// Whether the certificate is self-signed or has verification issues
     pub needs_trust_confirmation: bool,
+    /// Whether the certificate fingerprint has changed from previously trusted
+    /// This is a critical security warning - potential MITM attack
+    pub fingerprint_mismatch: bool,
+    /// The previously stored fingerprint if there's a mismatch
+    pub stored_fingerprint: Option<String>,
     /// Error message if certificate couldn't be retrieved
     pub error: Option<String>,
 }
@@ -703,6 +708,8 @@ pub async fn check_server_certificate(
             certificate: None,
             is_trusted: true, // HTTP doesn't need certificate trust
             needs_trust_confirmation: false,
+            fingerprint_mismatch: false,
+            stored_fingerprint: None,
             error: None,
         });
     }
@@ -718,8 +725,17 @@ pub async fn check_server_certificate(
             let fingerprint = cert_info.fingerprint.clone();
             let is_system_trusted = cert_info.is_system_trusted;
 
+            // Check if we have a stored fingerprint for this host
+            let stored_fingerprint = settings_manager.get_stored_fingerprint(&host);
+
             // Check if this certificate is already trusted by us (in settings)
             let is_user_trusted = settings_manager.is_certificate_trusted(&host, &fingerprint);
+
+            // CRITICAL: Check for fingerprint mismatch - potential MITM attack
+            // This happens when we have a stored fingerprint but it doesn't match
+            let fingerprint_mismatch = stored_fingerprint.as_ref()
+                .map(|stored| stored != &fingerprint)
+                .unwrap_or(false);
 
             // Certificate is trusted if it passes system verification OR if user has trusted it
             let is_trusted = is_system_trusted || is_user_trusted;
@@ -727,7 +743,8 @@ pub async fn check_server_certificate(
             // Only need confirmation if:
             // 1. Certificate is NOT system trusted (self-signed or invalid chain)
             // 2. AND user has NOT already trusted it
-            let needs_trust_confirmation = !is_system_trusted && !is_user_trusted;
+            // 3. AND there's no fingerprint mismatch (mismatch gets its own dialog)
+            let needs_trust_confirmation = !is_system_trusted && !is_user_trusted && !fingerprint_mismatch;
 
             Ok(ServerCertificateCheckResult {
                 is_https: true,
@@ -738,6 +755,8 @@ pub async fn check_server_certificate(
                 }),
                 is_trusted,
                 needs_trust_confirmation,
+                fingerprint_mismatch,
+                stored_fingerprint: if fingerprint_mismatch { stored_fingerprint } else { None },
                 error: None,
             })
         }
@@ -748,6 +767,8 @@ pub async fn check_server_certificate(
                 certificate: None,
                 is_trusted: false,
                 needs_trust_confirmation: false,
+                fingerprint_mismatch: false,
+                stored_fingerprint: None,
                 error: Some(e.to_string()),
             })
         }

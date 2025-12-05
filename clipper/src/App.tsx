@@ -18,6 +18,7 @@ import { TitleBar } from "./components/TitleBar";
 import { DropZone } from "./components/DropZone";
 import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
 import { CertificateConfirmDialog, CertificateInfo } from "./components/CertificateConfirmDialog";
+import { CertificateMismatchDialog, CertificateMismatchInfo } from "./components/CertificateMismatchDialog";
 import "./App.css";
 
 // Detect platform from user agent
@@ -38,6 +39,10 @@ function App() {
   const [certificateDialogOpen, setCertificateDialogOpen] = useState(false);
   const [pendingCertificate, setPendingCertificate] = useState<CertificateInfo | null>(null);
   const [certificateTrusting, setCertificateTrusting] = useState(false);
+  // Certificate mismatch dialog state (critical MITM warning)
+  const [mismatchDialogOpen, setMismatchDialogOpen] = useState(false);
+  const [pendingMismatch, setPendingMismatch] = useState<CertificateMismatchInfo | null>(null);
+  const [mismatchAccepting, setMismatchAccepting] = useState(false);
   const {
     clips,
     loading,
@@ -136,7 +141,7 @@ function App() {
   useEffect(() => {
     const unlistenCertTrust = listen<CertificateInfo>("certificate-trust-required", (event) => {
       // Only show dialog if not already open
-      if (!certificateDialogOpen) {
+      if (!certificateDialogOpen && !mismatchDialogOpen) {
         setPendingCertificate(event.payload);
         setCertificateDialogOpen(true);
       }
@@ -145,7 +150,25 @@ function App() {
     return () => {
       unlistenCertTrust.then((fn) => fn());
     };
-  }, [certificateDialogOpen]);
+  }, [certificateDialogOpen, mismatchDialogOpen]);
+
+  // Listen for certificate fingerprint mismatch events (critical MITM warning)
+  useEffect(() => {
+    const unlistenMismatch = listen<CertificateMismatchInfo>("certificate-fingerprint-mismatch", (event) => {
+      // Mismatch takes priority - always show if not already open
+      if (!mismatchDialogOpen) {
+        setPendingMismatch(event.payload);
+        setMismatchDialogOpen(true);
+        // Close regular certificate dialog if open
+        setCertificateDialogOpen(false);
+        setPendingCertificate(null);
+      }
+    });
+
+    return () => {
+      unlistenMismatch.then((fn) => fn());
+    };
+  }, [mismatchDialogOpen]);
 
   // Certificate trust handlers
   const handleCertificateConfirm = useCallback(async () => {
@@ -172,6 +195,35 @@ function App() {
   const handleCertificateCancel = useCallback(() => {
     setCertificateDialogOpen(false);
     setPendingCertificate(null);
+  }, []);
+
+  // Certificate mismatch handlers (critical MITM warning)
+  const handleMismatchAcceptRisk = useCallback(async () => {
+    if (!pendingMismatch) return;
+
+    setMismatchAccepting(true);
+    try {
+      // User is accepting the risk - trust the new certificate
+      await invoke("trust_certificate", {
+        host: pendingMismatch.host,
+        fingerprint: pendingMismatch.fingerprint,
+      });
+      showToast(t("toast.certificateTrusted").replace("{host}", pendingMismatch.host));
+      setMismatchDialogOpen(false);
+      setPendingMismatch(null);
+      // Refresh clips after trusting certificate
+      refetch();
+    } catch (error) {
+      showToast(t("toast.certificateError"), "error");
+    } finally {
+      setMismatchAccepting(false);
+    }
+  }, [pendingMismatch, showToast, t, refetch]);
+
+  const handleMismatchReject = useCallback(() => {
+    // User rejected - just close the dialog, don't connect
+    setMismatchDialogOpen(false);
+    setPendingMismatch(null);
   }, []);
 
   // Listen for data-cleared and server-switched events to refresh clips
@@ -570,6 +622,15 @@ function App() {
           onConfirm={handleCertificateConfirm}
           onCancel={handleCertificateCancel}
           loading={certificateTrusting}
+        />
+
+        {/* Certificate mismatch dialog - critical MITM warning when fingerprint changed */}
+        <CertificateMismatchDialog
+          isOpen={mismatchDialogOpen}
+          mismatchInfo={pendingMismatch}
+          onAcceptRisk={handleMismatchAcceptRisk}
+          onReject={handleMismatchReject}
+          loading={mismatchAccepting}
         />
       </div>
     </DropZone>

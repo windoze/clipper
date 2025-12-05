@@ -142,9 +142,32 @@ async fn check_certificate_on_startup(
             Ok(cert_info) => {
                 let fingerprint = cert_info.fingerprint.clone();
                 let is_system_trusted = cert_info.is_system_trusted;
+
+                // Check if we have a stored fingerprint for this host
+                let stored_fingerprint = settings_manager.get_stored_fingerprint(host);
                 let is_user_trusted = settings_manager.is_certificate_trusted(host, &fingerprint);
 
-                // Only emit if certificate is not trusted at all
+                // CRITICAL: Check for fingerprint mismatch - potential MITM attack
+                let fingerprint_mismatch = stored_fingerprint.as_ref()
+                    .map(|stored| stored != &fingerprint)
+                    .unwrap_or(false);
+
+                if fingerprint_mismatch {
+                    // This is a critical security warning - fingerprint changed!
+                    warn!("CRITICAL: Certificate fingerprint mismatch on startup for {}!", host);
+                    let _ = app.emit(
+                        "certificate-fingerprint-mismatch",
+                        serde_json::json!({
+                            "host": host,
+                            "fingerprint": fingerprint,
+                            "storedFingerprint": stored_fingerprint,
+                            "isTrusted": false
+                        }),
+                    );
+                    return;
+                }
+
+                // Only emit trust required if certificate is not trusted at all
                 if !is_system_trusted && !is_user_trusted {
                     info!("Certificate trust required on startup for {}", host);
                     let _ = app.emit(

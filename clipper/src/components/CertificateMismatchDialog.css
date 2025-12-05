@@ -1,0 +1,421 @@
+.mismatch-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.mismatch-dialog {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 560px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(220, 38, 38, 0.3);
+  border: 2px solid #dc2626;
+}
+
+.mismatch-dialog-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.mismatch-dialog-icon {
+  color: #dc2626;
+  margin-bottom: 12px;
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+.mismatch-dialog-header h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.mismatch-dialog-content {
+  margin-bottom: 24px;
+}
+
+.mismatch-critical-warning {
+  background: #dc2626;
+  color: white;
+  border-radius: 6px;
+  padding: 12px 16px;
+  text-align: center;
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+}
+
+.mismatch-dialog-warning {
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #212529;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.mismatch-dialog-explanation {
+  margin-bottom: 16px;
+}
+
+.mismatch-dialog-explanation p {
+  font-size: 0.85rem;
+  color: #495057;
+  margin: 0 0 8px 0;
+}
+
+.mismatch-reason-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.85rem;
+  color: #495057;
+  line-height: 1.6;
+}
+
+.mismatch-reason-list li {
+  margin-bottom: 4px;
+}
+
+.mismatch-reason-danger {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.mismatch-dialog-info {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #e9ecef;
+}
+
+.mismatch-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.mismatch-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.mismatch-info-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mismatch-label-stored {
+  color: #059669;
+}
+
+.mismatch-label-new {
+  color: #dc2626;
+}
+
+.mismatch-info-value {
+  font-size: 0.9rem;
+  color: #212529;
+}
+
+.mismatch-host {
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.mismatch-fingerprint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mismatch-fingerprint-stored .mismatch-fingerprint-group {
+  background: rgba(5, 150, 105, 0.15);
+  border: 1px solid rgba(5, 150, 105, 0.3);
+  text-decoration: line-through;
+  color: #059669;
+}
+
+.mismatch-fingerprint-new .mismatch-fingerprint-group {
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: #dc2626;
+}
+
+.mismatch-fingerprint-group {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.mismatch-recommendation {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.mismatch-recommendation p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.mismatch-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.mismatch-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.mismatch-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mismatch-btn.reject {
+  background: #10b981;
+  color: white;
+  border: 1px solid #059669;
+}
+
+.mismatch-btn.reject:hover:not(:disabled) {
+  background: #059669;
+}
+
+.mismatch-btn.danger {
+  background: #ffffff;
+  color: #dc2626;
+  border: 2px solid #dc2626;
+}
+
+.mismatch-btn.danger:hover:not(:disabled) {
+  background: #dc2626;
+  color: white;
+}
+
+/* Dark mode */
+:root[data-theme="dark"] .mismatch-dialog {
+  background: #1f1f1f;
+  border-color: #dc2626;
+}
+
+:root[data-theme="dark"] .mismatch-dialog-header h2 {
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .mismatch-critical-warning {
+  background: #991b1b;
+}
+
+:root[data-theme="dark"] .mismatch-dialog-warning {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.4);
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .mismatch-dialog-explanation p {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .mismatch-reason-list {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .mismatch-reason-danger {
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .mismatch-dialog-info {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .mismatch-info-label {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] .mismatch-label-stored {
+  color: #34d399;
+}
+
+:root[data-theme="dark"] .mismatch-label-new {
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .mismatch-info-value {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .mismatch-fingerprint-stored .mismatch-fingerprint-group {
+  background: rgba(52, 211, 153, 0.2);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #34d399;
+}
+
+:root[data-theme="dark"] .mismatch-fingerprint-new .mismatch-fingerprint-group {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #f87171;
+}
+
+:root[data-theme="dark"] .mismatch-recommendation {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+:root[data-theme="dark"] .mismatch-recommendation p {
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] .mismatch-btn.reject {
+  background: #059669;
+  border-color: #047857;
+}
+
+:root[data-theme="dark"] .mismatch-btn.reject:hover:not(:disabled) {
+  background: #047857;
+}
+
+:root[data-theme="dark"] .mismatch-btn.danger {
+  background: #2d2d2d;
+  color: #f87171;
+  border-color: #dc2626;
+}
+
+:root[data-theme="dark"] .mismatch-btn.danger:hover:not(:disabled) {
+  background: #991b1b;
+  color: white;
+}
+
+/* Media query fallback for auto theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mismatch-dialog {
+    background: #1f1f1f;
+    border-color: #dc2626;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-dialog-header h2 {
+    color: #f87171;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-critical-warning {
+    background: #991b1b;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-dialog-warning {
+    background: rgba(220, 38, 38, 0.2);
+    border-color: rgba(220, 38, 38, 0.4);
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-dialog-explanation p {
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-reason-list {
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-reason-danger {
+    color: #f87171;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-dialog-info {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-info-label {
+    color: #9ca3af;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-label-stored {
+    color: #34d399;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-label-new {
+    color: #f87171;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-info-value {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-fingerprint-stored .mismatch-fingerprint-group {
+    background: rgba(52, 211, 153, 0.2);
+    border-color: rgba(52, 211, 153, 0.4);
+    color: #34d399;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-fingerprint-new .mismatch-fingerprint-group {
+    background: rgba(248, 113, 113, 0.2);
+    border-color: rgba(248, 113, 113, 0.4);
+    color: #f87171;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-recommendation {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+
+  :root:not([data-theme="light"]) .mismatch-recommendation p {
+    color: #fbbf24;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-btn.reject {
+    background: #059669;
+    border-color: #047857;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-btn.reject:hover:not(:disabled) {
+    background: #047857;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-btn.danger {
+    background: #2d2d2d;
+    color: #f87171;
+    border-color: #dc2626;
+  }
+
+  :root:not([data-theme="light"]) .mismatch-btn.danger:hover:not(:disabled) {
+    background: #991b1b;
+    color: white;
+  }
+}

@@ -279,6 +279,16 @@ impl SettingsManager {
             .unwrap_or(false)
     }
 
+    /// Get the stored fingerprint for a host, if any
+    pub fn get_stored_fingerprint(&self, host: &str) -> Option<String> {
+        self.settings
+            .read()
+            .unwrap()
+            .trusted_certificates
+            .get(host)
+            .cloned()
+    }
+
     /// Add a trusted certificate fingerprint for a host
     pub async fn trust_certificate(&self, host: String, fingerprint: String) -> Result<(), String> {
         {

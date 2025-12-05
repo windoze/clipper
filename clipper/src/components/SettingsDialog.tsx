@@ -10,6 +10,7 @@ import {
 } from "@unwritten-codes/clipper-ui";
 import type { Language, SyntaxTheme } from "@unwritten-codes/clipper-ui";
 import { CertificateConfirmDialog, CertificateInfo } from "./CertificateConfirmDialog";
+import { CertificateMismatchDialog, CertificateMismatchInfo } from "./CertificateMismatchDialog";
 
 export type ThemePreference = "light" | "dark" | "auto";
 
@@ -70,6 +71,8 @@ interface ServerCertificateCheckResult {
   certificate: CertificateInfo | null;
   isTrusted: boolean;
   needsTrustConfirmation: boolean;
+  fingerprintMismatch: boolean;
+  storedFingerprint: string | null;
   error: string | null;
 }
 
@@ -155,6 +158,10 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const [pendingCertificate, setPendingCertificate] = useState<CertificateInfo | null>(null);
   const [pendingServerUrl, setPendingServerUrl] = useState<string>("");
   const [trustingCertificate, setTrustingCertificate] = useState(false);
+  // Certificate mismatch dialog state (critical MITM warning)
+  const [showMismatchDialog, setShowMismatchDialog] = useState(false);
+  const [pendingMismatch, setPendingMismatch] = useState<CertificateMismatchInfo | null>(null);
+  const [acceptingMismatch, setAcceptingMismatch] = useState(false);
 
   // Load settings when dialog opens
   useEffect(() => {
@@ -453,6 +460,20 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
       // Check if the server has a certificate that needs trust confirmation
       const certResult = await invoke<ServerCertificateCheckResult>("check_server_certificate", { serverUrl: targetUrl });
 
+      // CRITICAL: Check for fingerprint mismatch first (potential MITM attack)
+      if (certResult.fingerprintMismatch && certResult.certificate && certResult.storedFingerprint) {
+        // Show critical mismatch warning dialog
+        setPendingMismatch({
+          host: certResult.certificate.host,
+          fingerprint: certResult.certificate.fingerprint,
+          storedFingerprint: certResult.storedFingerprint,
+        });
+        setPendingServerUrl(targetUrl);
+        setShowMismatchDialog(true);
+        setSwitchingServerMode(false);
+        return;
+      }
+
       if (certResult.needsTrustConfirmation && certResult.certificate) {
         // Show certificate confirmation dialog
         setPendingCertificate(certResult.certificate);
@@ -521,6 +542,38 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const handleCertificateCancel = () => {
     setShowCertDialog(false);
     setPendingCertificate(null);
+    setPendingServerUrl("");
+  };
+
+  // Handle certificate mismatch - accept risk (user decides to trust new cert)
+  const handleMismatchAcceptRisk = async () => {
+    if (!pendingMismatch) return;
+
+    setAcceptingMismatch(true);
+    try {
+      // User is accepting the risk - trust the new certificate
+      await invoke("trust_certificate", {
+        host: pendingMismatch.host,
+        fingerprint: pendingMismatch.fingerprint,
+      });
+      showToast(t("toast.certificateTrusted").replace("{host}", pendingMismatch.host));
+
+      // Close dialog and proceed with connection
+      setShowMismatchDialog(false);
+      setPendingMismatch(null);
+      setSwitchingServerMode(true);
+      await completeSwitchToExternalServer(pendingServerUrl);
+    } catch (e) {
+      setError(`Failed to trust certificate: ${e}`);
+    } finally {
+      setAcceptingMismatch(false);
+    }
+  };
+
+  // Handle certificate mismatch - reject (user decides not to proceed)
+  const handleMismatchReject = () => {
+    setShowMismatchDialog(false);
+    setPendingMismatch(null);
     setPendingServerUrl("");
   };
 
@@ -1487,6 +1540,15 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
         onConfirm={handleCertificateConfirm}
         onCancel={handleCertificateCancel}
         loading={trustingCertificate}
+      />
+
+      {/* Certificate mismatch dialog - critical MITM warning */}
+      <CertificateMismatchDialog
+        isOpen={showMismatchDialog}
+        mismatchInfo={pendingMismatch}
+        onAcceptRisk={handleMismatchAcceptRisk}
+        onReject={handleMismatchReject}
+        loading={acceptingMismatch}
       />
     </div>
   );

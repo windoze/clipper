@@ -162,4 +162,23 @@ export const zh = {
   "certificate.trusting": "信任中...",
   "toast.certificateTrusted": "已信任 {host} 的证书",
   "toast.certificateError": "验证证书失败",
+
+  // Certificate Mismatch Dialog (Critical MITM Warning)
+  "certificateMismatch.title": "安全警告：证书已更改",
+  "certificateMismatch.criticalWarning": "警告：远程主机标识已更改！",
+  "certificateMismatch.warning":
+    "此服务器的证书指纹自上次连接以来已发生变化。这是一个严重的安全问题。",
+  "certificateMismatch.explanation": "这可能表示：",
+  "certificateMismatch.reason1": "有人可能正在拦截您的连接（中间人攻击）",
+  "certificateMismatch.reason2": "服务器的证书已合法更新或更换",
+  "certificateMismatch.reason3": "您正在连接的服务器与之前不同",
+  "certificateMismatch.host": "服务器",
+  "certificateMismatch.storedFingerprint": "之前信任的指纹",
+  "certificateMismatch.newFingerprint": "新指纹（当前）",
+  "certificateMismatch.recommendation":
+    "如果您没有预期证书会更改，请不要继续。在继续之前请联系服务器管理员核实新指纹。",
+  "certificateMismatch.reject": "断开连接（推荐）",
+  "certificateMismatch.acceptRisk": "接受风险并继续",
+  "certificateMismatch.accepting": "接受中...",
+  "toast.certificateMismatchDetected": "检测到 {host} 的证书指纹不匹配",
 };

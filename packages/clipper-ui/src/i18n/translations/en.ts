@@ -163,6 +163,25 @@ export const en = {
   "certificate.trusting": "Trusting...",
   "toast.certificateTrusted": "Certificate trusted for {host}",
   "toast.certificateError": "Failed to verify certificate",
+
+  // Certificate Mismatch Dialog (Critical MITM Warning)
+  "certificateMismatch.title": "Security Warning: Certificate Changed",
+  "certificateMismatch.criticalWarning": "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!",
+  "certificateMismatch.warning":
+    "The certificate fingerprint for this server has changed since you last connected. This is a serious security concern.",
+  "certificateMismatch.explanation": "This could indicate:",
+  "certificateMismatch.reason1": "Someone may be intercepting your connection (man-in-the-middle attack)",
+  "certificateMismatch.reason2": "The server's certificate was legitimately renewed or replaced",
+  "certificateMismatch.reason3": "You are connecting to a different server than before",
+  "certificateMismatch.host": "Server",
+  "certificateMismatch.storedFingerprint": "Previously Trusted Fingerprint",
+  "certificateMismatch.newFingerprint": "New Fingerprint (Current)",
+  "certificateMismatch.recommendation":
+    "If you did not expect the certificate to change, do NOT proceed. Contact your server administrator to verify the new fingerprint before continuing.",
+  "certificateMismatch.reject": "Disconnect (Recommended)",
+  "certificateMismatch.acceptRisk": "Accept Risk & Continue",
+  "certificateMismatch.accepting": "Accepting...",
+  "toast.certificateMismatchDetected": "Certificate fingerprint mismatch detected for {host}",
 };
 
 export type TranslationKey = keyof typeof en;
