@@ -11,6 +11,7 @@ import {
 import type { Language, SyntaxTheme } from "@unwritten-codes/clipper-ui";
 import { CertificateConfirmDialog, CertificateInfo } from "./CertificateConfirmDialog";
 import { CertificateMismatchDialog, CertificateMismatchInfo } from "./CertificateMismatchDialog";
+import { useEnsureWindowSize } from "../hooks/useEnsureWindowSize";
 
 export type ThemePreference = "light" | "dark" | "auto";
 
@@ -162,6 +163,11 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const [showMismatchDialog, setShowMismatchDialog] = useState(false);
   const [pendingMismatch, setPendingMismatch] = useState<CertificateMismatchInfo | null>(null);
   const [acceptingMismatch, setAcceptingMismatch] = useState(false);
+
+  // Ensure window is large enough to show the settings dialog
+  // Settings dialog requires min-width: 500px, min-height: 450px (from CSS)
+  // Add some padding for window chrome
+  useEnsureWindowSize(isOpen, 550, 500);
 
   // Load settings when dialog opens
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { useI18n } from "@unwritten-codes/clipper-ui";
+import { useEnsureWindowSize } from "../hooks/useEnsureWindowSize";
 import "./CertificateMismatchDialog.css";
 
 export interface CertificateMismatchInfo {
@@ -23,6 +24,10 @@ export function CertificateMismatchDialog({
   loading = false,
 }: CertificateMismatchDialogProps) {
   const { t } = useI18n();
+
+  // Ensure window is large enough to show the mismatch dialog
+  // Mismatch dialog requires max-width: 560px, shows two fingerprints so needs more height
+  useEnsureWindowSize(isOpen, 620, 850);
 
   if (!isOpen || !mismatchInfo) return null;
 

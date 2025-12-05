@@ -822,3 +822,68 @@ pub fn get_trusted_certificates(
 ) -> HashMap<String, String> {
     settings_manager.get_trusted_certificates()
 }
+
+/// Ensure the main window is at least the specified size
+/// This is used by dialogs to expand the window if it's too small
+#[tauri::command]
+pub async fn ensure_window_size(
+    app: tauri::AppHandle,
+    min_width: u32,
+    min_height: u32,
+) -> Result<(), String> {
+    use tauri::Manager;
+
+    let window = app
+        .get_webview_window("main")
+        .ok_or("Main window not found")?;
+
+    // Show window if hidden (required for resize to work properly)
+    let was_hidden = !window.is_visible().unwrap_or(true);
+    if was_hidden {
+        #[cfg(target_os = "macos")]
+        {
+            use tauri::ActivationPolicy;
+            let _ = app.set_activation_policy(ActivationPolicy::Regular);
+        }
+        let _ = window.show();
+    }
+
+    let scale_factor = window.scale_factor().unwrap_or(1.0);
+
+    // Get current inner size
+    let inner_size = window
+        .inner_size()
+        .map_err(|e| format!("Failed to get inner size: {}", e))?;
+
+    let current_width = (inner_size.width as f64 / scale_factor) as u32;
+    let current_height = (inner_size.height as f64 / scale_factor) as u32;
+
+    // Calculate new size (only expand, never shrink)
+    let new_width = current_width.max(min_width);
+    let new_height = current_height.max(min_height);
+
+    // Only resize if needed
+    if new_width > current_width || new_height > current_height {
+        // Get outer size to calculate window chrome
+        let outer_size = window
+            .outer_size()
+            .map_err(|e| format!("Failed to get outer size: {}", e))?;
+
+        let chrome_width = ((outer_size.width as f64 - inner_size.width as f64) / scale_factor) as u32;
+        let chrome_height = ((outer_size.height as f64 - inner_size.height as f64) / scale_factor) as u32;
+
+        // Set outer size to achieve desired inner size
+        let target_outer_width = new_width + chrome_width;
+        let target_outer_height = new_height + chrome_height;
+
+        let new_size = tauri::LogicalSize::new(target_outer_width as f64, target_outer_height as f64);
+        window
+            .set_size(new_size)
+            .map_err(|e| format!("Failed to set window size: {}", e))?;
+    }
+
+    // Focus the window
+    let _ = window.set_focus();
+
+    Ok(())
+}

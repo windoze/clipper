@@ -1,4 +1,5 @@
 import { useI18n } from "@unwritten-codes/clipper-ui";
+import { useEnsureWindowSize } from "../hooks/useEnsureWindowSize";
 import "./CertificateConfirmDialog.css";
 
 export interface CertificateInfo {
@@ -23,6 +24,10 @@ export function CertificateConfirmDialog({
   loading = false,
 }: CertificateConfirmDialogProps) {
   const { t } = useI18n();
+
+  // Ensure window is large enough to show the certificate dialog
+  // Certificate dialog requires max-width: 500px, estimated height ~500px
+  useEnsureWindowSize(isOpen, 550, 550);
 
   if (!isOpen || !certificate) return null;
 
