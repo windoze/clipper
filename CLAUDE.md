@@ -177,11 +177,12 @@ Clips can be shared publicly via short URLs:
 - Auto-cleanup with configurable retention
 - Authentication (Bearer token) across all components
 - Clip sharing via short URLs (optional, requires `CLIPPER_SHORT_URL_BASE`)
-
-### Future Work
 - File content preview/rendering improvements
-- Advanced search operators
-- Export/import functionality
-- Clipboard monitoring daemon (standalone)
 - Keyboard shortcuts
 - Global hotkey support
+- Advanced search operators
+
+### Future Work
+- Export/import functionality
+- Clipboard monitoring daemon (standalone)
+- Complete Slint GUI alternative
