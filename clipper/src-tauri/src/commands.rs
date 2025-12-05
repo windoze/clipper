@@ -4,7 +4,7 @@ use crate::settings::{Settings, SettingsManager};
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
 use clipper_client::models::PagedResult;
-use clipper_client::{fetch_server_certificate, Clip, SearchFilters, ServerInfo};
+use clipper_client::{Clip, SearchFilters, ServerInfo, fetch_server_certificate};
 use gethostname::gethostname;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -404,7 +404,8 @@ pub async fn switch_to_external_server(
     // Check if the external server is reachable (but don't block the switch)
     // Use current trusted fingerprints for certificate verification
     let trusted_fingerprints = state.get_trusted_fingerprints();
-    let connection_error = check_server_reachable(&server_url, token.as_deref(), trusted_fingerprints).await;
+    let connection_error =
+        check_server_reachable(&server_url, token.as_deref(), trusted_fingerprints).await;
 
     if let Some(ref err) = connection_error {
         eprintln!(
@@ -558,10 +559,7 @@ pub fn update_global_shortcut(app: tauri::AppHandle, shortcut: String) -> Result
 #[tauri::command]
 pub async fn get_server_info(state: State<'_, AppState>) -> Result<ServerInfo, String> {
     let client = state.client();
-    let info = client
-        .get_server_info()
-        .await
-        .map_err(|e| e.to_string())?;
+    let info = client.get_server_info().await.map_err(|e| e.to_string())?;
 
     // Update the max upload size in app state
     state.set_max_upload_size_bytes(info.config.max_upload_size_bytes);
@@ -635,8 +633,8 @@ pub struct DownloadProgress {
 /// This will download the update and prompt the user to restart
 #[tauri::command]
 pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
-    use std::sync::atomic::{AtomicU64, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::Instant;
     use tauri::Emitter;
     use tauri_plugin_updater::UpdaterExt;
@@ -662,9 +660,9 @@ pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
                 .download_and_install(
                     move |chunk_length, content_length| {
                         // Update total downloaded bytes
-                        let current_downloaded =
-                            downloaded_bytes_clone.fetch_add(chunk_length as u64, Ordering::SeqCst)
-                                + chunk_length as u64;
+                        let current_downloaded = downloaded_bytes_clone
+                            .fetch_add(chunk_length as u64, Ordering::SeqCst)
+                            + chunk_length as u64;
 
                         // Throttle emissions to avoid overwhelming the frontend (max every 100ms)
                         let now = Instant::now();
@@ -756,25 +754,26 @@ pub async fn restart_app(
         if let Ok(exe_path) = std::env::current_exe() {
             // The exe is at Something.app/Contents/MacOS/something
             // We want to open Something.app
-            if let Some(macos_dir) = exe_path.parent() {
-                if let Some(contents_dir) = macos_dir.parent() {
-                    if let Some(app_dir) = contents_dir.parent() {
-                        let app_path = app_dir.to_string_lossy().to_string();
-                        // Use a shell command that waits for the app to exit, then relaunches
-                        // The shell process is detached and will survive the app exit
-                        let _ = Command::new("sh")
-                            .arg("-c")
-                            .arg(format!(
-                                "sleep 1 && open '{}'",
-                                app_path.replace("'", "'\\''")
-                            ))
-                            .spawn();
-                    }
-                }
+            if let Some(macos_dir) = exe_path.parent()
+                && let Some(contents_dir) = macos_dir.parent()
+                && let Some(app_dir) = contents_dir.parent()
+            {
+                let app_path = app_dir.to_string_lossy().to_string();
+                // Use a shell command that waits for the app to exit, then relaunches
+                // The shell process is detached and will survive the app exit
+                let _ = Command::new("sh")
+                    .arg("-c")
+                    .arg(format!(
+                        "sleep 1 && open '{}'",
+                        app_path.replace("'", "'\\''")
+                    ))
+                    .spawn();
             }
         }
         // Exit the current instance
         app.exit(0);
+
+        Ok(())
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -782,8 +781,6 @@ pub async fn restart_app(
         // On Windows and Linux, use Tauri's built-in restart
         app.restart();
     }
-
-    Ok(())
 }
 
 // ============ Certificate Commands ============
@@ -828,8 +825,7 @@ pub async fn check_server_certificate(
     use tauri::Url;
 
     // Parse the URL to get host and port
-    let url = Url::parse(&server_url)
-        .map_err(|e| format!("Invalid URL: {}", e))?;
+    let url = Url::parse(&server_url).map_err(|e| format!("Invalid URL: {}", e))?;
 
     // Check if it's HTTPS
     let is_https = url.scheme() == "https";
@@ -845,7 +841,8 @@ pub async fn check_server_certificate(
         });
     }
 
-    let host = url.host_str()
+    let host = url
+        .host_str()
         .ok_or_else(|| "URL has no host".to_string())?
         .to_string();
     let port = url.port().unwrap_or(443);
@@ -864,7 +861,8 @@ pub async fn check_server_certificate(
 
             // CRITICAL: Check for fingerprint mismatch - potential MITM attack
             // This happens when we have a stored fingerprint but it doesn't match
-            let fingerprint_mismatch = stored_fingerprint.as_ref()
+            let fingerprint_mismatch = stored_fingerprint
+                .as_ref()
                 .map(|stored| stored != &fingerprint)
                 .unwrap_or(false);
 
@@ -875,7 +873,8 @@ pub async fn check_server_certificate(
             // 1. Certificate is NOT system trusted (self-signed or invalid chain)
             // 2. AND user has NOT already trusted it
             // 3. AND there's no fingerprint mismatch (mismatch gets its own dialog)
-            let needs_trust_confirmation = !is_system_trusted && !is_user_trusted && !fingerprint_mismatch;
+            let needs_trust_confirmation =
+                !is_system_trusted && !is_user_trusted && !fingerprint_mismatch;
 
             Ok(ServerCertificateCheckResult {
                 is_https: true,
@@ -887,7 +886,11 @@ pub async fn check_server_certificate(
                 is_trusted,
                 needs_trust_confirmation,
                 fingerprint_mismatch,
-                stored_fingerprint: if fingerprint_mismatch { stored_fingerprint } else { None },
+                stored_fingerprint: if fingerprint_mismatch {
+                    stored_fingerprint
+                } else {
+                    None
+                },
                 error: None,
             })
         }
@@ -915,7 +918,9 @@ pub async fn trust_certificate(
     fingerprint: String,
 ) -> Result<(), String> {
     // Save to settings
-    settings_manager.trust_certificate(host.clone(), fingerprint.clone()).await?;
+    settings_manager
+        .trust_certificate(host.clone(), fingerprint.clone())
+        .await?;
 
     // Update AppState with new trusted fingerprints
     let trusted = settings_manager.get_trusted_certificates();
@@ -924,7 +929,10 @@ pub async fn trust_certificate(
     // Signal WebSocket to reconnect with the new trusted certificate
     state.signal_ws_reconnect();
 
-    eprintln!("[clipper] Trusted certificate for {}: {}", host, fingerprint);
+    eprintln!(
+        "[clipper] Trusted certificate for {}: {}",
+        host, fingerprint
+    );
     Ok(())
 }
 
@@ -1000,14 +1008,17 @@ pub async fn ensure_window_size(
             .outer_size()
             .map_err(|e| format!("Failed to get outer size: {}", e))?;
 
-        let chrome_width = ((outer_size.width as f64 - inner_size.width as f64) / scale_factor) as u32;
-        let chrome_height = ((outer_size.height as f64 - inner_size.height as f64) / scale_factor) as u32;
+        let chrome_width =
+            ((outer_size.width as f64 - inner_size.width as f64) / scale_factor) as u32;
+        let chrome_height =
+            ((outer_size.height as f64 - inner_size.height as f64) / scale_factor) as u32;
 
         // Set outer size to achieve desired inner size
         let target_outer_width = new_width + chrome_width;
         let target_outer_height = new_height + chrome_height;
 
-        let new_size = tauri::LogicalSize::new(target_outer_width as f64, target_outer_height as f64);
+        let new_size =
+            tauri::LogicalSize::new(target_outer_width as f64, target_outer_height as f64);
         window
             .set_size(new_size)
             .map_err(|e| format!("Failed to set window size: {}", e))?;
