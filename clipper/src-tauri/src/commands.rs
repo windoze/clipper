@@ -733,14 +733,14 @@ pub fn quit_app(app: tauri::AppHandle) {
 }
 
 /// Restart the application (quit and relaunch)
-/// Uses a detached shell process to relaunch after the current instance exits
+/// On macOS: Uses a detached shell process to relaunch after the current instance exits
+///           (workaround for Tauri v2's broken relaunch() on macOS)
+/// On Windows/Linux: Uses tauri-plugin-process restart which works correctly
 #[tauri::command]
 pub async fn restart_app(
     app: tauri::AppHandle,
     server_manager: State<'_, ServerManager>,
 ) -> Result<(), String> {
-    use std::process::Command;
-
     // Stop the bundled server first to release the port
     // This ensures the new instance can start its server without conflicts
     if let Err(e) = server_manager.stop().await {
@@ -748,10 +748,12 @@ pub async fn restart_app(
         // Continue with restart even if server stop fails
     }
 
-    // Get the path to the current executable
-    if let Ok(exe_path) = std::env::current_exe() {
-        #[cfg(target_os = "macos")]
-        {
+    #[cfg(target_os = "macos")]
+    {
+        use std::process::Command;
+
+        // Get the path to the current executable
+        if let Ok(exe_path) = std::env::current_exe() {
             // The exe is at Something.app/Contents/MacOS/something
             // We want to open Something.app
             if let Some(macos_dir) = exe_path.parent() {
@@ -771,28 +773,16 @@ pub async fn restart_app(
                 }
             }
         }
-
-        #[cfg(target_os = "windows")]
-        {
-            let exe = exe_path.to_string_lossy().to_string();
-            // Use cmd to delay and restart
-            let _ = Command::new("cmd")
-                .args(["/C", "timeout", "/t", "1", "/nobreak", ">nul", "&&", &exe])
-                .spawn();
-        }
-
-        #[cfg(target_os = "linux")]
-        {
-            let exe = exe_path.to_string_lossy().to_string();
-            let _ = Command::new("sh")
-                .arg("-c")
-                .arg(format!("sleep 1 && '{}'", exe.replace("'", "'\\''")))
-                .spawn();
-        }
+        // Exit the current instance
+        app.exit(0);
     }
 
-    // Exit the current instance
-    app.exit(0);
+    #[cfg(not(target_os = "macos"))]
+    {
+        // On Windows and Linux, use tauri-plugin-process restart
+        use tauri_plugin_process::ProcessExt;
+        app.restart();
+    }
 
     Ok(())
 }
