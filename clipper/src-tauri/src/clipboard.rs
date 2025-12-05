@@ -352,13 +352,23 @@ pub fn start_clipboard_monitor(app: AppHandle) {
 
                             // Check file size
                             if metadata.len() > max_size {
-                                let max_size_mb = max_size as f64 / (1024.0 * 1024.0);
                                 let file_size_mb = metadata.len() as f64 / (1024.0 * 1024.0);
+                                let max_size_mb = max_size / (1024 * 1024);
                                 eprintln!(
-                                    "[clipboard] File {} ({:.2} MB) exceeds maximum allowed size ({:.2} MB), skipping",
+                                    "[clipboard] File {} ({:.2} MB) exceeds maximum allowed size ({} MB), skipping",
                                     path.display(),
                                     file_size_mb,
                                     max_size_mb
+                                );
+                                // Emit error event for toast notification
+                                let _ = app_handle.emit(
+                                    "file-upload-error",
+                                    serde_json::json!({
+                                        "path": path.to_string_lossy(),
+                                        "error": "file_too_large",
+                                        "size_mb": file_size_mb,
+                                        "max_size_mb": max_size_mb
+                                    }),
                                 );
                                 continue;
                             }
