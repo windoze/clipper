@@ -51,7 +51,7 @@ COPY clipper-server ./clipper-server
 COPY --from=web-builder /app/clipper-server/web/dist ./clipper-server/web/dist
 
 # Create a minimal workspace Cargo.toml for the server build
-RUN echo '[workspace]\nmembers = ["clipper-server", "clipper-indexer"]\nresolver = "2"\n[workspace.package]\nversion = "0.16.3"\nedition = "2024"' > Cargo.toml
+RUN echo '[workspace]\nmembers = ["clipper-server", "clipper-indexer"]\nresolver = "2"\n[workspace.package]\nversion = "0.16.4"\nedition = "2024"' > Cargo.toml
 
 # Build release binary with embedded web UI and TLS support
 RUN cargo build --release -p clipper-server --features embed-web,full-tls

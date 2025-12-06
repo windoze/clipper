@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.16.4] - 2025-12-06
+
+### Security
+- Upgraded React to 19.2.1 to address CVE-2025-55182 (note: this project does not use React Server Components and is not affected by this vulnerability)
+
+### Changed
+- Upgraded React to 19.2.1
+- Upgraded TypeScript to 5.9.3
+- Upgraded @vitejs/plugin-react to 5.1.1
+- Upgraded Vite to 7.2.6
+- Upgraded @types/react to 19.2.7
+- Upgraded @types/react-dom to 19.2.3
+
+### Fixed
+- Fixed duplicate React instances issue when using linked packages
+- Optimized build chunks for better caching (split react and highlight.js into separate chunks)
+
 ## [0.16.3] - 2025-12-06
 
 ### Added
