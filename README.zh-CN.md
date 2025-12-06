@@ -3,7 +3,7 @@
 一款现代化、跨平台的剪贴板管理器，支持全文搜索、实时同步，拥有精美的桌面界面。
 
 [![Homepage](https://img.shields.io/badge/homepage-clipper.unwritten.codes-blue)](https://clipper.unwritten.codes)
-![Version](https://img.shields.io/badge/version-0.16.2-blue)
+![Version](https://img.shields.io/badge/version-0.16.4-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -32,7 +32,7 @@
 
 ### 下载
 
-从 [Releases](https://github.com/user/clipper/releases) 页面下载适合你平台的最新版本。
+从 [Releases](https://github.com/windoze/clipper/releases) 页面下载适合你平台的最新版本。
 
 > **注意：** macOS 二进制文件已签名并经过公证。Windows 和 Linux 二进制文件未进行代码签名。请参阅[平台说明](#平台说明)了解各平台的运行方法。
 
@@ -40,7 +40,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/user/clipper.git
+git clone https://github.com/windoze/clipper.git
 cd clipper
 
 # 构建桌面应用
@@ -425,3 +425,4 @@ sudo rpm -i clipper-*.rpm
 - [Tauri](https://tauri.app/) - 桌面应用框架
 - [Axum](https://github.com/tokio-rs/axum) - Web 框架
 - [React](https://react.dev/) - UI 库
+- [Nerd Fonts](https://www.nerdfonts.com/) - Symbols Nerd Font Mono 图标/Powerline 符号字体（MIT 许可证）

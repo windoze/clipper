@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 
-export type SyntaxTheme = "github" | "monokai" | "dracula" | "nord";
+export type SyntaxTheme = "github" | "monokai" | "dracula" | "nord" | "solarized-light" | "solarized-dark" | "one-dark" | "vs-code" | "gruvbox";
 
-export const SYNTAX_THEMES: SyntaxTheme[] = ["github", "monokai", "dracula", "nord"];
+export const SYNTAX_THEMES: SyntaxTheme[] = ["github", "monokai", "dracula", "nord", "solarized-light", "solarized-dark", "one-dark", "vs-code", "gruvbox"];
 
 interface UseSyntaxThemeOptions {
   /** Initial syntax theme */

@@ -64,11 +64,36 @@ export const en = {
   "settings.syntaxTheme.monokai": "Monokai",
   "settings.syntaxTheme.dracula": "Dracula",
   "settings.syntaxTheme.nord": "Nord",
+  "settings.syntaxTheme.solarized-light": "Solarized Light",
+  "settings.syntaxTheme.solarized-dark": "Solarized Dark",
+  "settings.syntaxTheme.one-dark": "One Dark",
+  "settings.syntaxTheme.vs-code": "VS Code",
+  "settings.syntaxTheme.gruvbox": "Gruvbox",
   "settings.syntaxTheme.hint": "Choose the color theme for syntax highlighting in code snippets.",
   "settings.language": "Language",
   "settings.language.hint": "Choose your preferred language.",
   "settings.language.en": "English",
   "settings.language.zh": "Chinese (Simplified)",
+
+  // Settings - About tab (web only)
+  "settings.tab.appearance": "Appearance",
+  "settings.tab.about": "About",
+  "settings.about": "About",
+  "settings.about.serverInfo": "Server Information",
+  "settings.about.version": "Server Version",
+  "settings.about.uptime": "Uptime",
+  "settings.about.totalClips": "Total Clips",
+  "settings.about.tlsEnabled": "TLS Enabled",
+  "settings.about.tlsEnabled.yes": "Yes",
+  "settings.about.tlsEnabled.no": "No",
+  "settings.about.retentionPeriod": "Retention Period",
+  "settings.about.retentionPeriod.days": "{days} days",
+  "settings.about.shortUrlBase": "Short URL Base",
+  "settings.about.updates": "Updates",
+  "settings.about.checkingUpdates": "Checking for updates...",
+  "settings.about.upToDate": "Up to date",
+  "settings.about.updateAvailable": "New version available: {version}",
+  "settings.about.checkFailed": "Failed to check for updates",
 
   // Edit Clip Dialog
   "editClip.title": "Edit Clip",
@@ -81,6 +106,10 @@ export const en = {
 
   // Share Dialog
   "share.title": "Share Clip",
+  "share.warning": "This will create a public link that anyone can use to view this clip without authentication.",
+  "share.warningNote": "The link will expire after {hours} hours.",
+  "share.warningNoteNoExpiry": "The link will never expire.",
+  "share.generate": "Generate Share Link",
   "share.generating": "Generating share link...",
   "share.copy": "Copy",
   "share.copied": "Copied!",
@@ -96,6 +125,7 @@ export const en = {
   "tooltip.refresh": "Refresh",
   "tooltip.copy": "Copy to clipboard",
   "tooltip.sendClipboard": "Send clipboard content",
+  "tooltip.viewNotes": "View notes",
 
   // File Drop
   "fileDrop.hint": "Drop files here to upload",

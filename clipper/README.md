@@ -43,7 +43,7 @@ A cross-platform clipboard manager built with Tauri 2 + React + TypeScript.
 
 ```bash
 # Clone the repository
-git clone https://github.com/user/clipper.git
+git clone https://github.com/windoze/clipper.git
 cd clipper/clipper
 
 # Install dependencies

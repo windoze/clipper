@@ -3,7 +3,7 @@
 A modern, cross-platform clipboard manager with full-text search, real-time sync, and a beautiful desktop interface.
 
 [![Homepage](https://img.shields.io/badge/homepage-clipper.unwritten.codes-blue)](https://clipper.unwritten.codes)
-![Version](https://img.shields.io/badge/version-0.16.2-blue)
+![Version](https://img.shields.io/badge/version-0.16.4-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -32,7 +32,7 @@ English | [简体中文](README.zh-CN.md)
 
 ### Download
 
-Download the latest release for your platform from the [Releases](https://github.com/user/clipper/releases) page.
+Download the latest release for your platform from the [Releases](https://github.com/windoze/clipper/releases) page.
 
 > **Note:** macOS binaries are signed and notarized. Windows and Linux binaries are not code-signed. See [Platform Notes](#platform-notes) for platform-specific instructions.
 
@@ -40,7 +40,7 @@ Download the latest release for your platform from the [Releases](https://github
 
 ```bash
 # Clone the repository
-git clone https://github.com/user/clipper.git
+git clone https://github.com/windoze/clipper.git
 cd clipper
 
 # Build the desktop app
@@ -424,3 +424,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Tauri](https://tauri.app/) - Desktop app framework
 - [Axum](https://github.com/tokio-rs/axum) - Web framework
 - [React](https://react.dev/) - UI library
+- [Nerd Fonts](https://www.nerdfonts.com/) - Symbols Nerd Font Mono for icon/powerline glyph support (MIT License)

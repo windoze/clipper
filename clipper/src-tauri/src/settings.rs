@@ -18,13 +18,18 @@ pub enum ThemePreference {
 
 /// Syntax highlighting theme preference
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 pub enum SyntaxTheme {
     #[default]
     Github,
     Monokai,
     Dracula,
     Nord,
+    SolarizedLight,
+    SolarizedDark,
+    OneDark,
+    VsCode,
+    Gruvbox,
 }
 
 /// Settings dialog window geometry

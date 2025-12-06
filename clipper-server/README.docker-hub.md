@@ -4,7 +4,7 @@ A clipboard management server with REST API, WebSocket support, and built-in Web
 
 [![Homepage](https://img.shields.io/badge/homepage-clipper.unwritten.codes-blue)](https://clipper.unwritten.codes)
 [![GitHub](https://img.shields.io/badge/github-windoze/clipper-blue?logo=github)](https://github.com/windoze/clipper)
-![Version](https://img.shields.io/badge/version-0.16.0-blue)
+![Version](https://img.shields.io/badge/version-0.16.4-blue)
 
 ## Features
 

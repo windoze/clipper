@@ -12,3 +12,4 @@ export type { LanguageId } from "./LanguageSelector";
 export { SearchBox } from "./SearchBox";
 export { ToastProvider, useToast } from "./Toast";
 export type { ToastType } from "./Toast";
+export { Tooltip } from "./Tooltip";

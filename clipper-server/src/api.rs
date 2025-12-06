@@ -82,6 +82,9 @@ pub struct ConfigInfo {
     /// Short URL base URL (if enabled)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub short_url_base: Option<String>,
+    /// Short URL default expiration in hours (if enabled, 0 = no expiration)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub short_url_expiration_hours: Option<u32>,
 }
 
 /// Authentication check response
@@ -132,6 +135,11 @@ async fn get_version(State(state): State<AppState>) -> Json<VersionResponse> {
         short_url_enabled: config.short_url.is_enabled(),
         short_url_base: if config.short_url.is_enabled() {
             config.short_url.base_url.clone()
+        } else {
+            None
+        },
+        short_url_expiration_hours: if config.short_url.is_enabled() {
+            Some(config.short_url.default_expiration_hours)
         } else {
             None
         },
@@ -815,6 +823,11 @@ async fn serve_asset(Path(filename): Path<String>) -> Result<Response> {
         (
             include_str!("assets/shared_clip.js"),
             "application/javascript; charset=utf-8",
+        )
+    } else if filename == "favicon.svg" {
+        (
+            include_str!("assets/favicon.svg"),
+            "image/svg+xml",
         )
     } else {
         return Err(crate::error::ServerError::NotFound(format!(

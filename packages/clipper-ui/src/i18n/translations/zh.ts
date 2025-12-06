@@ -63,11 +63,36 @@ export const zh = {
   "settings.syntaxTheme.monokai": "Monokai",
   "settings.syntaxTheme.dracula": "Dracula",
   "settings.syntaxTheme.nord": "Nord",
+  "settings.syntaxTheme.solarized-light": "Solarized 浅色",
+  "settings.syntaxTheme.solarized-dark": "Solarized 深色",
+  "settings.syntaxTheme.one-dark": "One Dark",
+  "settings.syntaxTheme.vs-code": "VS Code",
+  "settings.syntaxTheme.gruvbox": "Gruvbox",
   "settings.syntaxTheme.hint": "选择代码片段的语法高亮颜色主题。",
   "settings.language": "语言",
   "settings.language.hint": "选择您偏好的语言。",
   "settings.language.en": "英语",
   "settings.language.zh": "简体中文",
+
+  // Settings - About tab (web only)
+  "settings.tab.appearance": "外观",
+  "settings.tab.about": "关于",
+  "settings.about": "关于",
+  "settings.about.serverInfo": "服务器信息",
+  "settings.about.version": "服务器版本",
+  "settings.about.uptime": "运行时间",
+  "settings.about.totalClips": "剪贴总数",
+  "settings.about.tlsEnabled": "TLS 已启用",
+  "settings.about.tlsEnabled.yes": "是",
+  "settings.about.tlsEnabled.no": "否",
+  "settings.about.retentionPeriod": "保留期限",
+  "settings.about.retentionPeriod.days": "{days} 天",
+  "settings.about.shortUrlBase": "短链接基础地址",
+  "settings.about.updates": "更新",
+  "settings.about.checkingUpdates": "正在检查更新...",
+  "settings.about.upToDate": "已是最新版本",
+  "settings.about.updateAvailable": "有新版本可用：{version}",
+  "settings.about.checkFailed": "检查更新失败",
 
   // Edit Clip Dialog
   "editClip.title": "编辑剪贴",
@@ -80,6 +105,10 @@ export const zh = {
 
   // Share Dialog
   "share.title": "分享剪贴",
+  "share.warning": "这将创建一个公开链接，任何人都可以在无需身份验证的情况下查看此剪贴。",
+  "share.warningNote": "链接将在 {hours} 小时后失效。",
+  "share.warningNoteNoExpiry": "链接永不过期。",
+  "share.generate": "生成分享链接",
   "share.generating": "正在生成分享链接...",
   "share.copy": "复制",
   "share.copied": "已复制！",
@@ -95,6 +124,7 @@ export const zh = {
   "tooltip.refresh": "刷新",
   "tooltip.copy": "复制到剪贴板",
   "tooltip.sendClipboard": "发送剪贴板内容",
+  "tooltip.viewNotes": "查看备注",
 
   // File Drop
   "fileDrop.hint": "拖拽文件到此处上传",

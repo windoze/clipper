@@ -231,7 +231,7 @@
 }
 
 :root[data-theme="dark"] .clip-tags .tag:nth-child(5n+1) {
-  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
 }
 
 :root[data-theme="dark"] .clip-tags .tag:nth-child(5n+2) {
@@ -397,6 +397,46 @@
 
 :root[data-theme="dark"] .settings-btn.secondary:hover:not(:disabled) {
   background: #4a4a4a;
+}
+
+/* Settings Dialog with Tabs - Dark Theme */
+:root[data-theme="dark"] .settings-tabs {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .settings-tab {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-tab:hover {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-tab.active {
+  color: #99aaf7;
+  border-bottom-color: #667eea;
+}
+
+/* Settings About Tab Grid - Dark Theme */
+:root[data-theme="dark"] .settings-about-label {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-about-value {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-update-available {
+  color: #ffa94d;
+}
+
+:root[data-theme="dark"] .settings-update-uptodate {
+  color: #69db7c;
+}
+
+:root[data-theme="dark"] .settings-error {
+  color: #ff6b6b;
 }
 
 /* ============================================
@@ -603,6 +643,14 @@
 
 :root[data-theme="dark"] .share-dialog-btn.secondary:hover {
   background: #4a4a4a;
+}
+
+:root[data-theme="dark"] .share-dialog-warning-text {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .share-dialog-warning-note {
+  color: #adb5bd;
 }
 
 /* ============================================
@@ -840,7 +888,7 @@
   }
 
   :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+1) {
-    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
   }
 
   :root:not([data-theme="light"]) .clip-tags .tag:nth-child(5n+2) {
@@ -1195,6 +1243,14 @@
     background: #4a4a4a;
   }
 
+  :root:not([data-theme="light"]) .share-dialog-warning-text {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-warning-note {
+    color: #adb5bd;
+  }
+
   /* Toast dark mode fallback */
   :root:not([data-theme="light"]) .toast {
     background: #2d2d2d;
@@ -1292,4 +1348,46 @@
     background: #433920;
     color: #fbbf24;
   }
+
+  /* Tooltip dark mode fallback */
+  :root:not([data-theme="light"]) .tooltip {
+    background: #374151;
+    color: #f9fafb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  :root:not([data-theme="light"]) .tooltip-arrow {
+    background: #374151;
+  }
+
+  :root:not([data-theme="light"]) .notes-indicator {
+    color: #99aaf7;
+  }
+
+  :root:not([data-theme="light"]) .notes-indicator:hover {
+    color: #b3c0fa;
+    background: rgba(102, 126, 234, 0.2);
+  }
+}
+
+/* ============================================
+   Tooltip - Dark Theme (explicit)
+   ============================================ */
+:root[data-theme="dark"] .tooltip {
+  background: #374151;
+  color: #f9fafb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .tooltip-arrow {
+  background: #374151;
+}
+
+:root[data-theme="dark"] .notes-indicator {
+  color: #99aaf7;
+}
+
+:root[data-theme="dark"] .notes-indicator:hover {
+  color: #b3c0fa;
+  background: rgba(102, 126, 234, 0.2);
 }

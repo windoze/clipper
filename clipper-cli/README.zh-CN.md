@@ -293,7 +293,7 @@ done < input.txt
 
 搜索并删除旧剪贴：
 ```bash
-clipper-cli search "" --tags temporary --end-date 2025-11-01T00:00:00Z --format json | \
+clipper-cli list --tags temporary --end-date 2025-11-01T00:00:00Z --format json | \
   jq -r '.items[].id' | \
   while read id; do
     clipper-cli delete "$id"
@@ -308,11 +308,11 @@ clipper-cli watch | jq 'select(.type == "new_clip") | .content'
 导出所有剪贴到 JSON：
 ```bash
 # 先获取总页数
-total_pages=$(clipper-cli search "" --page 1 --page-size 100 --format json | jq '.total_pages')
+total_pages=$(clipper-cli list --page 1 --page-size 100 --format json | jq '.total_pages')
 
 # 获取所有页
 for page in $(seq 1 $total_pages); do
-  clipper-cli search "" --page $page --page-size 100 --format json | jq '.items[]'
+  clipper-cli list --page $page --page-size 100 --format json | jq '.items[]'
 done > all_clips.json
 ```
 
@@ -320,12 +320,12 @@ done > all_clips.json
 
 **fzf 集成**（模糊搜索）：
 ```bash
-clipper-cli search "" --format text | fzf
+clipper-cli list | jq ".items[].content" | fzf
 ```
 
 **rofi 集成**（GUI 菜单）：
 ```bash
-clip_id=$(clipper-cli search "" --format text | rofi -dmenu -i -p "剪贴:" | head -1)
+clip_id=$(clipper-cli list | jq ".items[].content" | rofi -dmenu -i -p "剪贴:" | head -1)
 clipper-cli get "$clip_id" --format text | xclip -selection clipboard
 ```
 

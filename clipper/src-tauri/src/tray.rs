@@ -25,8 +25,16 @@ pub fn setup_tray(app: &AppHandle, language: &str) -> Result<(), Box<dyn std::er
         true,
         None::<&str>,
     )?;
+    let separator1 = PredefinedMenuItem::separator(app)?;
+    let check_updates_item = MenuItem::with_id(
+        app,
+        "check_updates",
+        t(lang, "tray.checkUpdates"),
+        true,
+        None::<&str>,
+    )?;
     let about_item = MenuItem::with_id(app, "about", t(lang, "tray.about"), true, None::<&str>)?;
-    let separator = PredefinedMenuItem::separator(app)?;
+    let separator2 = PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItem::with_id(app, "quit", t(lang, "tray.quit"), true, None::<&str>)?;
 
     let menu = Menu::with_items(
@@ -34,8 +42,10 @@ pub fn setup_tray(app: &AppHandle, language: &str) -> Result<(), Box<dyn std::er
         &[
             &show_hide_item,
             &settings_item,
+            &separator1,
+            &check_updates_item,
             &about_item,
-            &separator,
+            &separator2,
             &quit_item,
         ],
     )?;
@@ -76,6 +86,20 @@ pub fn setup_tray(app: &AppHandle, language: &str) -> Result<(), Box<dyn std::er
                 // Open the about page in the default browser
                 let _ =
                     tauri_plugin_opener::open_url("https://clipper.unwritten.codes/", None::<&str>);
+            }
+            "check_updates" => {
+                // Show the window first if hidden
+                if let Some(window) = app.get_webview_window("main")
+                    && !window.is_visible().unwrap_or(false)
+                {
+                    #[cfg(target_os = "macos")]
+                    let _ = app.set_activation_policy(ActivationPolicy::Regular);
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+
+                // Emit event to open settings dialog on About tab and check for updates
+                let _ = app.emit("check-for-updates", ());
             }
             "quit" => {
                 app.exit(0);
@@ -135,9 +159,17 @@ pub fn update_tray_language(
             true,
             None::<&str>,
         )?;
+        let separator1 = PredefinedMenuItem::separator(app)?;
+        let check_updates_item = MenuItem::with_id(
+            app,
+            "check_updates",
+            t(lang, "tray.checkUpdates"),
+            true,
+            None::<&str>,
+        )?;
         let about_item =
             MenuItem::with_id(app, "about", t(lang, "tray.about"), true, None::<&str>)?;
-        let separator = PredefinedMenuItem::separator(app)?;
+        let separator2 = PredefinedMenuItem::separator(app)?;
         let quit_item = MenuItem::with_id(app, "quit", t(lang, "tray.quit"), true, None::<&str>)?;
 
         let menu = Menu::with_items(
@@ -145,8 +177,10 @@ pub fn update_tray_language(
             &[
                 &show_hide_item,
                 &settings_item,
+                &separator1,
+                &check_updates_item,
                 &about_item,
-                &separator,
+                &separator2,
                 &quit_item,
             ],
         )?;

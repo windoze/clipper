@@ -37,6 +37,7 @@ export {
   ImagePopup,
   SearchBox,
   ToastProvider,
+  Tooltip,
   useToast,
 } from "./components";
 export type { ToastType } from "./components";

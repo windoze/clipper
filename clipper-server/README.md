@@ -15,6 +15,7 @@ A REST API server with WebSocket support for managing clipboard entries using th
 - **TLS/HTTPS support** with manual or automatic (Let's Encrypt) certificates
 - **Certificate hot-reload** for zero-downtime certificate updates
 - **Automatic cleanup** with configurable retention policy
+- **Clip sharing** via short URLs (optional, requires configuration)
 
 ## Getting Started
 
@@ -57,6 +58,8 @@ Options:
 - `CLIPPER_CLEANUP_RETENTION_DAYS` - Retention period in days (default: `30`)
 - `CLIPPER_CLEANUP_INTERVAL_HOURS` - Cleanup interval in hours (default: `24`)
 - `CLIPPER_BEARER_TOKEN` - Bearer token for authentication (if set, all requests require auth)
+- `CLIPPER_SHORT_URL_BASE` - Base URL for shared clips (e.g., `https://clip.example.com`). If set, clip sharing is enabled.
+- `CLIPPER_SHORT_URL_EXPIRATION_HOURS` - Default expiration time for shared clips in hours (default: `24`, `0` = no expiration)
 
 #### Configuration File
 
@@ -261,6 +264,102 @@ For Docker deployments, build with the embedded web UI:
 cd clipper-server/web && npm install && npm run build
 cargo build -p clipper-server --release --features embed-web
 ```
+
+## Clip Sharing (Short URLs)
+
+Clips can be shared publicly via short URLs, allowing anyone with the link to view the clip content without authentication.
+
+### Enabling Clip Sharing
+
+Set the `CLIPPER_SHORT_URL_BASE` environment variable to enable clip sharing:
+
+```bash
+CLIPPER_SHORT_URL_BASE=https://clip.example.com clipper-server
+```
+
+Or in your config file:
+
+```toml
+[short_url]
+base_url = "https://clip.example.com"
+default_expiration_hours = 24  # Optional, default is 24 hours
+```
+
+### How It Works
+
+1. **Create a short URL**: `POST /clips/:id/short-url` generates a unique short code
+2. **Share the link**: The response includes a full URL like `https://clip.example.com/s/abc123`
+3. **Access the content**: Anyone can visit the link to view the clip (no authentication required)
+4. **Automatic expiration**: Shared links expire after the configured time (default: 24 hours)
+
+### Short URL Endpoints
+
+#### Create Short URL
+
+```
+POST /clips/:id/short-url
+```
+
+**Response**: `201 Created`
+```json
+{
+  "id": "shorturl123",
+  "clip_id": "abc123",
+  "short_code": "x7k9m2",
+  "full_url": "https://clip.example.com/s/x7k9m2",
+  "created_at": "2025-12-06T10:00:00Z",
+  "expires_at": "2025-12-07T10:00:00Z"
+}
+```
+
+#### Access Shared Clip
+
+```
+GET /s/:code
+```
+
+Returns the clip content based on the `Accept` header or `?accept=` query parameter:
+
+| Accept Value | Response |
+|--------------|----------|
+| `text/html` (default) | HTML page with styled content, copy button, and download option |
+| `text/plain` | Plain text content |
+| `application/json` | JSON with clip content and metadata |
+| `application/octet-stream` | File download (if clip has attachment) |
+
+**Examples:**
+
+```bash
+# Get HTML page (default)
+curl https://clip.example.com/s/x7k9m2
+
+# Get plain text
+curl -H "Accept: text/plain" https://clip.example.com/s/x7k9m2
+
+# Get JSON
+curl -H "Accept: application/json" https://clip.example.com/s/x7k9m2
+
+# Using query parameter instead of header
+curl "https://clip.example.com/s/x7k9m2?accept=application/json"
+
+# Download file attachment
+curl -H "Accept: application/octet-stream" https://clip.example.com/s/x7k9m2 -o file.txt
+```
+
+### Configuration Options
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLIPPER_SHORT_URL_BASE` | - | Base URL for short URLs. **Required to enable sharing.** |
+| `CLIPPER_SHORT_URL_EXPIRATION_HOURS` | `24` | Default expiration time in hours. Set to `0` for no expiration. |
+
+### Security Considerations
+
+- Shared clips are **publicly accessible** without authentication
+- Short URLs use cryptographically random codes
+- Expired short URLs are automatically cleaned up (hourly)
+- The original clip remains protected; only the shared view is public
+- Consider your data sensitivity before enabling this feature
 
 ## REST API Endpoints
 
@@ -775,6 +874,8 @@ volumes:
 | `CLIPPER_ACME_STAGING` | `false` | Use staging environment |
 | `CLIPPER_CERTS_DIR` | `/data/certs` | ACME certificate cache |
 | `CLIPPER_BEARER_TOKEN` | - | Bearer token for authentication (if set, all requests require auth) |
+| `CLIPPER_SHORT_URL_BASE` | - | Base URL for clip sharing (if set, sharing is enabled) |
+| `CLIPPER_SHORT_URL_EXPIRATION_HOURS` | `24` | Default expiration for shared clips |
 
 #### Docker Volumes
 
