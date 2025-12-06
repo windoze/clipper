@@ -3,7 +3,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum IndexerError {
     #[error("Database error: {0}")]
-    Database(#[from] surrealdb::Error),
+    Database(Box<surrealdb::Error>),
 
     #[error("Object store error: {0}")]
     ObjectStore(#[from] object_store::Error),
@@ -22,6 +22,12 @@ pub enum IndexerError {
 
     #[error("Short URL expired: {0}")]
     ShortUrlExpired(String),
+}
+
+impl From<surrealdb::Error> for IndexerError {
+    fn from(err: surrealdb::Error) -> Self {
+        IndexerError::Database(Box::new(err))
+    }
 }
 
 pub type Result<T> = std::result::Result<T, IndexerError>;
