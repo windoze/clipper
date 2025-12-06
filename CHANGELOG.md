@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.16.3] - 2025-12-06
+
+### Added
+- Confirmation dialog before sharing clips
+- Favicon for shared clip pages
+- Nerd Font for better glyph/icon displaying
+- Tooltip for additional notes field
+
 ## [0.16.2] - 2025-12-06
 
 ### Added
