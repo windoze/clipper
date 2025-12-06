@@ -5,9 +5,27 @@ import path from "path";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    dedupe: ["react", "react-dom"],
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.indexOf("node_modules") !== -1) {
+            if (id.indexOf("react-dom") !== -1 || id.indexOf("/react/") !== -1) {
+              return "react";
+            }
+            if (id.indexOf("highlight.js") !== -1) {
+              return "hljs";
+            }
+          }
+        },
+      },
+    },
   },
   server: {
     port: 5173,

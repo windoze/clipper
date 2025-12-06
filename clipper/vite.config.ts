@@ -8,6 +8,26 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react()],
+  resolve: {
+    dedupe: ["react", "react-dom"],
+  },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.indexOf("node_modules") !== -1) {
+            if (id.indexOf("react-dom") !== -1 || id.indexOf("/react/") !== -1) {
+              return "react";
+            }
+            if (id.indexOf("highlight.js") !== -1) {
+              return "hljs";
+            }
+          }
+        },
+      },
+    },
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
