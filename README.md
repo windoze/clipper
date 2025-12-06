@@ -32,7 +32,7 @@ English | [简体中文](README.zh-CN.md)
 
 ### Download
 
-Download the latest release for your platform from the [Releases](https://github.com/user/clipper/releases) page.
+Download the latest release for your platform from the [Releases](https://github.com/windoze/clipper/releases) page.
 
 > **Note:** macOS binaries are signed and notarized. Windows and Linux binaries are not code-signed. See [Platform Notes](#platform-notes) for platform-specific instructions.
 
@@ -40,7 +40,7 @@ Download the latest release for your platform from the [Releases](https://github
 
 ```bash
 # Clone the repository
-git clone https://github.com/user/clipper.git
+git clone https://github.com/windoze/clipper.git
 cd clipper
 
 # Build the desktop app

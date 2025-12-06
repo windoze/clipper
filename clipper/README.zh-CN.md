@@ -43,7 +43,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/user/clipper.git
+git clone https://github.com/windoze/clipper.git
 cd clipper/clipper
 
 # 安装依赖

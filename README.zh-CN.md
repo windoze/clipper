@@ -32,7 +32,7 @@
 
 ### 下载
 
-从 [Releases](https://github.com/user/clipper/releases) 页面下载适合你平台的最新版本。
+从 [Releases](https://github.com/windoze/clipper/releases) 页面下载适合你平台的最新版本。
 
 > **注意：** macOS 二进制文件已签名并经过公证。Windows 和 Linux 二进制文件未进行代码签名。请参阅[平台说明](#平台说明)了解各平台的运行方法。
 
@@ -40,7 +40,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/user/clipper.git
+git clone https://github.com/windoze/clipper.git
 cd clipper
 
 # 构建桌面应用
