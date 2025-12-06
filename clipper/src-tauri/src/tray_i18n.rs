@@ -25,12 +25,14 @@ pub fn get_translations(lang: Language) -> HashMap<&'static str, &'static str> {
             translations.insert("tray.showHide", "Open Clipper");
             translations.insert("tray.settings", "Settings...");
             translations.insert("tray.about", "About Clipper");
+            translations.insert("tray.checkUpdates", "Check for Updates...");
             translations.insert("tray.quit", "Quit Application");
         }
         Language::Zh => {
             translations.insert("tray.showHide", "打开 Clipper");
             translations.insert("tray.settings", "设置...");
             translations.insert("tray.about", "关于 Clipper");
+            translations.insert("tray.checkUpdates", "检查更新...");
             translations.insert("tray.quit", "退出应用");
         }
     }

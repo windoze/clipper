@@ -75,6 +75,26 @@ export const en = {
   "settings.language.en": "English",
   "settings.language.zh": "Chinese (Simplified)",
 
+  // Settings - About tab (web only)
+  "settings.tab.appearance": "Appearance",
+  "settings.tab.about": "About",
+  "settings.about": "About",
+  "settings.about.serverInfo": "Server Information",
+  "settings.about.version": "Server Version",
+  "settings.about.uptime": "Uptime",
+  "settings.about.totalClips": "Total Clips",
+  "settings.about.tlsEnabled": "TLS Enabled",
+  "settings.about.tlsEnabled.yes": "Yes",
+  "settings.about.tlsEnabled.no": "No",
+  "settings.about.retentionPeriod": "Retention Period",
+  "settings.about.retentionPeriod.days": "{days} days",
+  "settings.about.shortUrlBase": "Short URL Base",
+  "settings.about.updates": "Updates",
+  "settings.about.checkingUpdates": "Checking for updates...",
+  "settings.about.upToDate": "Up to date",
+  "settings.about.updateAvailable": "New version available: {version}",
+  "settings.about.checkFailed": "Failed to check for updates",
+
   // Edit Clip Dialog
   "editClip.title": "Edit Clip",
   "editClip.tags": "Tags",

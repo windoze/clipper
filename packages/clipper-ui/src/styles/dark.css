@@ -399,6 +399,46 @@
   background: #4a4a4a;
 }
 
+/* Settings Dialog with Tabs - Dark Theme */
+:root[data-theme="dark"] .settings-tabs {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .settings-tab {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-tab:hover {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-tab.active {
+  color: #99aaf7;
+  border-bottom-color: #667eea;
+}
+
+/* Settings About Tab Grid - Dark Theme */
+:root[data-theme="dark"] .settings-about-label {
+  color: #adb5bd;
+}
+
+:root[data-theme="dark"] .settings-about-value {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-update-available {
+  color: #ffa94d;
+}
+
+:root[data-theme="dark"] .settings-update-uptodate {
+  color: #69db7c;
+}
+
+:root[data-theme="dark"] .settings-error {
+  color: #ff6b6b;
+}
+
 /* ============================================
    Edit Clip Dialog - Dark Theme
    ============================================ */

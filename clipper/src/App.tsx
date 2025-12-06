@@ -63,7 +63,7 @@ function App() {
     deleteClipFromList,
   } = useClips();
 
-  const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
+  const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings, initialTab: settingsInitialTab, autoCheckUpdates: settingsAutoCheckUpdates } = useSettingsDialog();
   const { updateTheme } = useTheme();
   const { setSyntaxTheme } = useSyntaxTheme();
   const { showToast } = useToast();
@@ -613,7 +613,7 @@ function App() {
           />
         </main>
 
-        <SettingsDialog isOpen={isSettingsOpen} onClose={closeSettings} onThemeChange={updateTheme} onSyntaxThemeChange={setSyntaxTheme} />
+        <SettingsDialog isOpen={isSettingsOpen} onClose={closeSettings} onThemeChange={updateTheme} onSyntaxThemeChange={setSyntaxTheme} initialTab={settingsInitialTab} autoCheckUpdates={settingsAutoCheckUpdates} />
 
         {/* Certificate trust dialog - shown when connecting to server with self-signed cert */}
         <CertificateConfirmDialog

@@ -84,9 +84,11 @@ interface SettingsDialogProps {
   onClose: () => void;
   onThemeChange?: (theme: ThemePreference) => void;
   onSyntaxThemeChange?: (theme: SyntaxTheme) => void;
+  initialTab?: SettingsTab;
+  autoCheckUpdates?: boolean;
 }
 
-export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeChange }: SettingsDialogProps) {
+export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeChange, initialTab, autoCheckUpdates }: SettingsDialogProps) {
   const { t, language: currentLanguage, setLanguage } = useI18n();
   const { showToast } = useToast();
   // Detect platform for default shortcut
@@ -183,8 +185,19 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
       loadServerInfo();
       loadLocalIpAddresses();
       loadAppVersion();
+      // Set initial tab if specified
+      if (initialTab) {
+        setActiveTab(initialTab);
+      }
+      // Auto-check for updates if requested
+      if (autoCheckUpdates) {
+        // Small delay to ensure the dialog is fully rendered
+        setTimeout(() => {
+          handleCheckForUpdates();
+        }, 100);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialTab, autoCheckUpdates]);
 
   // Apply saved window geometry when dialog opens
   useEffect(() => {
@@ -1626,20 +1639,42 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
 // Hook to manage settings dialog state
 export function useSettingsDialog() {
   const [isOpen, setIsOpen] = useState(false);
+  const [initialTab, setInitialTab] = useState<SettingsTab | undefined>(undefined);
+  const [autoCheckUpdates, setAutoCheckUpdates] = useState(false);
 
   useEffect(() => {
     // Listen for open-settings event from tray menu
-    const unlisten = listen("open-settings", () => {
+    const unlistenSettings = listen("open-settings", () => {
+      setInitialTab(undefined);
+      setAutoCheckUpdates(false);
+      setIsOpen(true);
+    });
+
+    // Listen for check-for-updates event from tray menu
+    const unlistenUpdates = listen("check-for-updates", () => {
+      setInitialTab("about");
+      setAutoCheckUpdates(true);
       setIsOpen(true);
     });
 
     return () => {
-      unlisten.then((fn) => fn());
+      unlistenSettings.then((fn) => fn());
+      unlistenUpdates.then((fn) => fn());
     };
   }, []);
 
-  const open = useCallback(() => setIsOpen(true), []);
-  const close = useCallback(() => setIsOpen(false), []);
+  const open = useCallback(() => {
+    setInitialTab(undefined);
+    setAutoCheckUpdates(false);
+    setIsOpen(true);
+  }, []);
 
-  return { isOpen, open, close };
+  const close = useCallback(() => {
+    setIsOpen(false);
+    // Reset state after close
+    setInitialTab(undefined);
+    setAutoCheckUpdates(false);
+  }, []);
+
+  return { isOpen, open, close, initialTab, autoCheckUpdates };
 }

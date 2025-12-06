@@ -74,6 +74,26 @@ export const zh = {
   "settings.language.en": "英语",
   "settings.language.zh": "简体中文",
 
+  // Settings - About tab (web only)
+  "settings.tab.appearance": "外观",
+  "settings.tab.about": "关于",
+  "settings.about": "关于",
+  "settings.about.serverInfo": "服务器信息",
+  "settings.about.version": "服务器版本",
+  "settings.about.uptime": "运行时间",
+  "settings.about.totalClips": "剪贴总数",
+  "settings.about.tlsEnabled": "TLS 已启用",
+  "settings.about.tlsEnabled.yes": "是",
+  "settings.about.tlsEnabled.no": "否",
+  "settings.about.retentionPeriod": "保留期限",
+  "settings.about.retentionPeriod.days": "{days} 天",
+  "settings.about.shortUrlBase": "短链接基础地址",
+  "settings.about.updates": "更新",
+  "settings.about.checkingUpdates": "正在检查更新...",
+  "settings.about.upToDate": "已是最新版本",
+  "settings.about.updateAvailable": "有新版本可用：{version}",
+  "settings.about.checkFailed": "检查更新失败",
+
   // Edit Clip Dialog
   "editClip.title": "编辑剪贴",
   "editClip.tags": "标签",

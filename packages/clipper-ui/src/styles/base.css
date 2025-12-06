@@ -2068,6 +2068,86 @@
   background: #dee2e6;
 }
 
+/* Settings Dialog with Tabs */
+.settings-dialog-tabbed {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.settings-tab {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  color: #6c757d;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.settings-tab:hover {
+  color: #495057;
+}
+
+.settings-tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+/* Settings About Tab Grid */
+.settings-about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.settings-about-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-about-label {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-about-value {
+  font-size: 14px;
+  color: #212529;
+  font-weight: 500;
+}
+
+/* Update status styles */
+.settings-update-available {
+  color: #e67700;
+  font-weight: 500;
+  margin: 0;
+}
+
+.settings-update-uptodate {
+  color: #2b8a3e;
+  font-weight: 500;
+  margin: 0;
+}
+
+.settings-error {
+  color: #dc3545;
+  font-size: 14px;
+  margin: 0;
+}
+
 /* ============================================
    Edit Clip Dialog
    ============================================ */
