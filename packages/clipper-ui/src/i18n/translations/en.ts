@@ -96,6 +96,7 @@ export const en = {
   "tooltip.refresh": "Refresh",
   "tooltip.copy": "Copy to clipboard",
   "tooltip.sendClipboard": "Send clipboard content",
+  "tooltip.viewNotes": "View notes",
 
   // File Drop
   "fileDrop.hint": "Drop files here to upload",

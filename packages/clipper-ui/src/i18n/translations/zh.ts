@@ -95,6 +95,7 @@ export const zh = {
   "tooltip.refresh": "刷新",
   "tooltip.copy": "复制到剪贴板",
   "tooltip.sendClipboard": "发送剪贴板内容",
+  "tooltip.viewNotes": "查看备注",
 
   // File Drop
   "fileDrop.hint": "拖拽文件到此处上传",
