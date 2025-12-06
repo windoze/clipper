@@ -599,6 +599,8 @@ pub fn run() {
             commands::get_server_url,
             commands::is_bundled_server,
             commands::clear_all_data,
+            commands::export_clips,
+            commands::import_clips,
             commands::switch_to_bundled_server,
             commands::switch_to_external_server,
             commands::get_local_ip_addresses,

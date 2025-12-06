@@ -10,6 +10,6 @@ pub use certificate::{
 pub use client::ClipperClient;
 pub use error::{ClientError, Result};
 pub use models::{
-    Clip, ClipNotification, CreateClipRequest, SearchFilters, ServerConfigInfo, ServerInfo,
-    ShortUrl, UpdateClipRequest,
+    Clip, ClipNotification, CreateClipRequest, ImportResult, SearchFilters, ServerConfigInfo,
+    ServerInfo, ShortUrl, UpdateClipRequest,
 };

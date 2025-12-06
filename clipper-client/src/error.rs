@@ -14,6 +14,9 @@ pub enum ClientError {
     #[error("Invalid URL: {0}")]
     InvalidUrl(#[from] url::ParseError),
 
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
     #[error("Server returned error: {status} - {message}")]
     ServerError { status: u16, message: String },
 

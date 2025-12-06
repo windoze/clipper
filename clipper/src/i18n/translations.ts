@@ -70,6 +70,21 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.cleanup.retentionDays.hint": "Clips older than this will be automatically deleted. Range: 1-365 days.",
     "settings.cleanup.restartNotice": "Server will restart when you close settings to apply cleanup changes.",
 
+    // Export/Import
+    "settings.exportImport": "Export / Import",
+    "settings.export": "Export Clips",
+    "settings.export.button": "Export to File",
+    "settings.export.exporting": "Exporting...",
+    "settings.export.hint": "Export all clips and attachments to a tar.gz archive file.",
+    "settings.export.error": "Export failed",
+    "settings.import": "Import Clips",
+    "settings.import.button": "Import from File",
+    "settings.import.importing": "Importing...",
+    "settings.import.hint": "Import clips from a tar.gz archive. Duplicate clips will be skipped.",
+    "settings.import.error": "Import failed",
+    "toast.exportSuccess": "Exported to {path}",
+    "toast.importSuccess": "Imported {imported} clips, skipped {skipped} duplicates",
+
     // Data Management
     "settings.dataManagement": "Data Management",
     "settings.clearAllData": "Clear All Data",
@@ -208,6 +223,21 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.cleanup.retentionDays": "保留期限（天）",
     "settings.cleanup.retentionDays.hint": "超过此天数的剪贴将被自动删除。范围：1-365 天。",
     "settings.cleanup.restartNotice": "关闭设置后将重启服务器以应用清理设置更改。",
+
+    // Export/Import
+    "settings.exportImport": "导出 / 导入",
+    "settings.export": "导出剪贴",
+    "settings.export.button": "导出到文件",
+    "settings.export.exporting": "导出中...",
+    "settings.export.hint": "将所有剪贴和附件导出到 tar.gz 归档文件。",
+    "settings.export.error": "导出失败",
+    "settings.import": "导入剪贴",
+    "settings.import.button": "从文件导入",
+    "settings.import.importing": "导入中...",
+    "settings.import.hint": "从 tar.gz 归档文件导入剪贴。重复的剪贴将被跳过。",
+    "settings.import.error": "导入失败",
+    "toast.exportSuccess": "已导出到 {path}",
+    "toast.importSuccess": "已导入 {imported} 条剪贴，跳过 {skipped} 条重复",
 
     // Data Management
     "settings.dataManagement": "数据管理",

@@ -255,6 +255,11 @@ function App() {
       refetch();
     });
 
+    // Listen for clips-imported event to refresh after import
+    const unlistenClipsImported = listen("clips-imported", () => {
+      refetch();
+    });
+
     // Listen for file upload errors (e.g., file too large)
     const unlistenFileUploadError = listen<{ path: string; error: string; size_mb?: number; max_size_mb?: number }>(
       "file-upload-error",
@@ -283,6 +288,7 @@ function App() {
       unlistenClipUpdated.then((fn) => fn());
       unlistenClipDeleted.then((fn) => fn());
       unlistenClipsCleanedUp.then((fn) => fn());
+      unlistenClipsImported.then((fn) => fn());
       unlistenFileUploadError.then((fn) => fn());
     };
   }, [refetch, showToast, t]);

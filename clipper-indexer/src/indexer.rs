@@ -1,8 +1,12 @@
 use crate::error::{IndexerError, Result};
+use crate::export::{
+    ExportBuilder, ExportedClip, ImportParser, ImportResult, calculate_content_hash,
+};
 use crate::models::{ClipboardEntry, PagedResult, PagingParams, SearchFilters, ShortUrl};
 use crate::storage::FileStorage;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::path::Path;
 use surrealdb::Surreal;
 use surrealdb::engine::local::{Db, RocksDb};
@@ -904,5 +908,251 @@ impl ClipperIndexer {
         self.db.query(delete_query).await?;
 
         Ok(count)
+    }
+
+    // ==================== Export/Import Functions ====================
+
+    /// Export all clipboard entries to a tar.gz archive file.
+    ///
+    /// This is more memory-efficient for large exports as it writes directly
+    /// to disk instead of building the entire archive in memory.
+    ///
+    /// The archive contains:
+    /// - `manifest.json`: Metadata about the export and list of all clips
+    /// - `files/`: Directory containing all file attachments
+    ///
+    /// Short URLs are NOT included in the export.
+    ///
+    /// # Arguments
+    /// * `path` - Path where the tar.gz archive will be written
+    pub async fn export_all_to_file<P: AsRef<std::path::Path>>(&self, path: P) -> Result<()> {
+        let builder = self.build_export().await?;
+        builder.build_to_file(path)
+    }
+
+    /// Build an ExportBuilder with all clips and their attachments.
+    async fn build_export(&self) -> Result<ExportBuilder> {
+        // Get all entries (no filters, large page size to get all)
+        let mut all_entries = Vec::new();
+        let mut page = 1;
+        let page_size = 100;
+
+        loop {
+            let paging = PagingParams::new(page, page_size);
+            let result = self.list_entries(SearchFilters::default(), paging).await?;
+
+            if result.items.is_empty() {
+                break;
+            }
+
+            all_entries.extend(result.items);
+
+            if all_entries.len() >= result.total {
+                break;
+            }
+
+            page += 1;
+        }
+
+        let mut builder = ExportBuilder::new();
+
+        for entry in all_entries {
+            let attachment_content = if let Some(ref file_key) = entry.file_attachment {
+                self.storage.get_file(file_key).await.ok()
+            } else {
+                None
+            };
+
+            let exported_clip = ExportedClip::from(entry);
+            builder.add_clip(exported_clip, attachment_content);
+        }
+
+        Ok(builder)
+    }
+
+    /// Import clips from a tar.gz archive with deduplication.
+    ///
+    /// Clips are deduplicated by:
+    /// 1. Checking if the same ID already exists
+    /// 2. Checking if the same content (hash) already exists
+    ///
+    /// # Arguments
+    /// * `archive_data` - The tar.gz archive data as bytes
+    ///
+    /// # Returns
+    /// An ImportResult containing statistics about the import operation
+    pub async fn import_archive(&self, archive_data: &[u8]) -> Result<ImportResult> {
+        let parser = ImportParser::from_bytes(archive_data)?;
+        self.import_from_parser(parser).await
+    }
+
+    /// Import clips from a tar.gz archive file with deduplication.
+    ///
+    /// This is more memory-efficient for large archives as it streams from disk
+    /// instead of requiring the entire archive to be loaded into memory first.
+    ///
+    /// Clips are deduplicated by:
+    /// 1. Checking if the same ID already exists
+    /// 2. Checking if the same content (hash) already exists
+    ///
+    /// # Arguments
+    /// * `path` - Path to the tar.gz archive file
+    ///
+    /// # Returns
+    /// An ImportResult containing statistics about the import operation
+    pub async fn import_archive_from_file<P: AsRef<std::path::Path>>(
+        &self,
+        path: P,
+    ) -> Result<ImportResult> {
+        let parser = ImportParser::from_file(path)?;
+        self.import_from_parser(parser).await
+    }
+
+    /// Import clips from a parsed archive with deduplication.
+    async fn import_from_parser(&self, parser: ImportParser) -> Result<ImportResult> {
+        // Get existing IDs and content hashes for deduplication
+        let mut existing_ids = HashSet::new();
+        let mut existing_content_hashes = HashSet::new();
+
+        let mut page = 1;
+        let page_size = 100;
+
+        loop {
+            let paging = PagingParams::new(page, page_size);
+            let result = self.list_entries(SearchFilters::default(), paging).await?;
+
+            if result.items.is_empty() {
+                break;
+            }
+
+            for entry in &result.items {
+                existing_ids.insert(entry.id.clone());
+                let exported = ExportedClip::from(entry.clone());
+                existing_content_hashes.insert(calculate_content_hash(&exported));
+            }
+
+            if existing_ids.len() >= result.total {
+                break;
+            }
+
+            page += 1;
+        }
+
+        let mut imported_ids = Vec::new();
+        let mut skipped_ids = Vec::new();
+        let mut attachments_imported = 0;
+
+        for clip in parser.clips() {
+            // Check for duplicates
+            let content_hash = calculate_content_hash(clip);
+
+            if existing_ids.contains(&clip.id) || existing_content_hashes.contains(&content_hash) {
+                skipped_ids.push(clip.id.clone());
+                continue;
+            }
+
+            // Import the clip
+            let has_attachment = clip.attachment_path.is_some();
+
+            if let Some(ref attachment_path) = clip.attachment_path {
+                if let Some(attachment_content) = parser.get_attachment(attachment_path) {
+                    // Create entry with file attachment
+                    let original_filename = clip
+                        .original_filename
+                        .clone()
+                        .unwrap_or_else(|| "attachment".to_string());
+
+                    let mut entry = ClipboardEntry {
+                        id: clip.id.clone(),
+                        content: clip.content.clone(),
+                        created_at: clip.created_at,
+                        tags: clip.tags.clone(),
+                        additional_notes: clip.additional_notes.clone(),
+                        file_attachment: None,
+                        original_filename: Some(original_filename.clone()),
+                        search_content: match &clip.additional_notes {
+                            Some(notes) => format!("{} {}", clip.content, notes),
+                            None => clip.content.clone(),
+                        },
+                    };
+
+                    // Store the file
+                    let stored_file_key = self
+                        .storage
+                        .put_file_bytes(attachment_content, &original_filename)
+                        .await?;
+                    entry.file_attachment = Some(stored_file_key);
+
+                    // Insert into database
+                    self.insert_entry_with_id(&entry).await?;
+                    attachments_imported += 1;
+                } else if has_attachment {
+                    // Attachment expected but not found in archive, import without attachment
+                    let entry = ClipboardEntry {
+                        id: clip.id.clone(),
+                        content: clip.content.clone(),
+                        created_at: clip.created_at,
+                        tags: clip.tags.clone(),
+                        additional_notes: clip.additional_notes.clone(),
+                        file_attachment: None,
+                        original_filename: clip.original_filename.clone(),
+                        search_content: match &clip.additional_notes {
+                            Some(notes) => format!("{} {}", clip.content, notes),
+                            None => clip.content.clone(),
+                        },
+                    };
+                    self.insert_entry_with_id(&entry).await?;
+                }
+            } else {
+                // No attachment, just insert the text entry
+                let entry = ClipboardEntry {
+                    id: clip.id.clone(),
+                    content: clip.content.clone(),
+                    created_at: clip.created_at,
+                    tags: clip.tags.clone(),
+                    additional_notes: clip.additional_notes.clone(),
+                    file_attachment: None,
+                    original_filename: None,
+                    search_content: match &clip.additional_notes {
+                        Some(notes) => format!("{} {}", clip.content, notes),
+                        None => clip.content.clone(),
+                    },
+                };
+                self.insert_entry_with_id(&entry).await?;
+            }
+
+            imported_ids.push(clip.id.clone());
+            existing_ids.insert(clip.id.clone());
+            existing_content_hashes.insert(content_hash);
+        }
+
+        Ok(ImportResult {
+            imported_count: imported_ids.len(),
+            skipped_count: skipped_ids.len(),
+            attachments_imported,
+            imported_ids,
+            skipped_ids,
+        })
+    }
+
+    /// Insert an entry with a specific ID (used during import)
+    async fn insert_entry_with_id(&self, entry: &ClipboardEntry) -> Result<()> {
+        let record_id = (TABLE_NAME, entry.id.as_str());
+        let _: Option<DbClipboardEntry> = self
+            .db
+            .create(record_id)
+            .content(DbClipboardEntry {
+                id: surrealdb::sql::Thing::from((TABLE_NAME.to_string(), entry.id.clone())),
+                content: entry.content.clone(),
+                created_at: surrealdb::sql::Datetime::from(entry.created_at),
+                tags: entry.tags.clone(),
+                additional_notes: entry.additional_notes.clone(),
+                file_attachment: entry.file_attachment.clone(),
+                original_filename: entry.original_filename.clone(),
+                search_content: entry.search_content.clone(),
+            })
+            .await?;
+
+        Ok(())
     }
 }

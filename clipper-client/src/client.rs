@@ -1,15 +1,16 @@
 use crate::certificate::create_tls_config_with_trusted_certs;
 use crate::error::{ClientError, Result};
 use crate::models::{
-    Clip, ClipNotification, CreateClipRequest, CreateShortUrlRequest, PagedResult, SearchFilters,
-    ServerInfo, ShortUrl, UpdateClipRequest, WsAuthRequest, WsAuthResponse,
+    Clip, ClipNotification, CreateClipRequest, CreateShortUrlRequest, ImportResult, PagedResult,
+    SearchFilters, ServerInfo, ShortUrl, UpdateClipRequest, WsAuthRequest, WsAuthResponse,
 };
 use futures_util::{SinkExt, StreamExt};
 use reqwest::StatusCode;
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::io::AsyncRead;
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_util::io::ReaderStream;
@@ -509,6 +510,165 @@ impl ClipperClient {
 
         let response = self
             .apply_auth(self.client.post(&url).json(&request))
+            .send()
+            .await?;
+
+        self.handle_response(response).await
+    }
+
+    /// Export all clips to a file (streaming)
+    ///
+    /// Downloads the export archive from the server and streams it directly to the
+    /// specified file, without loading the entire archive into memory.
+    ///
+    /// # Arguments
+    /// * `output_path` - Path where the tar.gz archive will be saved
+    ///
+    /// # Returns
+    /// The number of bytes written
+    ///
+    /// # Example
+    /// ```no_run
+    /// use clipper_client::ClipperClient;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = ClipperClient::new("http://localhost:3000");
+    /// let bytes_written = client.export_to_file("backup.tar.gz").await?;
+    /// println!("Exported {} bytes", bytes_written);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn export_to_file<P: AsRef<Path>>(&self, output_path: P) -> Result<u64> {
+        let url = format!("{}/export", self.base_url);
+        let response = self.apply_auth(self.client.get(&url)).send().await?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let mut file = tokio::fs::File::create(output_path.as_ref()).await?;
+                let mut bytes_written: u64 = 0;
+
+                // Stream the response body directly to file
+                let mut stream = response.bytes_stream();
+                while let Some(chunk) = stream.next().await {
+                    let chunk = chunk?;
+                    file.write_all(&chunk).await?;
+                    bytes_written += chunk.len() as u64;
+                }
+
+                file.flush().await?;
+                Ok(bytes_written)
+            }
+            status => {
+                let error_text = response.text().await.unwrap_or_default();
+                Err(ClientError::ServerError {
+                    status: status.as_u16(),
+                    message: error_text,
+                })
+            }
+        }
+    }
+
+    /// Export all clips to an async writer (streaming)
+    ///
+    /// Downloads the export archive from the server and streams it directly to the
+    /// provided writer, without loading the entire archive into memory.
+    ///
+    /// # Arguments
+    /// * `writer` - Any async writer to stream the archive to
+    ///
+    /// # Returns
+    /// The number of bytes written
+    pub async fn export_to_writer<W: AsyncWrite + Unpin>(&self, mut writer: W) -> Result<u64> {
+        let url = format!("{}/export", self.base_url);
+        let response = self.apply_auth(self.client.get(&url)).send().await?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let mut bytes_written: u64 = 0;
+
+                // Stream the response body directly to writer
+                let mut stream = response.bytes_stream();
+                while let Some(chunk) = stream.next().await {
+                    let chunk = chunk?;
+                    writer.write_all(&chunk).await?;
+                    bytes_written += chunk.len() as u64;
+                }
+
+                writer.flush().await?;
+                Ok(bytes_written)
+            }
+            status => {
+                let error_text = response.text().await.unwrap_or_default();
+                Err(ClientError::ServerError {
+                    status: status.as_u16(),
+                    message: error_text,
+                })
+            }
+        }
+    }
+
+    /// Import clips from a file (streaming)
+    ///
+    /// Streams the archive file to the server without loading it entirely into memory.
+    ///
+    /// # Arguments
+    /// * `input_path` - Path to the tar.gz archive to import
+    ///
+    /// # Returns
+    /// Import statistics including counts of imported and skipped clips
+    ///
+    /// # Example
+    /// ```no_run
+    /// use clipper_client::ClipperClient;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = ClipperClient::new("http://localhost:3000");
+    /// let result = client.import_from_file("backup.tar.gz").await?;
+    /// println!("Imported {} clips, skipped {}", result.imported_count, result.skipped_count);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn import_from_file<P: AsRef<Path>>(&self, input_path: P) -> Result<ImportResult> {
+        let url = format!("{}/import", self.base_url);
+
+        let file = tokio::fs::File::open(input_path.as_ref()).await?;
+        let stream = ReaderStream::new(file);
+        let body = reqwest::Body::wrap_stream(stream);
+
+        let file_part = reqwest::multipart::Part::stream(body).file_name("archive.tar.gz");
+        let form = reqwest::multipart::Form::new().part("file", file_part);
+
+        let response = self
+            .apply_auth(self.client.post(&url).multipart(form))
+            .send()
+            .await?;
+
+        self.handle_response(response).await
+    }
+
+    /// Import clips from an async reader (streaming)
+    ///
+    /// Streams the archive from the reader to the server without loading it entirely into memory.
+    ///
+    /// # Arguments
+    /// * `reader` - Any async reader providing the tar.gz archive data
+    ///
+    /// # Returns
+    /// Import statistics including counts of imported and skipped clips
+    pub async fn import_from_reader<R>(&self, reader: R) -> Result<ImportResult>
+    where
+        R: AsyncRead + Send + Sync + 'static,
+    {
+        let url = format!("{}/import", self.base_url);
+
+        let stream = ReaderStream::new(reader);
+        let body = reqwest::Body::wrap_stream(stream);
+
+        let file_part = reqwest::multipart::Part::stream(body).file_name("archive.tar.gz");
+        let form = reqwest::multipart::Form::new().part("file", file_part);
+
+        let response = self
+            .apply_auth(self.client.post(&url).multipart(form))
             .send()
             .await?;
 

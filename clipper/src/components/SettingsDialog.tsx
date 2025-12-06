@@ -57,6 +57,7 @@ interface ServerInfo {
     cleanup_retention_days?: number;
     auth_required: boolean;
     max_upload_size_bytes: number;
+    export_import_enabled?: boolean;
   };
 }
 
@@ -120,6 +121,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const [serverUrl, setServerUrl] = useState<string>("");
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [localIpAddresses, setLocalIpAddresses] = useState<string[]>([]);
   const [togglingNetworkAccess, setTogglingNetworkAccess] = useState(false);
   const [switchingServerMode, setSwitchingServerMode] = useState(false);
@@ -617,6 +620,40 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
       setError(`Failed to clear data: ${e}`);
     } finally {
       setClearing(false);
+    }
+  };
+
+  // Handle export clips
+  const handleExport = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      const result = await invoke<string>("export_clips");
+      showToast(t("toast.exportSuccess", { path: result }));
+    } catch (e) {
+      const errorMsg = String(e);
+      if (errorMsg !== "Save cancelled") {
+        setError(`${t("settings.export.error")}: ${e}`);
+      }
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Handle import clips
+  const handleImport = async () => {
+    setImporting(true);
+    setError(null);
+    try {
+      const result = await invoke<{ imported_count: number; skipped_count: number }>("import_clips");
+      showToast(t("toast.importSuccess", { imported: result.imported_count, skipped: result.skipped_count }));
+    } catch (e) {
+      const errorMsg = String(e);
+      if (errorMsg !== "Open cancelled") {
+        setError(`${t("settings.import.error")}: ${e}`);
+      }
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -1369,6 +1406,40 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
               {t("settings.cleanup.restartNotice")}
             </div>
           )}
+        </div>
+      )}
+
+      {(settings.useBundledServer || serverInfo?.config.export_import_enabled) && (
+        <div className="settings-section">
+          <h3>{t("settings.exportImport")}</h3>
+          <div className="settings-field">
+            <label>{t("settings.export")}</label>
+            <button
+              type="button"
+              className="settings-btn"
+              onClick={handleExport}
+              disabled={exporting || importing}
+            >
+              {exporting ? t("settings.export.exporting") : t("settings.export.button")}
+            </button>
+            <p className="settings-hint">
+              {t("settings.export.hint")}
+            </p>
+          </div>
+          <div className="settings-field">
+            <label>{t("settings.import")}</label>
+            <button
+              type="button"
+              className="settings-btn"
+              onClick={handleImport}
+              disabled={exporting || importing}
+            >
+              {importing ? t("settings.import.importing") : t("settings.import.button")}
+            </button>
+            <p className="settings-hint">
+              {t("settings.import.hint")}
+            </p>
+          </div>
         </div>
       )}
 

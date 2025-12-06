@@ -154,6 +154,15 @@ Clips can be shared publicly via short URLs:
 - **Expiration**: Default 24 hours, configurable via `CLIPPER_SHORT_URL_EXPIRATION_HOURS`
 - **UI**: Share button appears in Tauri app and Web UI when enabled
 
+### Export/Import
+
+The server supports exporting and importing clips via tar.gz archives:
+- **Export**: `GET /export` returns a tar.gz archive with all clips and attachments
+- **Import**: `POST /import` (multipart form) imports from a tar.gz archive with deduplication
+- **Archive format**: Contains `manifest.json` with clip metadata and `files/` directory for attachments
+- **Deduplication**: Clips are skipped if same ID or same content hash already exists
+- **Short URLs**: Not included in export (they are ephemeral/local to each server)
+
 ### Self-Signed Certificate Trust
 
 Both the CLI and desktop app support connecting to HTTPS servers with self-signed certificates:
@@ -201,8 +210,8 @@ Both the CLI and desktop app support connecting to HTTPS servers with self-signe
 - Keyboard shortcuts
 - Global hotkey support
 - Advanced search operators
+- Export/import functionality (tar.gz archive with clips and attachments, deduplication on import)
 
 ### Future Work
-- Export/import functionality
 - Clipboard monitoring daemon (standalone)
 - Complete Slint GUI alternative

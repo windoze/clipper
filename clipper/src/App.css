@@ -943,6 +943,51 @@ body {
   color: #212529;
 }
 
+/* Settings Buttons */
+.settings-btn {
+  padding: 10px 16px;
+  background: #e9ecef;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+  color: #212529;
+}
+
+.settings-btn:hover:not(:disabled) {
+  background: #dee2e6;
+  border-color: #ced4da;
+}
+
+.settings-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-btn.primary {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+.settings-btn.primary:hover:not(:disabled) {
+  background: #5a6fd6;
+  border-color: #5a6fd6;
+}
+
+.settings-btn.secondary {
+  background: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+.settings-btn.secondary:hover:not(:disabled) {
+  background: #5a6268;
+  border-color: #545b62;
+}
+
 .settings-btn.danger {
   background: #dc3545;
   border: none;
@@ -1305,6 +1350,37 @@ body {
   border-color: #667eea;
 }
 
+:root[data-theme="dark"] .settings-btn {
+  background: #404040;
+  border-color: #4a4a4a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .settings-btn:hover:not(:disabled) {
+  background: #4a4a4a;
+  border-color: #5a5a5a;
+}
+
+:root[data-theme="dark"] .settings-btn.primary {
+  background: #667eea;
+  border-color: #667eea;
+}
+
+:root[data-theme="dark"] .settings-btn.primary:hover:not(:disabled) {
+  background: #5a6fd6;
+  border-color: #5a6fd6;
+}
+
+:root[data-theme="dark"] .settings-btn.secondary {
+  background: #5a6268;
+  border-color: #545b62;
+}
+
+:root[data-theme="dark"] .settings-btn.secondary:hover:not(:disabled) {
+  background: #4e555b;
+  border-color: #484e53;
+}
+
 :root[data-theme="dark"] .settings-btn.danger {
   background: #dc3545;
 }
@@ -1497,6 +1573,37 @@ body {
 
   :root:not([data-theme="light"]) .settings-number-input:focus {
     border-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .settings-btn {
+    background: #404040;
+    border-color: #4a4a4a;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .settings-btn:hover:not(:disabled) {
+    background: #4a4a4a;
+    border-color: #5a5a5a;
+  }
+
+  :root:not([data-theme="light"]) .settings-btn.primary {
+    background: #667eea;
+    border-color: #667eea;
+  }
+
+  :root:not([data-theme="light"]) .settings-btn.primary:hover:not(:disabled) {
+    background: #5a6fd6;
+    border-color: #5a6fd6;
+  }
+
+  :root:not([data-theme="light"]) .settings-btn.secondary {
+    background: #5a6268;
+    border-color: #545b62;
+  }
+
+  :root:not([data-theme="light"]) .settings-btn.secondary:hover:not(:disabled) {
+    background: #4e555b;
+    border-color: #484e53;
   }
 
   :root:not([data-theme="light"]) .settings-btn.danger {

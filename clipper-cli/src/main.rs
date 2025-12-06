@@ -174,6 +174,25 @@ enum Commands {
         #[arg(short, long, default_value = "url")]
         format: String,
     },
+
+    /// Export all clips to a tar.gz archive
+    #[clap(alias = "e")]
+    Export {
+        /// Output file path (default: clipper_export_<timestamp>.tar.gz)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
+    /// Import clips from a tar.gz archive
+    #[clap(alias = "i")]
+    Import {
+        /// Path to the tar.gz archive to import
+        file: PathBuf,
+
+        /// Output format: json (full result) or text (summary only)
+        #[arg(short, long, default_value = "text")]
+        format: String,
+    },
 }
 
 #[tokio::main]
@@ -462,6 +481,76 @@ async fn main() -> Result<()> {
                 }
                 _ => {
                     anyhow::bail!("Invalid format. Use 'json' or 'url'");
+                }
+            }
+        }
+
+        Commands::Export { output } => {
+            // Check if server supports export/import
+            let server_info = client
+                .get_server_info()
+                .await
+                .context("Failed to get server info")?;
+            if !server_info.config.export_import_enabled {
+                anyhow::bail!("Server does not support export/import functionality");
+            }
+
+            // Generate default filename with timestamp if not specified
+            let output_path = output.unwrap_or_else(|| {
+                let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+                PathBuf::from(format!("clipper_export_{}.tar.gz", timestamp))
+            });
+
+            eprintln!("Exporting clips to {}...", output_path.display());
+
+            let bytes_written = client
+                .export_to_file(&output_path)
+                .await
+                .context("Failed to export clips")?;
+
+            let size_mb = bytes_written as f64 / (1024.0 * 1024.0);
+            if size_mb >= 1.0 {
+                eprintln!("Export complete: {:.2} MB written to {}", size_mb, output_path.display());
+            } else {
+                let size_kb = bytes_written as f64 / 1024.0;
+                eprintln!("Export complete: {:.2} KB written to {}", size_kb, output_path.display());
+            }
+        }
+
+        Commands::Import { file, format } => {
+            // Check if server supports export/import
+            let server_info = client
+                .get_server_info()
+                .await
+                .context("Failed to get server info")?;
+            if !server_info.config.export_import_enabled {
+                anyhow::bail!("Server does not support export/import functionality");
+            }
+
+            // Verify file exists
+            if !file.exists() {
+                anyhow::bail!("File not found: {}", file.display());
+            }
+
+            eprintln!("Importing clips from {}...", file.display());
+
+            let result = client
+                .import_from_file(&file)
+                .await
+                .context("Failed to import clips")?;
+
+            match format.as_str() {
+                "text" => {
+                    eprintln!("Import complete:");
+                    eprintln!("  Imported: {} clips ({} with attachments)",
+                        result.imported_count, result.attachments_imported);
+                    eprintln!("  Skipped:  {} clips (duplicates)", result.skipped_count);
+                }
+                "json" => {
+                    println!("{}", serde_json::to_string_pretty(&result)?);
+                }
+                _ => {
+                    anyhow::bail!("Invalid format. Use 'json' or 'text'");
                 }
             }
         }

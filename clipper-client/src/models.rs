@@ -137,6 +137,18 @@ pub struct ServerConfigInfo {
     /// Maximum upload size in bytes
     #[serde(default = "default_max_upload_size")]
     pub max_upload_size_bytes: u64,
+    /// Whether short URL functionality is enabled
+    #[serde(default)]
+    pub short_url_enabled: bool,
+    /// Short URL base URL (if enabled)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub short_url_base: Option<String>,
+    /// Short URL default expiration in hours (if enabled, 0 = no expiration)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub short_url_expiration_hours: Option<u32>,
+    /// Whether export/import functionality is enabled
+    #[serde(default)]
+    pub export_import_enabled: bool,
 }
 
 fn default_max_upload_size() -> u64 {
@@ -180,4 +192,19 @@ pub struct ShortUrl {
     /// Expiration timestamp (RFC3339), if set
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<String>,
+}
+
+/// Result of an import operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportResult {
+    /// Number of clips imported
+    pub imported_count: usize,
+    /// Number of clips skipped (already existed)
+    pub skipped_count: usize,
+    /// Number of file attachments imported
+    pub attachments_imported: usize,
+    /// IDs of newly imported clips
+    pub imported_ids: Vec<String>,
+    /// IDs of skipped clips (duplicates)
+    pub skipped_ids: Vec<String>,
 }

@@ -4,7 +4,7 @@ use crate::settings::{Settings, SettingsManager};
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
 use clipper_client::models::PagedResult;
-use clipper_client::{Clip, SearchFilters, ServerInfo, fetch_server_certificate};
+use clipper_client::{Clip, ImportResult, SearchFilters, ServerInfo, fetch_server_certificate};
 use gethostname::gethostname;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -315,6 +315,82 @@ pub async fn clear_all_data(
         new_url
     );
     Ok(())
+}
+
+/// Export all clips to a tar.gz archive file
+#[tauri::command]
+pub async fn export_clips(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<String, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    // Generate default filename with timestamp
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let default_filename = format!("clipper_export_{}.tar.gz", timestamp);
+
+    // Show save dialog
+    let file_path = app
+        .dialog()
+        .file()
+        .set_file_name(&default_filename)
+        .add_filter("Archive", &["tar.gz", "tgz"])
+        .blocking_save_file();
+
+    let save_path = match file_path {
+        Some(path) => path,
+        None => return Err("Save cancelled".to_string()),
+    };
+
+    // Export clips using the client (streaming)
+    let client = state.client();
+    let path_str = save_path.to_string();
+
+    client
+        .export_to_file(&path_str)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    eprintln!("[clipper] Exported clips to {}", path_str);
+    Ok(path_str)
+}
+
+/// Import clips from a tar.gz archive file
+#[tauri::command]
+pub async fn import_clips(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<ImportResult, String> {
+    use tauri::Emitter;
+    use tauri_plugin_dialog::DialogExt;
+
+    // Show open dialog
+    let file_path = app
+        .dialog()
+        .file()
+        .add_filter("Archive", &["tar.gz", "tgz"])
+        .blocking_pick_file();
+
+    let open_path = match file_path {
+        Some(path) => path,
+        None => return Err("Open cancelled".to_string()),
+    };
+
+    // Import clips using the client (streaming)
+    let client = state.client();
+    let path_str = open_path.to_string();
+
+    let result = client
+        .import_from_file(&path_str)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    eprintln!(
+        "[clipper] Imported {} clips from {} (skipped {})",
+        result.imported_count, path_str, result.skipped_count
+    );
+
+    // Emit event to refresh the clip list in the main window
+    let _ = app.emit("clips-imported", &result);
+
+    Ok(result)
 }
 
 /// Switch to using the bundled server

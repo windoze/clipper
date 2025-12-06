@@ -6,7 +6,9 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
-use clipper_indexer::{ClipboardEntry, PagedResult, PagingParams, SearchFilters, ShortUrl};
+use clipper_indexer::{
+    ClipboardEntry, ImportResult, PagedResult, PagingParams, SearchFilters, ShortUrl,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{error::Result, state::AppState};
@@ -30,6 +32,9 @@ pub fn routes() -> Router<AppState> {
         .route("/s/{code}", get(resolve_short_url))
         // Static assets for shared clip page (no auth required)
         .route("/shared-assets/{filename}", get(serve_asset))
+        // Export/Import endpoints
+        .route("/export", get(export_clips))
+        .route("/import", post(import_clips))
 }
 
 /// Version information response
@@ -80,6 +85,8 @@ pub struct ConfigInfo {
     /// Short URL default expiration in hours (if enabled, 0 = no expiration)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub short_url_expiration_hours: Option<u32>,
+    /// Whether export/import functionality is enabled
+    pub export_import_enabled: bool,
 }
 
 /// Authentication check response
@@ -138,6 +145,7 @@ async fn get_version(State(state): State<AppState>) -> Json<VersionResponse> {
         } else {
             None
         },
+        export_import_enabled: true, // Always enabled
     };
 
     Json(VersionResponse {
@@ -838,4 +846,149 @@ async fn serve_asset(Path(filename): Path<String>) -> Result<Response> {
         .header(header::CACHE_CONTROL, "public, max-age=31536000, immutable")
         .body(Body::from(content))
         .unwrap())
+}
+
+// ==================== Export/Import Endpoints ====================
+
+/// Export all clips to a tar.gz archive
+///
+/// Returns a tar.gz file containing:
+/// - manifest.json: Metadata and list of all clips
+/// - files/: Directory containing all file attachments
+///
+/// The archive is written to a temporary file and streamed to the client,
+/// avoiding loading the entire archive into memory.
+///
+/// Short URLs are NOT included in the export.
+async fn export_clips(State(state): State<AppState>) -> Result<Response> {
+    // Create a temporary file to write the archive to
+    let temp_file = tempfile::NamedTempFile::new().map_err(|e| {
+        crate::error::ServerError::Internal(format!("Failed to create temp file: {}", e))
+    })?;
+    let temp_path = temp_file.path().to_path_buf();
+
+    // Export directly to the temp file (memory-efficient for large archives)
+    state.indexer.export_all_to_file(&temp_path).await?;
+
+    // Get the file size for Content-Length header
+    let file_metadata = tokio::fs::metadata(&temp_path).await.map_err(|e| {
+        crate::error::ServerError::Internal(format!("Failed to get file metadata: {}", e))
+    })?;
+    let file_size = file_metadata.len();
+
+    // Open the file for streaming
+    let file = tokio::fs::File::open(&temp_path).await.map_err(|e| {
+        crate::error::ServerError::Internal(format!("Failed to open temp file: {}", e))
+    })?;
+
+    // Create a stream from the file
+    let stream = tokio_util::io::ReaderStream::new(file);
+    let body = Body::from_stream(stream);
+
+    // Generate filename with timestamp
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let filename = format!("clipper_export_{}.tar.gz", timestamp);
+
+    // Note: temp_file will be dropped after this function returns,
+    // but the file handle in the stream keeps the file accessible until streaming completes.
+    // The temp file will be cleaned up when the stream is fully consumed or dropped.
+    // We need to keep temp_file alive, so we'll store the path and let the OS clean up.
+    // Actually, we need to persist the temp file until streaming is done.
+    // The simplest approach is to use into_temp_path() to persist it.
+    let _temp_path = temp_file.into_temp_path();
+
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/gzip")
+        .header(
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename=\"{}\"", filename),
+        )
+        .header(header::CONTENT_LENGTH, file_size)
+        .body(body)
+        .unwrap())
+}
+
+/// Import clips from a tar.gz archive
+///
+/// Accepts a multipart form with a single file field containing the tar.gz archive.
+/// Clips are deduplicated by ID and content hash.
+///
+/// The archive is streamed directly to a temporary file to avoid holding the entire
+/// archive in memory, which is important for large exports with many attachments.
+///
+/// Returns statistics about the import operation.
+async fn import_clips(
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> Result<Json<ImportResult>> {
+    use tokio::io::AsyncWriteExt;
+
+    // Create a temporary file to stream the archive to
+    let temp_file = tempfile::NamedTempFile::new().map_err(|e| {
+        crate::error::ServerError::Internal(format!("Failed to create temp file: {}", e))
+    })?;
+    let temp_path = temp_file.path().to_path_buf();
+
+    // We need to keep temp_file alive until we're done with the import
+    // but use async file operations for writing
+    let mut async_file =
+        tokio::fs::File::create(&temp_path)
+            .await
+            .map_err(|e| {
+                crate::error::ServerError::Internal(format!("Failed to open temp file: {}", e))
+            })?;
+
+    let mut found_archive = false;
+
+    // Process multipart form data, streaming chunks directly to the temp file
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| crate::error::ServerError::InvalidInput(format!("Multipart error: {}", e)))?
+    {
+        let field_name = field.name().unwrap_or("").to_string();
+
+        if field_name == "file" || field_name == "archive" {
+            found_archive = true;
+
+            // Stream chunks directly to the temp file
+            let mut stream = field;
+            while let Some(chunk) = stream.chunk().await.map_err(|e| {
+                crate::error::ServerError::InvalidInput(format!("Failed to read chunk: {}", e))
+            })? {
+                async_file.write_all(&chunk).await.map_err(|e| {
+                    crate::error::ServerError::Internal(format!("Failed to write to temp file: {}", e))
+                })?;
+            }
+
+            // Flush and sync the file
+            async_file.flush().await.map_err(|e| {
+                crate::error::ServerError::Internal(format!("Failed to flush temp file: {}", e))
+            })?;
+
+            break;
+        }
+    }
+
+    if !found_archive {
+        return Err(crate::error::ServerError::InvalidInput(
+            "Missing archive file. Upload a tar.gz file with field name 'file' or 'archive'"
+                .to_string(),
+        ));
+    }
+
+    // Import from the temp file (memory-efficient for large archives)
+    let result = state.indexer.import_archive_from_file(&temp_path).await?;
+
+    // Notify WebSocket clients about newly imported clips
+    for id in &result.imported_ids {
+        // Get the imported clip to notify with full details
+        if let Ok(entry) = state.indexer.get_entry(id).await {
+            state.notify_new_clip(entry.id, entry.content, entry.tags);
+        }
+    }
+
+    // temp_file is automatically cleaned up when dropped
+    Ok(Json(result))
 }
