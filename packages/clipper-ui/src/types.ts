@@ -48,6 +48,8 @@ export interface ServerConfig {
   shortUrlEnabled: boolean;
   /** Base URL for short URLs (if enabled) */
   shortUrlBase?: string;
+  /** Short URL expiration in hours (0 = no expiration) */
+  shortUrlExpirationHours?: number;
 }
 
 /**

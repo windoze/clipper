@@ -86,6 +86,10 @@ export const en = {
 
   // Share Dialog
   "share.title": "Share Clip",
+  "share.warning": "This will create a public link that anyone can use to view this clip without authentication.",
+  "share.warningNote": "The link will expire after {hours} hours.",
+  "share.warningNoteNoExpiry": "The link will never expire.",
+  "share.generate": "Generate Share Link",
   "share.generating": "Generating share link...",
   "share.copy": "Copy",
   "share.copied": "Copied!",

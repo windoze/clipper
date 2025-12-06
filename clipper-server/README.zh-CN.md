@@ -15,6 +15,7 @@
 - **TLS/HTTPS 支持** - 手动证书或自动（Let's Encrypt）证书
 - **证书热重载** - 零停机证书更新
 - **自动清理** - 可配置的保留策略
+- **剪贴分享** - 通过短链接分享（可选，需配置）
 
 ## 快速开始
 
@@ -57,6 +58,8 @@ clipper-server [选项]
 - `CLIPPER_CLEANUP_RETENTION_DAYS` - 保留天数（默认: `30`）
 - `CLIPPER_CLEANUP_INTERVAL_HOURS` - 清理间隔小时数（默认: `24`）
 - `CLIPPER_BEARER_TOKEN` - 身份验证 Bearer 令牌（如设置，所有请求需要认证）
+- `CLIPPER_SHORT_URL_BASE` - 分享剪贴的基础 URL（例如 `https://clip.example.com`）。如设置，则启用剪贴分享功能。
+- `CLIPPER_SHORT_URL_EXPIRATION_HOURS` - 分享链接的默认过期时间（小时）（默认: `24`，`0` = 不过期）
 
 #### 配置文件
 
@@ -261,6 +264,102 @@ CLIPPER_DB_PATH=/var/lib/clipper/db PORT=8080 cargo run --bin clipper-server
 cd clipper-server/web && npm install && npm run build
 cargo build -p clipper-server --release --features embed-web
 ```
+
+## 剪贴分享（短链接）
+
+可以通过短链接公开分享剪贴，任何拥有链接的人都可以在无需身份验证的情况下查看剪贴内容。
+
+### 启用剪贴分享
+
+设置 `CLIPPER_SHORT_URL_BASE` 环境变量以启用剪贴分享：
+
+```bash
+CLIPPER_SHORT_URL_BASE=https://clip.example.com clipper-server
+```
+
+或在配置文件中：
+
+```toml
+[short_url]
+base_url = "https://clip.example.com"
+default_expiration_hours = 24  # 可选，默认 24 小时
+```
+
+### 工作原理
+
+1. **创建短链接**：`POST /clips/:id/short-url` 生成唯一的短代码
+2. **分享链接**：响应包含完整 URL，如 `https://clip.example.com/s/abc123`
+3. **访问内容**：任何人都可以访问该链接查看剪贴（无需身份验证）
+4. **自动过期**：分享链接在配置的时间后过期（默认：24 小时）
+
+### 短链接端点
+
+#### 创建短链接
+
+```
+POST /clips/:id/short-url
+```
+
+**响应**：`201 Created`
+```json
+{
+  "id": "shorturl123",
+  "clip_id": "abc123",
+  "short_code": "x7k9m2",
+  "full_url": "https://clip.example.com/s/x7k9m2",
+  "created_at": "2025-12-06T10:00:00Z",
+  "expires_at": "2025-12-07T10:00:00Z"
+}
+```
+
+#### 访问分享的剪贴
+
+```
+GET /s/:code
+```
+
+根据 `Accept` 请求头或 `?accept=` 查询参数返回剪贴内容：
+
+| Accept 值 | 响应 |
+|-----------|------|
+| `text/html`（默认） | 带样式的 HTML 页面，包含复制按钮和下载选项 |
+| `text/plain` | 纯文本内容 |
+| `application/json` | 包含剪贴内容和元数据的 JSON |
+| `application/octet-stream` | 文件下载（如果剪贴有附件） |
+
+**示例：**
+
+```bash
+# 获取 HTML 页面（默认）
+curl https://clip.example.com/s/x7k9m2
+
+# 获取纯文本
+curl -H "Accept: text/plain" https://clip.example.com/s/x7k9m2
+
+# 获取 JSON
+curl -H "Accept: application/json" https://clip.example.com/s/x7k9m2
+
+# 使用查询参数代替请求头
+curl "https://clip.example.com/s/x7k9m2?accept=application/json"
+
+# 下载文件附件
+curl -H "Accept: application/octet-stream" https://clip.example.com/s/x7k9m2 -o file.txt
+```
+
+### 配置选项
+
+| 变量 | 默认值 | 描述 |
+|------|--------|------|
+| `CLIPPER_SHORT_URL_BASE` | - | 短链接的基础 URL。**启用分享功能必需。** |
+| `CLIPPER_SHORT_URL_EXPIRATION_HOURS` | `24` | 默认过期时间（小时）。设为 `0` 表示不过期。 |
+
+### 安全注意事项
+
+- 分享的剪贴**可公开访问**，无需身份验证
+- 短链接使用加密随机代码
+- 过期的短链接会自动清理（每小时）
+- 原始剪贴仍受保护；只有分享视图是公开的
+- 启用此功能前请考虑数据敏感性
 
 ## REST API 端点
 
@@ -775,6 +874,8 @@ volumes:
 | `CLIPPER_ACME_STAGING` | `false` | 使用测试环境 |
 | `CLIPPER_CERTS_DIR` | `/data/certs` | ACME 证书缓存 |
 | `CLIPPER_BEARER_TOKEN` | - | 身份验证 Bearer 令牌（如设置，所有请求需要认证） |
+| `CLIPPER_SHORT_URL_BASE` | - | 剪贴分享的基础 URL（如设置，则启用分享功能） |
+| `CLIPPER_SHORT_URL_EXPIRATION_HOURS` | `24` | 分享链接的默认过期时间 |
 
 #### Docker 卷
 

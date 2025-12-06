@@ -2615,6 +2615,49 @@
   background: #dee2e6;
 }
 
+.share-dialog-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: #ffffff;
+  margin-right: 8px;
+}
+
+.share-dialog-btn.primary:hover {
+  opacity: 0.9;
+}
+
+.share-dialog-warning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px;
+}
+
+.share-dialog-warning-icon {
+  color: #f59e0b;
+  margin-bottom: 12px;
+}
+
+.share-dialog-warning-icon svg {
+  width: 48px;
+  height: 48px;
+}
+
+.share-dialog-warning-text {
+  font-size: 14px;
+  color: #374151;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.share-dialog-warning-note {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+
 /* ============================================
    Toast Notifications
    ============================================ */

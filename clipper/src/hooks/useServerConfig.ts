@@ -18,6 +18,7 @@ interface VersionResponse {
     cleanup_retention_days?: number;
     short_url_enabled: boolean;
     short_url_base?: string;
+    short_url_expiration_hours?: number;
   };
 }
 
@@ -46,6 +47,7 @@ export function useFetchServerConfig(): ServerConfig | null {
       setServerConfig({
         shortUrlEnabled: data.config.short_url_enabled,
         shortUrlBase: data.config.short_url_base,
+        shortUrlExpirationHours: data.config.short_url_expiration_hours,
       });
     } catch (err) {
       console.warn("Failed to fetch server config:", err);

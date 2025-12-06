@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useI18n } from "../i18n";
 import { useToast } from "./Toast";
 import { useApi } from "../api";
+import { useServerConfig } from "../hooks/useServerConfig";
 
 interface ShareDialogProps {
   clipId: string;
@@ -13,20 +14,22 @@ export function ShareDialog({ clipId, isOpen, onClose }: ShareDialogProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const api = useApi();
+  const serverConfig = useServerConfig();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
-  // Generate short URL when dialog opens
+  // Reset state when dialog opens
   useEffect(() => {
     if (isOpen && clipId) {
       setShareUrl(null);
       setError(null);
       setCopied(false);
-      generateShareUrl();
+      setConfirmed(false);
     }
   }, [isOpen, clipId]);
 
@@ -51,12 +54,13 @@ export function ShareDialog({ clipId, isOpen, onClose }: ShareDialogProps) {
     }
   }, [shareUrl]);
 
-  const generateShareUrl = async () => {
+  const handleConfirmAndGenerate = async () => {
     if (!api.shareClip) {
       setError(t("share.notAvailable"));
       return;
     }
 
+    setConfirmed(true);
     setLoading(true);
     setError(null);
 
@@ -104,6 +108,35 @@ export function ShareDialog({ clipId, isOpen, onClose }: ShareDialogProps) {
 
         <div className="share-dialog-content">
           {error && <div className="share-dialog-error">{error}</div>}
+
+          {!confirmed && !loading && !shareUrl && (
+            <div className="share-dialog-warning">
+              <div className="share-dialog-warning-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <p className="share-dialog-warning-text">{t("share.warning")}</p>
+              <p className="share-dialog-warning-note">
+                {serverConfig?.shortUrlExpirationHours === 0
+                  ? t("share.warningNoteNoExpiry")
+                  : t("share.warningNote", {
+                      hours: serverConfig?.shortUrlExpirationHours ?? 24,
+                    })}
+              </p>
+            </div>
+          )}
 
           {loading && (
             <div className="share-dialog-loading">
@@ -166,10 +199,18 @@ export function ShareDialog({ clipId, isOpen, onClose }: ShareDialogProps) {
             </div>
           )}
 
-          <p className="share-dialog-hint">{t("share.hint")}</p>
+          {shareUrl && <p className="share-dialog-hint">{t("share.hint")}</p>}
         </div>
 
         <div className="share-dialog-footer">
+          {!confirmed && !loading && !shareUrl && (
+            <button
+              className="share-dialog-btn primary"
+              onClick={handleConfirmAndGenerate}
+            >
+              {t("share.generate")}
+            </button>
+          )}
           <button className="share-dialog-btn secondary" onClick={onClose}>
             {t("common.close")}
           </button>

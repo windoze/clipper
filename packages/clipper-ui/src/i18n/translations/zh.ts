@@ -85,6 +85,10 @@ export const zh = {
 
   // Share Dialog
   "share.title": "分享剪贴",
+  "share.warning": "这将创建一个公开链接，任何人都可以在无需身份验证的情况下查看此剪贴。",
+  "share.warningNote": "链接将在 {hours} 小时后失效。",
+  "share.warningNoteNoExpiry": "链接永不过期。",
+  "share.generate": "生成分享链接",
   "share.generating": "正在生成分享链接...",
   "share.copy": "复制",
   "share.copied": "已复制！",
