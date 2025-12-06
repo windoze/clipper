@@ -4,6 +4,17 @@
    ============================================ */
 
 /* ============================================
+   Font Face Declarations
+   ============================================ */
+@font-face {
+  font-family: "Symbols Nerd Font Mono";
+  src: url("../fonts/SymbolsNerdFontMono-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================
    Root & Base Styles
    ============================================ */
 :root {
@@ -693,7 +704,7 @@
 }
 
 .clip-content {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code", "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code", "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, "Symbols Nerd Font Mono";
   font-size: 13px;
   color: #212529;
   white-space: pre-wrap;
@@ -1118,6 +1129,311 @@
 
 :root[data-syntax-theme="nord"] .hljs-subst {
   color: #d8dee9;
+}
+
+/* ============================================
+   Solarized Light Theme
+   ============================================ */
+:root[data-syntax-theme="solarized-light"] .hljs-keyword,
+:root[data-syntax-theme="solarized-light"] .hljs-selector-tag,
+:root[data-syntax-theme="solarized-light"] .hljs-literal,
+:root[data-syntax-theme="solarized-light"] .hljs-section,
+:root[data-syntax-theme="solarized-light"] .hljs-link {
+  color: #859900;
+}
+
+:root[data-syntax-theme="solarized-light"] .hljs-string,
+:root[data-syntax-theme="solarized-light"] .hljs-title,
+:root[data-syntax-theme="solarized-light"] .hljs-name,
+:root[data-syntax-theme="solarized-light"] .hljs-attribute,
+:root[data-syntax-theme="solarized-light"] .hljs-symbol,
+:root[data-syntax-theme="solarized-light"] .hljs-bullet,
+:root[data-syntax-theme="solarized-light"] .hljs-addition {
+  color: #2aa198;
+}
+
+:root[data-syntax-theme="solarized-light"] .hljs-type,
+:root[data-syntax-theme="solarized-light"] .hljs-variable,
+:root[data-syntax-theme="solarized-light"] .hljs-template-tag,
+:root[data-syntax-theme="solarized-light"] .hljs-template-variable {
+  color: #b58900;
+}
+
+:root[data-syntax-theme="solarized-light"] .hljs-comment,
+:root[data-syntax-theme="solarized-light"] .hljs-quote,
+:root[data-syntax-theme="solarized-light"] .hljs-deletion,
+:root[data-syntax-theme="solarized-light"] .hljs-meta {
+  color: #93a1a1;
+}
+
+:root[data-syntax-theme="solarized-light"] .hljs-number {
+  color: #d33682;
+}
+
+:root[data-syntax-theme="solarized-light"] .hljs-built_in,
+:root[data-syntax-theme="solarized-light"] .hljs-class .hljs-title,
+:root[data-syntax-theme="solarized-light"] .hljs-title.class_ {
+  color: #268bd2;
+}
+
+:root[data-syntax-theme="solarized-light"] .hljs-attr,
+:root[data-syntax-theme="solarized-light"] .hljs-selector-id,
+:root[data-syntax-theme="solarized-light"] .hljs-selector-class,
+:root[data-syntax-theme="solarized-light"] .hljs-selector-attr,
+:root[data-syntax-theme="solarized-light"] .hljs-selector-pseudo {
+  color: #cb4b16;
+}
+
+:root[data-syntax-theme="solarized-light"] .hljs-tag {
+  color: #268bd2;
+}
+
+:root[data-syntax-theme="solarized-light"] .hljs-subst {
+  color: #657b83;
+}
+
+/* ============================================
+   Solarized Dark Theme
+   ============================================ */
+:root[data-syntax-theme="solarized-dark"] .hljs-keyword,
+:root[data-syntax-theme="solarized-dark"] .hljs-selector-tag,
+:root[data-syntax-theme="solarized-dark"] .hljs-literal,
+:root[data-syntax-theme="solarized-dark"] .hljs-section,
+:root[data-syntax-theme="solarized-dark"] .hljs-link {
+  color: #859900;
+}
+
+:root[data-syntax-theme="solarized-dark"] .hljs-string,
+:root[data-syntax-theme="solarized-dark"] .hljs-title,
+:root[data-syntax-theme="solarized-dark"] .hljs-name,
+:root[data-syntax-theme="solarized-dark"] .hljs-attribute,
+:root[data-syntax-theme="solarized-dark"] .hljs-symbol,
+:root[data-syntax-theme="solarized-dark"] .hljs-bullet,
+:root[data-syntax-theme="solarized-dark"] .hljs-addition {
+  color: #2aa198;
+}
+
+:root[data-syntax-theme="solarized-dark"] .hljs-type,
+:root[data-syntax-theme="solarized-dark"] .hljs-variable,
+:root[data-syntax-theme="solarized-dark"] .hljs-template-tag,
+:root[data-syntax-theme="solarized-dark"] .hljs-template-variable {
+  color: #b58900;
+}
+
+:root[data-syntax-theme="solarized-dark"] .hljs-comment,
+:root[data-syntax-theme="solarized-dark"] .hljs-quote,
+:root[data-syntax-theme="solarized-dark"] .hljs-deletion,
+:root[data-syntax-theme="solarized-dark"] .hljs-meta {
+  color: #586e75;
+}
+
+:root[data-syntax-theme="solarized-dark"] .hljs-number {
+  color: #d33682;
+}
+
+:root[data-syntax-theme="solarized-dark"] .hljs-built_in,
+:root[data-syntax-theme="solarized-dark"] .hljs-class .hljs-title,
+:root[data-syntax-theme="solarized-dark"] .hljs-title.class_ {
+  color: #268bd2;
+}
+
+:root[data-syntax-theme="solarized-dark"] .hljs-attr,
+:root[data-syntax-theme="solarized-dark"] .hljs-selector-id,
+:root[data-syntax-theme="solarized-dark"] .hljs-selector-class,
+:root[data-syntax-theme="solarized-dark"] .hljs-selector-attr,
+:root[data-syntax-theme="solarized-dark"] .hljs-selector-pseudo {
+  color: #cb4b16;
+}
+
+:root[data-syntax-theme="solarized-dark"] .hljs-tag {
+  color: #268bd2;
+}
+
+:root[data-syntax-theme="solarized-dark"] .hljs-subst {
+  color: #839496;
+}
+
+/* ============================================
+   One Dark Theme (Atom)
+   ============================================ */
+:root[data-syntax-theme="one-dark"] .hljs-keyword,
+:root[data-syntax-theme="one-dark"] .hljs-selector-tag,
+:root[data-syntax-theme="one-dark"] .hljs-literal,
+:root[data-syntax-theme="one-dark"] .hljs-section,
+:root[data-syntax-theme="one-dark"] .hljs-link {
+  color: #c678dd;
+}
+
+:root[data-syntax-theme="one-dark"] .hljs-string,
+:root[data-syntax-theme="one-dark"] .hljs-title,
+:root[data-syntax-theme="one-dark"] .hljs-name,
+:root[data-syntax-theme="one-dark"] .hljs-attribute,
+:root[data-syntax-theme="one-dark"] .hljs-symbol,
+:root[data-syntax-theme="one-dark"] .hljs-bullet,
+:root[data-syntax-theme="one-dark"] .hljs-addition {
+  color: #98c379;
+}
+
+:root[data-syntax-theme="one-dark"] .hljs-type,
+:root[data-syntax-theme="one-dark"] .hljs-variable,
+:root[data-syntax-theme="one-dark"] .hljs-template-tag,
+:root[data-syntax-theme="one-dark"] .hljs-template-variable {
+  color: #e5c07b;
+}
+
+:root[data-syntax-theme="one-dark"] .hljs-comment,
+:root[data-syntax-theme="one-dark"] .hljs-quote,
+:root[data-syntax-theme="one-dark"] .hljs-deletion,
+:root[data-syntax-theme="one-dark"] .hljs-meta {
+  color: #5c6370;
+}
+
+:root[data-syntax-theme="one-dark"] .hljs-number {
+  color: #d19a66;
+}
+
+:root[data-syntax-theme="one-dark"] .hljs-built_in,
+:root[data-syntax-theme="one-dark"] .hljs-class .hljs-title,
+:root[data-syntax-theme="one-dark"] .hljs-title.class_ {
+  color: #e6c07b;
+}
+
+:root[data-syntax-theme="one-dark"] .hljs-attr,
+:root[data-syntax-theme="one-dark"] .hljs-selector-id,
+:root[data-syntax-theme="one-dark"] .hljs-selector-class,
+:root[data-syntax-theme="one-dark"] .hljs-selector-attr,
+:root[data-syntax-theme="one-dark"] .hljs-selector-pseudo {
+  color: #d19a66;
+}
+
+:root[data-syntax-theme="one-dark"] .hljs-tag {
+  color: #e06c75;
+}
+
+:root[data-syntax-theme="one-dark"] .hljs-subst {
+  color: #abb2bf;
+}
+
+/* ============================================
+   VS Code Theme (Dark+)
+   ============================================ */
+:root[data-syntax-theme="vs-code"] .hljs-keyword,
+:root[data-syntax-theme="vs-code"] .hljs-selector-tag,
+:root[data-syntax-theme="vs-code"] .hljs-literal,
+:root[data-syntax-theme="vs-code"] .hljs-section,
+:root[data-syntax-theme="vs-code"] .hljs-link {
+  color: #569cd6;
+}
+
+:root[data-syntax-theme="vs-code"] .hljs-string,
+:root[data-syntax-theme="vs-code"] .hljs-title,
+:root[data-syntax-theme="vs-code"] .hljs-name,
+:root[data-syntax-theme="vs-code"] .hljs-attribute,
+:root[data-syntax-theme="vs-code"] .hljs-symbol,
+:root[data-syntax-theme="vs-code"] .hljs-bullet,
+:root[data-syntax-theme="vs-code"] .hljs-addition {
+  color: #ce9178;
+}
+
+:root[data-syntax-theme="vs-code"] .hljs-type,
+:root[data-syntax-theme="vs-code"] .hljs-variable,
+:root[data-syntax-theme="vs-code"] .hljs-template-tag,
+:root[data-syntax-theme="vs-code"] .hljs-template-variable {
+  color: #4ec9b0;
+}
+
+:root[data-syntax-theme="vs-code"] .hljs-comment,
+:root[data-syntax-theme="vs-code"] .hljs-quote,
+:root[data-syntax-theme="vs-code"] .hljs-deletion,
+:root[data-syntax-theme="vs-code"] .hljs-meta {
+  color: #6a9955;
+}
+
+:root[data-syntax-theme="vs-code"] .hljs-number {
+  color: #b5cea8;
+}
+
+:root[data-syntax-theme="vs-code"] .hljs-built_in,
+:root[data-syntax-theme="vs-code"] .hljs-class .hljs-title,
+:root[data-syntax-theme="vs-code"] .hljs-title.class_ {
+  color: #4ec9b0;
+}
+
+:root[data-syntax-theme="vs-code"] .hljs-attr,
+:root[data-syntax-theme="vs-code"] .hljs-selector-id,
+:root[data-syntax-theme="vs-code"] .hljs-selector-class,
+:root[data-syntax-theme="vs-code"] .hljs-selector-attr,
+:root[data-syntax-theme="vs-code"] .hljs-selector-pseudo {
+  color: #9cdcfe;
+}
+
+:root[data-syntax-theme="vs-code"] .hljs-tag {
+  color: #569cd6;
+}
+
+:root[data-syntax-theme="vs-code"] .hljs-subst {
+  color: #d4d4d4;
+}
+
+/* ============================================
+   Gruvbox Theme (Dark)
+   ============================================ */
+:root[data-syntax-theme="gruvbox"] .hljs-keyword,
+:root[data-syntax-theme="gruvbox"] .hljs-selector-tag,
+:root[data-syntax-theme="gruvbox"] .hljs-literal,
+:root[data-syntax-theme="gruvbox"] .hljs-section,
+:root[data-syntax-theme="gruvbox"] .hljs-link {
+  color: #fb4934;
+}
+
+:root[data-syntax-theme="gruvbox"] .hljs-string,
+:root[data-syntax-theme="gruvbox"] .hljs-title,
+:root[data-syntax-theme="gruvbox"] .hljs-name,
+:root[data-syntax-theme="gruvbox"] .hljs-attribute,
+:root[data-syntax-theme="gruvbox"] .hljs-symbol,
+:root[data-syntax-theme="gruvbox"] .hljs-bullet,
+:root[data-syntax-theme="gruvbox"] .hljs-addition {
+  color: #b8bb26;
+}
+
+:root[data-syntax-theme="gruvbox"] .hljs-type,
+:root[data-syntax-theme="gruvbox"] .hljs-variable,
+:root[data-syntax-theme="gruvbox"] .hljs-template-tag,
+:root[data-syntax-theme="gruvbox"] .hljs-template-variable {
+  color: #fabd2f;
+}
+
+:root[data-syntax-theme="gruvbox"] .hljs-comment,
+:root[data-syntax-theme="gruvbox"] .hljs-quote,
+:root[data-syntax-theme="gruvbox"] .hljs-deletion,
+:root[data-syntax-theme="gruvbox"] .hljs-meta {
+  color: #928374;
+}
+
+:root[data-syntax-theme="gruvbox"] .hljs-number {
+  color: #d3869b;
+}
+
+:root[data-syntax-theme="gruvbox"] .hljs-built_in,
+:root[data-syntax-theme="gruvbox"] .hljs-class .hljs-title,
+:root[data-syntax-theme="gruvbox"] .hljs-title.class_ {
+  color: #83a598;
+}
+
+:root[data-syntax-theme="gruvbox"] .hljs-attr,
+:root[data-syntax-theme="gruvbox"] .hljs-selector-id,
+:root[data-syntax-theme="gruvbox"] .hljs-selector-class,
+:root[data-syntax-theme="gruvbox"] .hljs-selector-attr,
+:root[data-syntax-theme="gruvbox"] .hljs-selector-pseudo {
+  color: #8ec07c;
+}
+
+:root[data-syntax-theme="gruvbox"] .hljs-tag {
+  color: #fb4934;
+}
+
+:root[data-syntax-theme="gruvbox"] .hljs-subst {
+  color: #ebdbb2;
 }
 
 /* ============================================

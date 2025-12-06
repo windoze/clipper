@@ -425,3 +425,4 @@ sudo rpm -i clipper-*.rpm
 - [Tauri](https://tauri.app/) - 桌面应用框架
 - [Axum](https://github.com/tokio-rs/axum) - Web 框架
 - [React](https://react.dev/) - UI 库
+- [Nerd Fonts](https://www.nerdfonts.com/) - Symbols Nerd Font Mono 图标/Powerline 符号字体（MIT 许可证）

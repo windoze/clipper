@@ -424,3 +424,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Tauri](https://tauri.app/) - Desktop app framework
 - [Axum](https://github.com/tokio-rs/axum) - Web framework
 - [React](https://react.dev/) - UI library
+- [Nerd Fonts](https://www.nerdfonts.com/) - Symbols Nerd Font Mono for icon/powerline glyph support (MIT License)
