@@ -811,6 +811,11 @@ async fn serve_asset(Path(filename): Path<String>) -> Result<Response> {
             include_str!("assets/shared_clip.js"),
             "application/javascript; charset=utf-8",
         )
+    } else if filename == "favicon.svg" {
+        (
+            include_str!("assets/favicon.svg"),
+            "image/svg+xml",
+        )
     } else {
         return Err(crate::error::ServerError::NotFound(format!(
             "Asset not found: {}",
