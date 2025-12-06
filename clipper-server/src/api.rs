@@ -853,13 +853,46 @@ async fn serve_asset(Path(filename): Path<String>) -> Result<Response> {
 /// - manifest.json: Metadata and list of all clips
 /// - files/: Directory containing all file attachments
 ///
+/// The archive is written to a temporary file and streamed to the client,
+/// avoiding loading the entire archive into memory.
+///
 /// Short URLs are NOT included in the export.
 async fn export_clips(State(state): State<AppState>) -> Result<Response> {
-    let archive_data = state.indexer.export_all().await?;
+    // Create a temporary file to write the archive to
+    let temp_file = tempfile::NamedTempFile::new().map_err(|e| {
+        crate::error::ServerError::Internal(format!("Failed to create temp file: {}", e))
+    })?;
+    let temp_path = temp_file.path().to_path_buf();
+
+    // Export directly to the temp file (memory-efficient for large archives)
+    state.indexer.export_all_to_file(&temp_path).await?;
+
+    // Get the file size for Content-Length header
+    let file_metadata = tokio::fs::metadata(&temp_path).await.map_err(|e| {
+        crate::error::ServerError::Internal(format!("Failed to get file metadata: {}", e))
+    })?;
+    let file_size = file_metadata.len();
+
+    // Open the file for streaming
+    let file = tokio::fs::File::open(&temp_path).await.map_err(|e| {
+        crate::error::ServerError::Internal(format!("Failed to open temp file: {}", e))
+    })?;
+
+    // Create a stream from the file
+    let stream = tokio_util::io::ReaderStream::new(file);
+    let body = Body::from_stream(stream);
 
     // Generate filename with timestamp
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
     let filename = format!("clipper_export_{}.tar.gz", timestamp);
+
+    // Note: temp_file will be dropped after this function returns,
+    // but the file handle in the stream keeps the file accessible until streaming completes.
+    // The temp file will be cleaned up when the stream is fully consumed or dropped.
+    // We need to keep temp_file alive, so we'll store the path and let the OS clean up.
+    // Actually, we need to persist the temp file until streaming is done.
+    // The simplest approach is to use into_temp_path() to persist it.
+    let _temp_path = temp_file.into_temp_path();
 
     Ok(Response::builder()
         .status(StatusCode::OK)
@@ -868,8 +901,8 @@ async fn export_clips(State(state): State<AppState>) -> Result<Response> {
             header::CONTENT_DISPOSITION,
             format!("attachment; filename=\"{}\"", filename),
         )
-        .header(header::CONTENT_LENGTH, archive_data.len())
-        .body(Body::from(archive_data))
+        .header(header::CONTENT_LENGTH, file_size)
+        .body(body)
         .unwrap())
 }
 
@@ -878,14 +911,34 @@ async fn export_clips(State(state): State<AppState>) -> Result<Response> {
 /// Accepts a multipart form with a single file field containing the tar.gz archive.
 /// Clips are deduplicated by ID and content hash.
 ///
+/// The archive is streamed directly to a temporary file to avoid holding the entire
+/// archive in memory, which is important for large exports with many attachments.
+///
 /// Returns statistics about the import operation.
 async fn import_clips(
     State(state): State<AppState>,
     mut multipart: Multipart,
 ) -> Result<Json<ImportResult>> {
-    let mut archive_data: Option<bytes::Bytes> = None;
+    use tokio::io::AsyncWriteExt;
 
-    // Process multipart form data
+    // Create a temporary file to stream the archive to
+    let temp_file = tempfile::NamedTempFile::new().map_err(|e| {
+        crate::error::ServerError::Internal(format!("Failed to create temp file: {}", e))
+    })?;
+    let temp_path = temp_file.path().to_path_buf();
+
+    // We need to keep temp_file alive until we're done with the import
+    // but use async file operations for writing
+    let mut async_file =
+        tokio::fs::File::create(&temp_path)
+            .await
+            .map_err(|e| {
+                crate::error::ServerError::Internal(format!("Failed to open temp file: {}", e))
+            })?;
+
+    let mut found_archive = false;
+
+    // Process multipart form data, streaming chunks directly to the temp file
     while let Some(field) = multipart
         .next_field()
         .await
@@ -894,32 +947,36 @@ async fn import_clips(
         let field_name = field.name().unwrap_or("").to_string();
 
         if field_name == "file" || field_name == "archive" {
-            archive_data = Some(field.bytes().await.map_err(|e| {
-                crate::error::ServerError::InvalidInput(format!("Failed to read file: {}", e))
-            })?);
+            found_archive = true;
+
+            // Stream chunks directly to the temp file
+            let mut stream = field;
+            while let Some(chunk) = stream.chunk().await.map_err(|e| {
+                crate::error::ServerError::InvalidInput(format!("Failed to read chunk: {}", e))
+            })? {
+                async_file.write_all(&chunk).await.map_err(|e| {
+                    crate::error::ServerError::Internal(format!("Failed to write to temp file: {}", e))
+                })?;
+            }
+
+            // Flush and sync the file
+            async_file.flush().await.map_err(|e| {
+                crate::error::ServerError::Internal(format!("Failed to flush temp file: {}", e))
+            })?;
+
             break;
         }
     }
 
-    let archive_data = archive_data.ok_or_else(|| {
-        crate::error::ServerError::InvalidInput(
+    if !found_archive {
+        return Err(crate::error::ServerError::InvalidInput(
             "Missing archive file. Upload a tar.gz file with field name 'file' or 'archive'"
                 .to_string(),
-        )
-    })?;
-
-    // Check file size limit (use same limit as regular uploads)
-    let max_size = state.config.upload.max_size_bytes;
-    if archive_data.len() as u64 > max_size {
-        let max_size_mb = max_size as f64 / (1024.0 * 1024.0);
-        let file_size_mb = archive_data.len() as f64 / (1024.0 * 1024.0);
-        return Err(crate::error::ServerError::PayloadTooLarge(format!(
-            "Archive size ({:.2} MB) exceeds maximum allowed size ({:.2} MB)",
-            file_size_mb, max_size_mb
-        )));
+        ));
     }
 
-    let result = state.indexer.import_archive(&archive_data).await?;
+    // Import from the temp file (memory-efficient for large archives)
+    let result = state.indexer.import_archive_from_file(&temp_path).await?;
 
     // Notify WebSocket clients about newly imported clips
     for id in &result.imported_ids {
@@ -929,5 +986,6 @@ async fn import_clips(
         }
     }
 
+    // temp_file is automatically cleaned up when dropped
     Ok(Json(result))
 }

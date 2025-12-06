@@ -11,7 +11,9 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::io::Read;
+use std::fs::File;
+use std::io::{BufReader, BufWriter, Read, Write};
+use std::path::Path;
 use tar::{Archive, Builder};
 
 /// Metadata for an exported clip, stored in the manifest.
@@ -117,7 +119,24 @@ impl ExportBuilder {
     /// Build the tar.gz archive and return it as bytes
     pub fn build(self) -> Result<Vec<u8>> {
         let mut archive_data = Vec::new();
-        let encoder = GzEncoder::new(&mut archive_data, Compression::default());
+        self.build_to_writer(&mut archive_data)?;
+        Ok(archive_data)
+    }
+
+    /// Build the tar.gz archive and write it to a file
+    ///
+    /// This is more memory-efficient for large archives as it writes directly
+    /// to disk instead of building the entire archive in memory.
+    pub fn build_to_file<P: AsRef<Path>>(self, path: P) -> Result<()> {
+        let file = File::create(path.as_ref())?;
+        let writer = BufWriter::new(file);
+        self.build_to_writer(writer)?;
+        Ok(())
+    }
+
+    /// Build the tar.gz archive and write it to any writer
+    fn build_to_writer<W: Write>(self, writer: W) -> Result<()> {
+        let encoder = GzEncoder::new(writer, Compression::default());
         let mut builder = Builder::new(encoder);
 
         // Create manifest
@@ -129,12 +148,12 @@ impl ExportBuilder {
         // Add manifest to archive
         let manifest_bytes = manifest_json.as_bytes();
         let mut header = tar::Header::new_gnu();
-        header.set_path(ExportManifest::MANIFEST_FILENAME)?;
         header.set_size(manifest_bytes.len() as u64);
         header.set_mode(0o644);
         header.set_mtime(Utc::now().timestamp() as u64);
-        header.set_cksum();
-        builder.append(&header, manifest_bytes)?;
+        // Use append_data to handle the path - it automatically handles long paths
+        // via GNU long-name extension if needed
+        builder.append_data(&mut header, ExportManifest::MANIFEST_FILENAME, manifest_bytes)?;
 
         // Add file attachments
         for (clip, attachment_content) in &self.clips {
@@ -142,12 +161,12 @@ impl ExportBuilder {
                 (&clip.attachment_path, attachment_content)
             {
                 let mut header = tar::Header::new_gnu();
-                header.set_path(attachment_path)?;
                 header.set_size(content.len() as u64);
                 header.set_mode(0o644);
                 header.set_mtime(clip.created_at.timestamp() as u64);
-                header.set_cksum();
-                builder.append(&header, content.as_ref())?;
+                // Use append_data to handle paths that may exceed 100 bytes
+                // (e.g., files/{id}_{original_filename} with long filenames)
+                builder.append_data(&mut header, attachment_path, content.as_ref())?;
             }
         }
 
@@ -155,7 +174,7 @@ impl ExportBuilder {
         let encoder = builder.into_inner()?;
         encoder.finish()?;
 
-        Ok(archive_data)
+        Ok(())
     }
 }
 
@@ -172,9 +191,9 @@ pub struct ImportParser {
 }
 
 impl ImportParser {
-    /// Parse a tar.gz archive from bytes
-    pub fn from_bytes(data: &[u8]) -> Result<Self> {
-        let decoder = GzDecoder::new(data);
+    /// Parse a tar.gz archive from a reader
+    fn parse_archive<R: Read>(reader: R) -> Result<Self> {
+        let decoder = GzDecoder::new(reader);
         let mut archive = Archive::new(decoder);
 
         let mut manifest: Option<ExportManifest> = None;
@@ -212,6 +231,21 @@ impl ImportParser {
         }
 
         Ok(Self { manifest, files })
+    }
+
+    /// Parse a tar.gz archive from bytes
+    pub fn from_bytes(data: &[u8]) -> Result<Self> {
+        Self::parse_archive(data)
+    }
+
+    /// Parse a tar.gz archive from a file path
+    ///
+    /// This is more memory-efficient for large archives as it streams from disk
+    /// instead of requiring the entire archive to be loaded into memory first.
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let file = File::open(path.as_ref())?;
+        let reader = BufReader::new(file);
+        Self::parse_archive(reader)
     }
 
     /// Get the manifest
@@ -363,5 +397,46 @@ mod tests {
 
         // Same content should produce same hash
         assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_export_with_long_filename() {
+        // Create a filename that exceeds the 100-byte tar path limit
+        // The path format is "files/{id}_{original_filename}"
+        // With id = 36 chars (UUID) + "files/" (6) + "_" (1) = 43 chars prefix
+        // So we need a filename > 57 chars to exceed 100 bytes
+        let long_filename = "a".repeat(100) + ".txt"; // 104 chars
+
+        let clip = ExportedClip {
+            id: "12345678-1234-1234-1234-123456789012".to_string(),
+            content: "File with long name".to_string(),
+            created_at: Utc::now(),
+            tags: vec![],
+            additional_notes: None,
+            original_filename: Some(long_filename.clone()),
+            attachment_path: Some(format!(
+                "files/12345678-1234-1234-1234-123456789012_{}",
+                long_filename
+            )),
+        };
+
+        let attachment = bytes::Bytes::from("Long filename content");
+
+        let mut builder = ExportBuilder::new();
+        builder.add_clip(clip.clone(), Some(attachment.clone()));
+
+        // This should not fail with "path too long" error
+        let archive_data = builder.build().expect("Failed to build archive with long filename");
+
+        // Verify we can parse it back
+        let parser = ImportParser::from_bytes(&archive_data).expect("Failed to parse archive");
+        assert_eq!(parser.manifest().clip_count, 1);
+        assert_eq!(parser.manifest().attachment_count, 1);
+
+        // Verify the attachment can be retrieved
+        let retrieved = parser
+            .get_attachment(&clip.attachment_path.unwrap())
+            .expect("Attachment not found");
+        assert_eq!(retrieved, attachment);
     }
 }

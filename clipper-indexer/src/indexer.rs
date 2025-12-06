@@ -923,6 +923,30 @@ impl ClipperIndexer {
     /// # Returns
     /// A byte vector containing the tar.gz archive data
     pub async fn export_all(&self) -> Result<Vec<u8>> {
+        let builder = self.build_export().await?;
+        builder.build()
+    }
+
+    /// Export all clipboard entries to a tar.gz archive file.
+    ///
+    /// This is more memory-efficient for large exports as it writes directly
+    /// to disk instead of building the entire archive in memory.
+    ///
+    /// The archive contains:
+    /// - `manifest.json`: Metadata about the export and list of all clips
+    /// - `files/`: Directory containing all file attachments
+    ///
+    /// Short URLs are NOT included in the export.
+    ///
+    /// # Arguments
+    /// * `path` - Path where the tar.gz archive will be written
+    pub async fn export_all_to_file<P: AsRef<std::path::Path>>(&self, path: P) -> Result<()> {
+        let builder = self.build_export().await?;
+        builder.build_to_file(path)
+    }
+
+    /// Build an ExportBuilder with all clips and their attachments.
+    async fn build_export(&self) -> Result<ExportBuilder> {
         // Get all entries (no filters, large page size to get all)
         let mut all_entries = Vec::new();
         let mut page = 1;
@@ -963,7 +987,7 @@ impl ClipperIndexer {
             builder.add_clip(exported_clip, attachment_content);
         }
 
-        builder.build()
+        Ok(builder)
     }
 
     /// Import clips from a tar.gz archive with deduplication.
@@ -979,7 +1003,33 @@ impl ClipperIndexer {
     /// An ImportResult containing statistics about the import operation
     pub async fn import_archive(&self, archive_data: &[u8]) -> Result<ImportResult> {
         let parser = ImportParser::from_bytes(archive_data)?;
+        self.import_from_parser(parser).await
+    }
 
+    /// Import clips from a tar.gz archive file with deduplication.
+    ///
+    /// This is more memory-efficient for large archives as it streams from disk
+    /// instead of requiring the entire archive to be loaded into memory first.
+    ///
+    /// Clips are deduplicated by:
+    /// 1. Checking if the same ID already exists
+    /// 2. Checking if the same content (hash) already exists
+    ///
+    /// # Arguments
+    /// * `path` - Path to the tar.gz archive file
+    ///
+    /// # Returns
+    /// An ImportResult containing statistics about the import operation
+    pub async fn import_archive_from_file<P: AsRef<std::path::Path>>(
+        &self,
+        path: P,
+    ) -> Result<ImportResult> {
+        let parser = ImportParser::from_file(path)?;
+        self.import_from_parser(parser).await
+    }
+
+    /// Import clips from a parsed archive with deduplication.
+    async fn import_from_parser(&self, parser: ImportParser) -> Result<ImportResult> {
         // Get existing IDs and content hashes for deduplication
         let mut existing_ids = HashSet::new();
         let mut existing_content_hashes = HashSet::new();
