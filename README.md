@@ -3,7 +3,7 @@
 A modern, cross-platform clipboard manager with full-text search, real-time sync, and a beautiful desktop interface.
 
 [![Homepage](https://img.shields.io/badge/homepage-clipper.unwritten.codes-blue)](https://clipper.unwritten.codes)
-![Version](https://img.shields.io/badge/version-0.16.4-blue)
+![Version](https://img.shields.io/badge/version-0.17.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -204,6 +204,8 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
 | `/clips/:id/file` | GET | Download file attachment |
 | `/clips/:id/short-url` | POST | Create short URL for sharing |
 | `/s/:code` | GET | Resolve short URL (public) |
+| `/export` | GET | Export all clips as tar.gz archive |
+| `/import` | POST | Import clips from tar.gz archive |
 | `/ws` | WS | Real-time notifications |
 
 ## CLI
@@ -231,6 +233,12 @@ clipper-cli delete <clip-id>
 
 # Share a clip (requires CLIPPER_SHORT_URL_BASE on server)
 clipper-cli share <clip-id> --expires 48
+
+# Export all clips to archive
+clipper-cli export -o backup.tar.gz
+
+# Import clips from archive
+clipper-cli import backup.tar.gz
 ```
 
 ### Environment

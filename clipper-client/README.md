@@ -9,6 +9,7 @@ A Rust client library for interacting with the Clipper server REST API and WebSo
 - **Pagination Support**: Built-in pagination for search and list operations
 - **Real-time Notifications**: WebSocket support for live clip updates
 - **File Operations**: Upload files and download attachments
+- **Export/Import**: Export and import clips via tar.gz archives
 - **Authentication Support**: Optional Bearer token authentication
 - **Async/Await**: Built on Tokio for efficient async I/O
 - **Type-Safe**: Strongly typed API with comprehensive error handling
@@ -140,6 +141,34 @@ let result = client.list_clips(filters, 1, 50).await?;
 
 ```rust
 client.delete_clip("clip_id").await?;
+```
+
+### Export Clips
+
+```rust
+// Export all clips to a file
+let bytes_written = client.export_to_file("backup.tar.gz").await?;
+println!("Exported {} bytes", bytes_written);
+
+// Export to any AsyncWrite implementation
+use tokio::io::AsyncWriteExt;
+let mut buffer = Vec::new();
+client.export_to_writer(&mut buffer).await?;
+```
+
+### Import Clips
+
+```rust
+use clipper_client::ImportResult;
+
+// Import clips from a file
+let result: ImportResult = client.import_from_file("backup.tar.gz").await?;
+println!("Imported: {}, Skipped: {}", result.imported_count, result.skipped_count);
+
+// Import from any AsyncRead implementation
+use tokio::io::AsyncReadExt;
+let file = tokio::fs::File::open("backup.tar.gz").await?;
+let result = client.import_from_reader(file).await?;
 ```
 
 ## Authentication

@@ -10,6 +10,7 @@
 - **更新元数据** - 更新剪贴的标签和备注
 - **删除剪贴** - 按 ID 删除剪贴
 - **监听模式** - 实时接收剪贴通知
+- **导出/导入** - 将剪贴导出/导入为 tar.gz 归档
 - **分页支持** - 搜索和列表操作支持分页
 - **身份验证** - 支持需要身份验证的服务器
 - **多种输出格式** - JSON（默认）或纯文本
@@ -218,6 +219,52 @@ clipper-cli watch
 {"type":"deleted_clip","id":"abc123"}
 {"type":"clips_cleaned_up","ids":["abc123","def456"],"count":2}
 ```
+
+### export - 导出所有剪贴到归档
+
+```bash
+clipper-cli export [选项]
+
+选项：
+  -o, --output <FILE>    输出文件路径（默认：clipper_export_<时间戳>.tar.gz）
+  -h, --help             打印帮助信息
+
+示例：
+  # 导出到自动命名的文件
+  clipper-cli export
+
+  # 导出到指定文件
+  clipper-cli export -o backup.tar.gz
+  clipper-cli export --output /path/to/backup.tar.gz
+```
+
+**输出**：包含所有剪贴和附件的归档文件
+
+### import - 从归档导入剪贴
+
+```bash
+clipper-cli import <FILE> [选项]
+
+参数：
+  <FILE>  要导入的 tar.gz 归档路径
+
+选项：
+  -f, --format <FORMAT>  输出格式：json 或 text [默认: text]
+  -h, --help             打印帮助信息
+
+示例：
+  # 导入并显示文本摘要
+  clipper-cli import backup.tar.gz
+
+  # 导入并输出 JSON
+  clipper-cli import backup.tar.gz --format json
+```
+
+**输出**：
+- 文本格式：导入/跳过剪贴的摘要
+- JSON 格式：包含计数的完整导入结果
+
+**注意**：重复的剪贴会根据 ID 或内容哈希自动跳过。
 
 ## 输出格式
 

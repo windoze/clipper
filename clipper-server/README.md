@@ -361,6 +361,83 @@ curl -H "Accept: application/octet-stream" https://clip.example.com/s/x7k9m2 -o 
 - The original clip remains protected; only the shared view is public
 - Consider your data sensitivity before enabling this feature
 
+## Export/Import
+
+The server supports exporting all clips to a tar.gz archive and importing clips from archives. This is useful for backups, migrations, or syncing between servers.
+
+### Export
+
+```
+GET /export
+```
+
+Downloads a tar.gz archive containing all clips and their file attachments.
+
+**Archive Structure:**
+```
+clipper_export.tar.gz
+├── manifest.json       # Clip metadata (array of clips)
+└── files/              # File attachments
+    ├── uuid1_filename1.txt
+    └── uuid2_filename2.png
+```
+
+**Response:** `200 OK` with `Content-Type: application/gzip`
+
+**Example:**
+```bash
+# Download export archive
+curl -H "Authorization: Bearer your-token" \
+  http://localhost:3000/export -o backup.tar.gz
+
+# Using CLI
+clipper-cli export -o backup.tar.gz
+```
+
+### Import
+
+```
+POST /import
+Content-Type: multipart/form-data
+```
+
+Imports clips from a tar.gz archive with automatic deduplication.
+
+**Form Fields:**
+- `file` - The tar.gz archive to import (required)
+
+**Deduplication:**
+- Clips with the same ID are skipped
+- Clips with the same content hash are skipped
+- File attachments are only imported for new clips
+
+**Response:** `200 OK`
+```json
+{
+  "imported_count": 42,
+  "skipped_count": 5,
+  "attachments_imported": 10
+}
+```
+
+**Example:**
+```bash
+# Upload import archive
+curl -X POST -H "Authorization: Bearer your-token" \
+  -F "file=@backup.tar.gz" \
+  http://localhost:3000/import
+
+# Using CLI
+clipper-cli import backup.tar.gz
+```
+
+### Notes
+
+- **Short URLs are NOT exported** - They are ephemeral and local to each server
+- **Authentication required** - Both endpoints require authentication if enabled
+- **Streaming** - Both export and import use streaming to handle large archives efficiently
+- **Atomic** - Import operations are atomic; if an error occurs, no partial data is committed
+
 ## REST API Endpoints
 
 ### Health Check

@@ -9,6 +9,7 @@
 - **分页支持** - 搜索和列表操作内置分页
 - **实时通知** - WebSocket 支持实时剪贴更新
 - **文件操作** - 上传文件和下载附件
+- **导出/导入** - 通过 tar.gz 归档导出和导入剪贴
 - **身份验证支持** - 可选的 Bearer 令牌身份验证
 - **异步/等待** - 基于 Tokio 构建，实现高效异步 I/O
 - **类型安全** - 强类型 API 和完善的错误处理
@@ -140,6 +141,34 @@ let result = client.list_clips(filters, 1, 50).await?;
 
 ```rust
 client.delete_clip("clip_id").await?;
+```
+
+### 导出剪贴
+
+```rust
+// 将所有剪贴导出到文件
+let bytes_written = client.export_to_file("backup.tar.gz").await?;
+println!("已导出 {} 字节", bytes_written);
+
+// 导出到任何 AsyncWrite 实现
+use tokio::io::AsyncWriteExt;
+let mut buffer = Vec::new();
+client.export_to_writer(&mut buffer).await?;
+```
+
+### 导入剪贴
+
+```rust
+use clipper_client::ImportResult;
+
+// 从文件导入剪贴
+let result: ImportResult = client.import_from_file("backup.tar.gz").await?;
+println!("已导入: {}, 已跳过: {}", result.imported_count, result.skipped_count);
+
+// 从任何 AsyncRead 实现导入
+use tokio::io::AsyncReadExt;
+let file = tokio::fs::File::open("backup.tar.gz").await?;
+let result = client.import_from_reader(file).await?;
 ```
 
 ## 身份验证

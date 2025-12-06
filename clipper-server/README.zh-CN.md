@@ -361,6 +361,83 @@ curl -H "Accept: application/octet-stream" https://clip.example.com/s/x7k9m2 -o 
 - 原始剪贴仍受保护；只有分享视图是公开的
 - 启用此功能前请考虑数据敏感性
 
+## 导出/导入
+
+服务器支持将所有剪贴导出为 tar.gz 归档，以及从归档导入剪贴。这对于备份、迁移或服务器间同步非常有用。
+
+### 导出
+
+```
+GET /export
+```
+
+下载包含所有剪贴及其文件附件的 tar.gz 归档。
+
+**归档结构：**
+```
+clipper_export.tar.gz
+├── manifest.json       # 剪贴元数据（剪贴数组）
+└── files/              # 文件附件
+    ├── uuid1_filename1.txt
+    └── uuid2_filename2.png
+```
+
+**响应：** `200 OK`，`Content-Type: application/gzip`
+
+**示例：**
+```bash
+# 下载导出归档
+curl -H "Authorization: Bearer your-token" \
+  http://localhost:3000/export -o backup.tar.gz
+
+# 使用 CLI
+clipper-cli export -o backup.tar.gz
+```
+
+### 导入
+
+```
+POST /import
+Content-Type: multipart/form-data
+```
+
+从 tar.gz 归档导入剪贴，自动去重。
+
+**表单字段：**
+- `file` - 要导入的 tar.gz 归档（必需）
+
+**去重规则：**
+- 相同 ID 的剪贴会被跳过
+- 相同内容哈希的剪贴会被跳过
+- 文件附件仅为新剪贴导入
+
+**响应：** `200 OK`
+```json
+{
+  "imported_count": 42,
+  "skipped_count": 5,
+  "attachments_imported": 10
+}
+```
+
+**示例：**
+```bash
+# 上传导入归档
+curl -X POST -H "Authorization: Bearer your-token" \
+  -F "file=@backup.tar.gz" \
+  http://localhost:3000/import
+
+# 使用 CLI
+clipper-cli import backup.tar.gz
+```
+
+### 注意事项
+
+- **短链接不会被导出** - 它们是临时的，仅在每个服务器本地有效
+- **需要身份验证** - 如果启用了身份验证，两个端点都需要认证
+- **流式处理** - 导出和导入都使用流式处理以高效处理大型归档
+- **原子操作** - 导入操作是原子的；如果发生错误，不会提交部分数据
+
 ## REST API 端点
 
 ### 健康检查

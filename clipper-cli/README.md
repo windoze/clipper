@@ -10,6 +10,7 @@ A command-line interface for managing clipboard entries with the Clipper server.
 - **Update clip metadata** (tags and notes)
 - **Delete clips** by ID
 - **Watch mode** for real-time clip notifications
+- **Export/Import** clips to/from tar.gz archives
 - **Pagination support** for search and list operations
 - **Authentication support** for secured servers
 - **Multiple output formats**: JSON (default) or plain text
@@ -218,6 +219,52 @@ Notification types:
 {"type":"deleted_clip","id":"abc123"}
 {"type":"clips_cleaned_up","ids":["abc123","def456"],"count":2}
 ```
+
+### export - Export all clips to archive
+
+```bash
+clipper-cli export [OPTIONS]
+
+Options:
+  -o, --output <FILE>    Output file path (default: clipper_export_<timestamp>.tar.gz)
+  -h, --help             Print help
+
+Examples:
+  # Export to auto-named file
+  clipper-cli export
+
+  # Export to specific file
+  clipper-cli export -o backup.tar.gz
+  clipper-cli export --output /path/to/backup.tar.gz
+```
+
+**Output**: Archive file containing all clips and attachments
+
+### import - Import clips from archive
+
+```bash
+clipper-cli import <FILE> [OPTIONS]
+
+Arguments:
+  <FILE>  Path to the tar.gz archive to import
+
+Options:
+  -f, --format <FORMAT>  Output format: json or text [default: text]
+  -h, --help             Print help
+
+Examples:
+  # Import with text summary
+  clipper-cli import backup.tar.gz
+
+  # Import with JSON output
+  clipper-cli import backup.tar.gz --format json
+```
+
+**Output**:
+- Text format: Summary of imported/skipped clips
+- JSON format: Full import result with counts
+
+**Note**: Duplicate clips are automatically skipped based on ID or content hash.
 
 ## Output Formats
 

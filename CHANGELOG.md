@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.0] - 2025-12-07
+
+### Added
+- Export/Import functionality for clips via tar.gz archives
+  - `GET /export` - Export all clips and attachments as a tar.gz archive
+  - `POST /import` - Import clips from a tar.gz archive with automatic deduplication
+  - CLI commands: `clipper-cli export` and `clipper-cli import`
+  - Client library methods: `export_to_file()`, `export_to_writer()`, `import_from_file()`, `import_from_reader()`
+- Deduplication on import (skips clips with same ID or content hash)
+- Streaming support for efficient handling of large archives
+
+### Documentation
+- Updated all README files with export/import documentation
+- Added export/import to REST API endpoint tables
+- Added CLI command documentation for export and import
+- Added client library API documentation for export/import functions
+
 ## [0.16.4] - 2025-12-06
 
 ### Security

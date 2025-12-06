@@ -3,7 +3,7 @@
 一款现代化、跨平台的剪贴板管理器，支持全文搜索、实时同步，拥有精美的桌面界面。
 
 [![Homepage](https://img.shields.io/badge/homepage-clipper.unwritten.codes-blue)](https://clipper.unwritten.codes)
-![Version](https://img.shields.io/badge/version-0.16.4-blue)
+![Version](https://img.shields.io/badge/version-0.17.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 
@@ -204,6 +204,8 @@ docker run -d -p 3000:3000 -v clipper-data:/data clipper-server
 | `/clips/:id/file` | GET | 下载文件附件 |
 | `/clips/:id/short-url` | POST | 创建分享短链接 |
 | `/s/:code` | GET | 解析短链接（公开） |
+| `/export` | GET | 导出所有剪贴为 tar.gz 归档 |
+| `/import` | POST | 从 tar.gz 归档导入剪贴 |
 | `/ws` | WS | 实时通知 |
 
 ## 命令行工具
@@ -231,6 +233,12 @@ clipper-cli delete <clip-id>
 
 # 分享剪贴（需要服务器设置 CLIPPER_SHORT_URL_BASE）
 clipper-cli share <clip-id> --expires 48
+
+# 导出所有剪贴到归档
+clipper-cli export -o backup.tar.gz
+
+# 从归档导入剪贴
+clipper-cli import backup.tar.gz
 ```
 
 ### 环境变量
