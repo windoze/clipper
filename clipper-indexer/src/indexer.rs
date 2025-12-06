@@ -1,6 +1,6 @@
 use crate::error::{IndexerError, Result};
 use crate::export::{
-    calculate_content_hash, ExportBuilder, ExportedClip, ImportParser, ImportResult,
+    ExportBuilder, ExportedClip, ImportParser, ImportResult, calculate_content_hash,
 };
 use crate::models::{ClipboardEntry, PagedResult, PagingParams, SearchFilters, ShortUrl};
 use crate::storage::FileStorage;
@@ -8,8 +8,8 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::Path;
-use surrealdb::engine::local::{Db, RocksDb};
 use surrealdb::Surreal;
+use surrealdb::engine::local::{Db, RocksDb};
 
 const TABLE_NAME: &str = "clipboard";
 const SHORT_URL_TABLE: &str = "short_url";
@@ -912,21 +912,6 @@ impl ClipperIndexer {
 
     // ==================== Export/Import Functions ====================
 
-    /// Export all clipboard entries to a tar.gz archive.
-    ///
-    /// The archive contains:
-    /// - `manifest.json`: Metadata about the export and list of all clips
-    /// - `files/`: Directory containing all file attachments
-    ///
-    /// Short URLs are NOT included in the export.
-    ///
-    /// # Returns
-    /// A byte vector containing the tar.gz archive data
-    pub async fn export_all(&self) -> Result<Vec<u8>> {
-        let builder = self.build_export().await?;
-        builder.build()
-    }
-
     /// Export all clipboard entries to a tar.gz archive file.
     ///
     /// This is more memory-efficient for large exports as it writes directly
@@ -954,9 +939,7 @@ impl ClipperIndexer {
 
         loop {
             let paging = PagingParams::new(page, page_size);
-            let result = self
-                .list_entries(SearchFilters::default(), paging)
-                .await?;
+            let result = self.list_entries(SearchFilters::default(), paging).await?;
 
             if result.items.is_empty() {
                 break;
@@ -975,10 +958,7 @@ impl ClipperIndexer {
 
         for entry in all_entries {
             let attachment_content = if let Some(ref file_key) = entry.file_attachment {
-                match self.storage.get_file(file_key).await {
-                    Ok(bytes) => Some(bytes),
-                    Err(_) => None, // Skip if file not found
-                }
+                self.storage.get_file(file_key).await.ok()
             } else {
                 None
             };
@@ -1039,9 +1019,7 @@ impl ClipperIndexer {
 
         loop {
             let paging = PagingParams::new(page, page_size);
-            let result = self
-                .list_entries(SearchFilters::default(), paging)
-                .await?;
+            let result = self.list_entries(SearchFilters::default(), paging).await?;
 
             if result.items.is_empty() {
                 break;

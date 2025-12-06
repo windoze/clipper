@@ -6,9 +6,9 @@
 use crate::error::{IndexerError, Result};
 use crate::models::ClipboardEntry;
 use chrono::{DateTime, Utc};
+use flate2::Compression;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
-use flate2::Compression;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs::File;
@@ -36,12 +36,14 @@ pub struct ExportedClip {
 
 impl From<ClipboardEntry> for ExportedClip {
     fn from(entry: ClipboardEntry) -> Self {
-        let attachment_path = entry.file_attachment.as_ref().map(|_| {
-            match &entry.original_filename {
-                Some(filename) => format!("files/{}_{}", entry.id, filename),
-                None => format!("files/{}", entry.id),
-            }
-        });
+        let attachment_path =
+            entry
+                .file_attachment
+                .as_ref()
+                .map(|_| match &entry.original_filename {
+                    Some(filename) => format!("files/{}_{}", entry.id, filename),
+                    None => format!("files/{}", entry.id),
+                });
 
         Self {
             id: entry.id,
@@ -116,13 +118,6 @@ impl ExportBuilder {
         self.clips.push((clip, attachment_content));
     }
 
-    /// Build the tar.gz archive and return it as bytes
-    pub fn build(self) -> Result<Vec<u8>> {
-        let mut archive_data = Vec::new();
-        self.build_to_writer(&mut archive_data)?;
-        Ok(archive_data)
-    }
-
     /// Build the tar.gz archive and write it to a file
     ///
     /// This is more memory-efficient for large archives as it writes directly
@@ -153,7 +148,11 @@ impl ExportBuilder {
         header.set_mtime(Utc::now().timestamp() as u64);
         // Use append_data to handle the path - it automatically handles long paths
         // via GNU long-name extension if needed
-        builder.append_data(&mut header, ExportManifest::MANIFEST_FILENAME, manifest_bytes)?;
+        builder.append_data(
+            &mut header,
+            ExportManifest::MANIFEST_FILENAME,
+            manifest_bytes,
+        )?;
 
         // Add file attachments
         for (clip, attachment_content) in &self.clips {
@@ -313,6 +312,7 @@ pub fn calculate_content_hash(clip: &ExportedClip) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_export_builder_creates_valid_archive() {
@@ -329,11 +329,19 @@ mod tests {
         let mut builder = ExportBuilder::new();
         builder.add_clip(clip, None);
 
-        let archive_data = builder.build().expect("Failed to build archive");
-        assert!(!archive_data.is_empty());
+        // Write to temp file
+        let temp_file = NamedTempFile::new().expect("Failed to create temp file");
+        let temp_path = temp_file.path();
+        builder
+            .build_to_file(temp_path)
+            .expect("Failed to build archive");
 
-        // Parse it back
-        let parser = ImportParser::from_bytes(&archive_data).expect("Failed to parse archive");
+        // Verify file is not empty
+        let metadata = std::fs::metadata(temp_path).expect("Failed to get metadata");
+        assert!(metadata.len() > 0);
+
+        // Parse it back from file
+        let parser = ImportParser::from_file(temp_path).expect("Failed to parse archive");
         assert_eq!(parser.manifest().clip_count, 1);
         assert_eq!(parser.clips()[0].id, "test123");
     }
@@ -355,9 +363,15 @@ mod tests {
         let mut builder = ExportBuilder::new();
         builder.add_clip(clip, Some(attachment.clone()));
 
-        let archive_data = builder.build().expect("Failed to build archive");
+        // Write to temp file
+        let temp_file = NamedTempFile::new().expect("Failed to create temp file");
+        let temp_path = temp_file.path();
+        builder
+            .build_to_file(temp_path)
+            .expect("Failed to build archive");
 
-        let parser = ImportParser::from_bytes(&archive_data).expect("Failed to parse archive");
+        // Parse it back from file
+        let parser = ImportParser::from_file(temp_path).expect("Failed to parse archive");
         assert_eq!(parser.manifest().attachment_count, 1);
 
         let retrieved = parser
@@ -425,11 +439,15 @@ mod tests {
         let mut builder = ExportBuilder::new();
         builder.add_clip(clip.clone(), Some(attachment.clone()));
 
-        // This should not fail with "path too long" error
-        let archive_data = builder.build().expect("Failed to build archive with long filename");
+        // Write to temp file - this should not fail with "path too long" error
+        let temp_file = NamedTempFile::new().expect("Failed to create temp file");
+        let temp_path = temp_file.path();
+        builder
+            .build_to_file(temp_path)
+            .expect("Failed to build archive with long filename");
 
-        // Verify we can parse it back
-        let parser = ImportParser::from_bytes(&archive_data).expect("Failed to parse archive");
+        // Verify we can parse it back from file
+        let parser = ImportParser::from_file(temp_path).expect("Failed to parse archive");
         assert_eq!(parser.manifest().clip_count, 1);
         assert_eq!(parser.manifest().attachment_count, 1);
 
