@@ -306,7 +306,9 @@ mod windows {
     /// Get the length of a SID
     unsafe fn get_length_sid(sid: PSID) -> usize {
         // SID structure: Revision (1) + SubAuthorityCount (1) + IdentifierAuthority (6) + SubAuthorities (4 * count)
-        let sub_auth_count = *((sid as *const u8).add(1));
+        // SAFETY: sid is a valid PSID pointer from the Windows API, and we're accessing
+        // the SubAuthorityCount field at offset 1 which is guaranteed to exist.
+        let sub_auth_count = unsafe { *((sid as *const u8).add(1)) };
         8 + (sub_auth_count as usize * 4)
     }
 
