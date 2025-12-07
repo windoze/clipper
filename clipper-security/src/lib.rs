@@ -240,15 +240,11 @@ mod windows {
     use std::ptr;
 
     use super::SecurityFixResult;
-    use windows_sys::Win32::Foundation::{
-        CloseHandle, LocalFree, HANDLE, INVALID_HANDLE_VALUE, PSID,
-    };
-    use windows_sys::Win32::Security::Authorization::{
-        SetNamedSecurityInfoW, SE_FILE_OBJECT,
-    };
+    use windows_sys::Win32::Foundation::{CloseHandle, LocalFree, HANDLE, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::Security::Authorization::{SetNamedSecurityInfoW, SE_FILE_OBJECT};
     use windows_sys::Win32::Security::{
         AddAccessAllowedAceEx, GetTokenInformation, InitializeAcl, CONTAINER_INHERIT_ACE,
-        DACL_SECURITY_INFORMATION, OBJECT_INHERIT_ACE, PROTECTED_DACL_SECURITY_INFORMATION,
+        DACL_SECURITY_INFORMATION, OBJECT_INHERIT_ACE, PROTECTED_DACL_SECURITY_INFORMATION, PSID,
         TOKEN_QUERY, TOKEN_USER, TokenUser, ACL as WIN_ACL, ACL_REVISION,
     };
     use windows_sys::Win32::System::Memory::LocalAlloc;
