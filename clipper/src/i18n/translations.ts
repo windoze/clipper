@@ -46,6 +46,7 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.bundledServerToken.hint": "Set a token to require authentication when accessing the server from other devices. Leave empty to allow unauthenticated access.",
     "settings.token.show": "Show token",
     "settings.token.hide": "Hide token",
+    "settings.token.generate": "Generate token",
 
     // External Server Info
     "settings.serverInfo": "Server Configuration",
@@ -200,6 +201,7 @@ export const tauriExtraTranslations: Record<Language, Record<string, string>> = 
     "settings.bundledServerToken.hint": "设置令牌以在其他设备访问服务器时要求身份验证。留空则允许无需身份验证即可访问。",
     "settings.token.show": "显示令牌",
     "settings.token.hide": "隐藏令牌",
+    "settings.token.generate": "生成令牌",
 
     // External Server Info
     "settings.serverInfo": "服务器配置",

@@ -96,6 +96,9 @@ export function SearchBox({
           value={localValue}
           onChange={(e) => setLocalValue(e.target.value)}
           className="search-input"
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
         />
       </div>
       {hasFilters && (

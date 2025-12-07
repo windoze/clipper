@@ -838,6 +838,11 @@ body {
   padding-right: 40px;
 }
 
+/* When there are two buttons (generate + show/hide) */
+.settings-password-input:has(.password-toggle-button + .password-toggle-button) input {
+  padding-right: 68px;
+}
+
 .password-toggle-button {
   position: absolute;
   right: 8px;
@@ -853,6 +858,11 @@ body {
   justify-content: center;
   border-radius: 4px;
   transition: color 0.2s, background 0.2s;
+}
+
+/* Position first button (generate) to the left of second button (show/hide) */
+.settings-password-input .password-toggle-button:nth-of-type(1):has(+ .password-toggle-button) {
+  right: 36px;
 }
 
 .password-toggle-button:hover {

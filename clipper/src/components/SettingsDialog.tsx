@@ -866,6 +866,28 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     return `${formatBytes(bytesPerSec)}/s`;
   };
 
+  // Generate a secure random 16-character token
+  const generateToken = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*-_=+';
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    let token = '';
+    for (let i = 0; i < 16; i++) {
+      token += chars[array[i] % chars.length];
+    }
+    return token;
+  };
+
+  // Handle generate token for bundled server
+  const handleGenerateToken = async () => {
+    const token = generateToken();
+    const newSettings = { ...settings, bundledServerToken: token };
+    setSettings(newSettings);
+    await saveSettings(newSettings);
+    // Show the token after generating
+    setShowBundledToken(true);
+  };
+
   // Format shortcut for display (replace Ctrl/Command based on platform)
   const formatShortcutForDisplay = (shortcut: string) => {
     if (isMac) {
@@ -1191,6 +1213,17 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
                 <button
                   type="button"
                   className="password-toggle-button"
+                  onClick={handleGenerateToken}
+                  title={t("settings.token.generate")}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="password-toggle-button"
                   onClick={() => setShowBundledToken(!showBundledToken)}
                   title={showBundledToken ? t("settings.token.hide") : t("settings.token.show")}
                 >
@@ -1224,6 +1257,9 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
                 value={settings.serverAddress}
                 onChange={(e) => handleChange("serverAddress", e.target.value)}
                 placeholder={t("settings.serverUrl.placeholder")}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
               />
               <p className="settings-hint">
                 {t("settings.serverUrl.hint")}
