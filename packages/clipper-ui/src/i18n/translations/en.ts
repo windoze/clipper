@@ -106,7 +106,8 @@ export const en = {
 
   // Share Dialog
   "share.title": "Share Clip",
-  "share.warning": "This will create a public link that anyone can use to view this clip without authentication.",
+  "share.warning":
+    "This will create a public link that anyone can use to view this clip without authentication.",
   "share.warningNote": "The link will expire after {hours} hours.",
   "share.warningNoteNoExpiry": "The link will never expire.",
   "share.generate": "Generate Share Link",
@@ -116,6 +117,19 @@ export const en = {
   "share.hint": "Anyone with this link can view this clip.",
   "share.error": "Failed to generate share link",
   "share.notAvailable": "Sharing is not available",
+  "share.sensitiveContent.title": "Sensitive Content Detected",
+  "share.sensitiveContent.description":
+    "This clip appears to contain sensitive information that should not be shared publicly:",
+  "share.sensitiveContent.types.email": "Email address",
+  "share.sensitiveContent.types.creditCard": "Credit card number",
+  "share.sensitiveContent.types.phone": "Phone number",
+  "share.sensitiveContent.types.ssn": "Social Security Number",
+  "share.sensitiveContent.types.ipAddress": "IP address",
+  "share.sensitiveContent.types.jwt": "JWT token",
+  "share.sensitiveContent.types.apiKey": "API key or token",
+  "share.sensitiveContent.types.privateKey": "Private key",
+  "share.sensitiveContent.types.password": "Password or secret",
+  "share.sensitiveContent.types.awsKey": "AWS credentials",
 
   // Image Popup
   "imagePopup.download": "Download",

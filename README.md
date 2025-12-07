@@ -414,6 +414,20 @@ sudo rpm -i clipper-*.rpm
 
 ## Security Considerations
 
+> **Warning**: Your clipboard is one of the most sensitive data streams on your computer. It regularly contains passwords, API keys, personal messages, financial information, and other confidential data. Clipper captures and persists ALL clipboard content by design. Treat your Clipper data with the same level of security as your password manager.
+
+Clipper stores clipboard history which may contain sensitive information. Understanding potential security risks is important:
+
+| Condition | Potential Incident |
+|-----------|-------------------|
+| Server exposed to network without authentication | Unauthorized access to all clipboard history, including passwords and sensitive data |
+| No TLS on untrusted network | Man-in-the-middle attacks can intercept clipboard data and authentication tokens |
+| Weak or leaked bearer token | Full access to read, modify, and delete all clips |
+| Short URL shared with sensitive content | Permanent public exposure of confidential information |
+| Database/storage directories world-readable | Local users can access all clipboard history |
+| Clipboard monitoring with sensitive workflows | Passwords, API keys, secrets automatically captured and persisted |
+| Backup archives stored insecurely | Complete clipboard history exposure if backup is compromised |
+
 ### Server Security
 
 - **Network Binding**: By default, the server binds to `0.0.0.0`, making it accessible on all network interfaces. For local-only use, set `CLIPPER_LISTEN_ADDR=127.0.0.1`.

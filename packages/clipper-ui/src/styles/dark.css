@@ -653,6 +653,23 @@
   color: #adb5bd;
 }
 
+:root[data-theme="dark"] .share-dialog-sensitive-warning {
+  background: #450a0a;
+  border-color: #7f1d1d;
+}
+
+:root[data-theme="dark"] .share-dialog-sensitive-header {
+  color: #fca5a5;
+}
+
+:root[data-theme="dark"] .share-dialog-sensitive-text {
+  color: #fecaca;
+}
+
+:root[data-theme="dark"] .share-dialog-sensitive-list {
+  color: #fca5a5;
+}
+
 /* ============================================
    Toast - Dark Theme
    ============================================ */
@@ -1249,6 +1266,23 @@
 
   :root:not([data-theme="light"]) .share-dialog-warning-note {
     color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-sensitive-warning {
+    background: #450a0a;
+    border-color: #7f1d1d;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-sensitive-header {
+    color: #fca5a5;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-sensitive-text {
+    color: #fecaca;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-sensitive-list {
+    color: #fca5a5;
   }
 
   /* Toast dark mode fallback */

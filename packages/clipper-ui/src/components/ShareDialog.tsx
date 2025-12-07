@@ -1,16 +1,26 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useI18n } from "../i18n";
 import { useToast } from "./Toast";
 import { useApi } from "../api";
 import { useServerConfig } from "../hooks/useServerConfig";
+import {
+  detectSensitiveContent,
+  SensitiveContentWarning,
+} from "../utils/sensitiveContentDetector";
 
 interface ShareDialogProps {
   clipId: string;
+  clipContent?: string;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function ShareDialog({ clipId, isOpen, onClose }: ShareDialogProps) {
+export function ShareDialog({
+  clipId,
+  clipContent,
+  isOpen,
+  onClose,
+}: ShareDialogProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
   const api = useApi();
@@ -22,6 +32,12 @@ export function ShareDialog({ clipId, isOpen, onClose }: ShareDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+
+  // Detect sensitive content in the clip
+  const sensitiveWarnings = useMemo<SensitiveContentWarning[]>(() => {
+    if (!clipContent) return [];
+    return detectSensitiveContent(clipContent);
+  }, [clipContent]);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -135,6 +151,44 @@ export function ShareDialog({ clipId, isOpen, onClose }: ShareDialogProps) {
                       hours: serverConfig?.shortUrlExpirationHours ?? 24,
                     })}
               </p>
+              {sensitiveWarnings.length > 0 && (
+                <div className="share-dialog-sensitive-warning">
+                  <div className="share-dialog-sensitive-header">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect
+                        x="3"
+                        y="11"
+                        width="18"
+                        height="11"
+                        rx="2"
+                        ry="2"
+                      ></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>{t("share.sensitiveContent.title")}</span>
+                  </div>
+                  <p className="share-dialog-sensitive-text">
+                    {t("share.sensitiveContent.description")}
+                  </p>
+                  <ul className="share-dialog-sensitive-list">
+                    {sensitiveWarnings.map((warning, index) => (
+                      <li key={index}>
+                        {t(`share.sensitiveContent.types.${warning.type}`)}
+                        {warning.details && ` (${warning.details})`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 

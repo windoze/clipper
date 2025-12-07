@@ -105,7 +105,8 @@ export const zh = {
 
   // Share Dialog
   "share.title": "分享剪贴",
-  "share.warning": "这将创建一个公开链接，任何人都可以在无需身份验证的情况下查看此剪贴。",
+  "share.warning":
+    "这将创建一个公开链接，任何人都可以在无需身份验证的情况下查看此剪贴。",
   "share.warningNote": "链接将在 {hours} 小时后失效。",
   "share.warningNoteNoExpiry": "链接永不过期。",
   "share.generate": "生成分享链接",
@@ -115,6 +116,19 @@ export const zh = {
   "share.hint": "任何拥有此链接的人都可以查看这条剪贴。",
   "share.error": "生成分享链接失败",
   "share.notAvailable": "分享功能不可用",
+  "share.sensitiveContent.title": "检测到敏感内容",
+  "share.sensitiveContent.description":
+    "此剪贴似乎包含不应公开分享的敏感信息：",
+  "share.sensitiveContent.types.email": "电子邮件地址",
+  "share.sensitiveContent.types.creditCard": "信用卡号",
+  "share.sensitiveContent.types.phone": "电话号码",
+  "share.sensitiveContent.types.ssn": "社会安全号码",
+  "share.sensitiveContent.types.ipAddress": "IP 地址",
+  "share.sensitiveContent.types.jwt": "JWT 令牌",
+  "share.sensitiveContent.types.apiKey": "API 密钥或令牌",
+  "share.sensitiveContent.types.privateKey": "私钥",
+  "share.sensitiveContent.types.password": "密码或机密",
+  "share.sensitiveContent.types.awsKey": "AWS 凭证",
 
   // Image Popup
   "imagePopup.download": "下载",

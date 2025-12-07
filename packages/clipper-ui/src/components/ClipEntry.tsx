@@ -518,6 +518,7 @@ export function ClipEntry({
 
       <ShareDialog
         clipId={clip.id}
+        clipContent={clip.content}
         isOpen={showShareDialog}
         onClose={() => setShowShareDialog(false)}
       />

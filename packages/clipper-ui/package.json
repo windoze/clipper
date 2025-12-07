@@ -11,12 +11,14 @@
     "./i18n": "./src/i18n/index.ts",
     "./components": "./src/components/index.ts",
     "./hooks": "./src/hooks/index.ts",
+    "./utils": "./src/utils/index.ts",
     "./styles/index.css": "./src/styles/index.css",
     "./styles/base.css": "./src/styles/base.css",
     "./styles/dark.css": "./src/styles/dark.css"
   },
   "dependencies": {
-    "highlight.js": "^11.11.1"
+    "highlight.js": "^11.11.1",
+    "validator": "^13.15.23"
   },
   "peerDependencies": {
     "react": "^19.2.1",
@@ -25,6 +27,7 @@
   "devDependencies": {
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/validator": "^13.15.10",
     "typescript": "~5.9.3"
   }
 }
