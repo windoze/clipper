@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Press ESC key to clear search box when focused
+
 ## [0.18.4]
 
 ### Added
@@ -10,7 +16,6 @@ All notable changes to this project will be documented in this file.
   - `highlighted_content` field in search results (optional, backward compatible)
   - Visual highlighting in Web UI and Desktop app with smart truncation
   - Line-based content truncation (6 lines) ensuring highlighted terms are visible
-- Press ESC key to clear search box when focused
 
 ## [0.18.3] - 2025-12-07
 
