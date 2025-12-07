@@ -136,6 +136,8 @@ When connecting to a server with a self-signed certificate, the Clipper app will
 - `CLIPPER_ACME_STAGING` - Use staging environment for testing (default: `false`)
 - `CLIPPER_CERTS_DIR` - Directory for certificate cache (default: `~/.config/com.0d0a.clipper/certs/`)
 
+**Note:** When ACME is enabled, `CLIPPER_BEARER_TOKEN` is required for security. Since ACME exposes the server to the internet with a public domain, authentication is mandatory to prevent unauthorized access.
+
 ### Auto-cleanup Environment Variables
 
 - `CLIPPER_CLEANUP_ENABLED` - Enable automatic cleanup of old clips (default: `false`)

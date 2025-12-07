@@ -562,6 +562,16 @@ impl ServerConfig {
                             .to_string(),
                     );
                 }
+                // When ACME is enabled, the server is exposed to the internet with a public domain.
+                // Require bearer token authentication for security.
+                if !self.auth.is_enabled() {
+                    return Err(
+                        "ACME enabled but no bearer token configured. \
+                         For security, authentication is required when using ACME. \
+                         Set auth.bearer_token or CLIPPER_BEARER_TOKEN."
+                            .to_string(),
+                    );
+                }
             }
         }
 
@@ -658,12 +668,27 @@ mod tests {
 
     #[test]
     #[cfg(feature = "acme")]
-    fn test_validate_acme_with_domain_and_email() {
+    fn test_validate_acme_without_bearer_token() {
         let mut config = ServerConfig::default();
         config.acme.enabled = true;
         config.tls.enabled = true;
         config.acme.domain = Some("example.com".to_string());
         config.acme.contact_email = Some("admin@example.com".to_string());
+        // Should fail without bearer token
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("bearer token"));
+    }
+
+    #[test]
+    #[cfg(feature = "acme")]
+    fn test_validate_acme_with_domain_email_and_bearer_token() {
+        let mut config = ServerConfig::default();
+        config.acme.enabled = true;
+        config.tls.enabled = true;
+        config.acme.domain = Some("example.com".to_string());
+        config.acme.contact_email = Some("admin@example.com".to_string());
+        config.auth.bearer_token = Some("secret-token".to_string());
         assert!(config.validate().is_ok());
     }
 
