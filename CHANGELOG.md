@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.18.1] - 2025-12-07
+## [0.18.3] - 2025-12-07
 
 ### Fixed
 - Windows build: Added missing `Win32_System_Threading` feature to windows-sys dependency
