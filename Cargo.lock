@@ -1647,6 +1647,7 @@ dependencies = [
  "arboard",
  "chrono",
  "clipper-client",
+ "clipper-security",
  "dirs",
  "gethostname",
  "image",
@@ -1685,6 +1686,7 @@ dependencies = [
  "chrono",
  "clap",
  "clipper-client",
+ "clipper-security",
  "dirs",
  "rustls",
  "serde",
@@ -1717,6 +1719,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "clipper-security"
+version = "0.17.0"
+dependencies = [
+ "libc",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "clipper-server"
 version = "0.17.0"
 dependencies = [
@@ -1726,6 +1736,7 @@ dependencies = [
  "bytes",
  "chrono",
  "clap",
+ "clipper-security",
  "clipper_indexer",
  "config",
  "dirs",
@@ -1765,6 +1776,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "clipper-client",
+ "clipper-security",
  "dirs",
  "local-ip-address",
  "portpicker",

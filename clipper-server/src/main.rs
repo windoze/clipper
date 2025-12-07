@@ -54,6 +54,12 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    // Set restrictive permissions for newly created files and directories.
+    // On Unix: Sets umask to 0o077 (files 0600, directories 0700)
+    // On Windows: This is a no-op; directories are secured after creation with ACLs
+    clipper_security::set_restrictive_umask();
+    tracing::debug!("Set restrictive file permissions");
+
     // Parse command line arguments
     let cli = Cli::parse();
 
@@ -106,6 +112,29 @@ async fn main() {
     let indexer = ClipperIndexer::new(&config.database.path, &config.storage.path)
         .await
         .expect("Failed to initialize indexer");
+
+    // Secure the data directories and fix any incorrect permissions
+    // On Unix: checks and fixes permissions to 0700/0600
+    // On Windows: sets DACL to grant access only to current user
+    let db_path = std::path::Path::new(&config.database.path);
+    let storage_path = std::path::Path::new(&config.storage.path);
+
+    match clipper_security::secure_directory_recursive(db_path, |msg| tracing::warn!("{}", msg)) {
+        Ok(count) if count > 0 => {
+            tracing::info!("Fixed permissions on {} items in database directory", count);
+        }
+        Err(e) => tracing::warn!("Failed to secure database directory: {}", e),
+        _ => {}
+    }
+
+    match clipper_security::secure_directory_recursive(storage_path, |msg| tracing::warn!("{}", msg))
+    {
+        Ok(count) if count > 0 => {
+            tracing::info!("Fixed permissions on {} items in storage directory", count);
+        }
+        Err(e) => tracing::warn!("Failed to secure storage directory: {}", e),
+        _ => {}
+    }
 
     // Create application state
     let state = AppState::new(indexer, config.clone());

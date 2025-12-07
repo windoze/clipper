@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "clipper-security",
     "clipper-slint",
     "clipper-server",
     "clipper-indexer",

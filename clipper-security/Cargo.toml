@@ -1,0 +1,19 @@
+[package]
+name = "clipper-security"
+rust-version = "1.91"
+version.workspace = true
+edition.workspace = true
+description = "Security utilities for Clipper - cross-platform file permission management"
+
+[dependencies]
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_System_Memory",
+] }

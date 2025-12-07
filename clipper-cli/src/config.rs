@@ -134,6 +134,16 @@ pub fn save_trusted_certificate(
     // Ensure parent directory exists
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent)?;
+
+        // Secure the config directory and fix any incorrect permissions
+        match clipper_security::secure_directory_recursive(parent, |msg| eprintln!("[warning] {}", msg))
+        {
+            Ok(count) if count > 0 => {
+                eprintln!("[info] Fixed permissions on {} items in config directory", count);
+            }
+            Err(e) => eprintln!("[warning] Failed to secure config directory: {}", e),
+            _ => {}
+        }
     }
 
     // Write back

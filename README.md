@@ -412,6 +412,32 @@ sudo dpkg -i clipper_*.deb
 sudo rpm -i clipper-*.rpm
 ```
 
+## Security Considerations
+
+### Server Security
+
+- **Network Binding**: By default, the server binds to `0.0.0.0`, making it accessible on all network interfaces. For local-only use, set `CLIPPER_LISTEN_ADDR=127.0.0.1`.
+- **Authentication**: Always enable bearer token authentication (`CLIPPER_BEARER_TOKEN`) when exposing the server to a network. Without authentication, anyone with network access can read and modify your clipboard history.
+- **TLS/HTTPS**: Use TLS encryption when running over untrusted networks. Configure with manual certificates or automatic Let's Encrypt.
+- **Short URLs**: Shared clips via short URLs are publicly accessible without authentication. Use appropriate expiration times and only share non-sensitive content.
+- **Data Storage**: All clipboard data is stored locally. Ensure database and storage directories have appropriate file system permissions and are not world-readable.
+- **Docker Deployment**: When using Docker, avoid exposing ports directly to the internet without a reverse proxy with TLS termination.
+
+### Client Security
+
+- **Self-Signed Certificates**: Both CLI and desktop app support SSH-like fingerprint verification for self-signed certificates. Always verify the fingerprint matches your server on first connection.
+- **Token Storage**: Bearer tokens are stored in the settings file. Ensure this file has appropriate permissions (readable only by the current user).
+- **Clipboard Monitoring**: The desktop app continuously monitors the system clipboard. Be aware that copied passwords, API keys, and other sensitive data will be captured and stored.
+- **Bundled Server Token**: When network access is enabled in the desktop app, a random bearer token is generated and displayed in settings.
+
+### General Recommendations
+
+1. **Private Networks**: Only expose Clipper to trusted networks or use a VPN
+2. **Strong Tokens**: Use long, random bearer tokens for authentication
+3. **Regular Cleanup**: Enable auto-cleanup to limit exposure of historical clipboard data
+4. **Backup Security**: Export archives contain all clipboard history including attachments - store backups securely
+5. **Sensitive Data**: Consider the sensitivity of data you copy to clipboard; Clipper stores everything indiscriminately
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

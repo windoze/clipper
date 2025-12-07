@@ -205,6 +205,29 @@ impl ServerManager {
             .await
             .map_err(|e| format!("Failed to create storage directory: {}", e))?;
 
+        // Secure the data directories and fix any incorrect permissions
+        // On Unix: checks and fixes permissions to 0700/0600
+        // On Windows: sets DACL to grant access only to current user
+        match clipper_security::secure_directory_recursive(&self.db_path, |msg| {
+            log::warn!("{}", msg)
+        }) {
+            Ok(count) if count > 0 => {
+                log::info!("Fixed permissions on {} items in database directory", count);
+            }
+            Err(e) => log::warn!("Failed to secure database directory: {}", e),
+            _ => {}
+        }
+
+        match clipper_security::secure_directory_recursive(&self.storage_path, |msg| {
+            log::warn!("{}", msg)
+        }) {
+            Ok(count) if count > 0 => {
+                log::info!("Fixed permissions on {} items in storage directory", count);
+            }
+            Err(e) => log::warn!("Failed to secure storage directory: {}", e),
+            _ => {}
+        }
+
         let db_path_str = self
             .db_path
             .to_str()

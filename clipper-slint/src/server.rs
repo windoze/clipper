@@ -99,6 +99,33 @@ impl ServerManager {
             .await
             .map_err(|e| format!("Failed to create storage directory: {}", e))?;
 
+        // Secure the data directories and fix any incorrect permissions
+        match clipper_security::secure_directory_recursive(&self.db_path, |msg| {
+            eprintln!("[clipper-slint] {}", msg)
+        }) {
+            Ok(count) if count > 0 => {
+                eprintln!(
+                    "[clipper-slint] Fixed permissions on {} items in database directory",
+                    count
+                );
+            }
+            Err(e) => eprintln!("[clipper-slint] Failed to secure database directory: {}", e),
+            _ => {}
+        }
+
+        match clipper_security::secure_directory_recursive(&self.storage_path, |msg| {
+            eprintln!("[clipper-slint] {}", msg)
+        }) {
+            Ok(count) if count > 0 => {
+                eprintln!(
+                    "[clipper-slint] Fixed permissions on {} items in storage directory",
+                    count
+                );
+            }
+            Err(e) => eprintln!("[clipper-slint] Failed to secure storage directory: {}", e),
+            _ => {}
+        }
+
         let db_path_str = self
             .db_path
             .to_str()

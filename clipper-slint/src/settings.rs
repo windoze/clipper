@@ -104,6 +104,20 @@ impl SettingsManager {
 
         std::fs::create_dir_all(&config_dir).context("Failed to create config directory")?;
 
+        // Secure the config directory and fix any incorrect permissions
+        match clipper_security::secure_directory_recursive(&config_dir, |msg| {
+            eprintln!("[clipper-slint] {}", msg)
+        }) {
+            Ok(count) if count > 0 => {
+                eprintln!(
+                    "[clipper-slint] Fixed permissions on {} items in config directory",
+                    count
+                );
+            }
+            Err(e) => eprintln!("[clipper-slint] Failed to secure config directory: {}", e),
+            _ => {}
+        }
+
         let settings_path = config_dir.join(SETTINGS_FILE);
         let settings = Self::load_settings(&settings_path);
 

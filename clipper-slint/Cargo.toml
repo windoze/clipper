@@ -8,6 +8,7 @@ rust-version = "1.91"
 anyhow = "1"
 chrono = "0.4"
 clipper-client = { path = "../clipper-client" }
+clipper-security = { path = "../clipper-security" }
 dirs = "6"
 local-ip-address = "0.6"
 portpicker = "0.1"

@@ -32,6 +32,7 @@ full-tls = ["acme", "secure-storage"]
 rust-embed = { version = "8", optional = true }
 mime_guess = { version = "2", optional = true }
 clipper_indexer = { path = "../clipper-indexer" }
+clipper-security = { path = "../clipper-security" }
 axum = { version = "0.8", features = ["ws", "macros", "multipart"] }
 tokio = { version = "1", features = [
     "macros",

@@ -197,6 +197,11 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Set restrictive permissions for newly created files and directories.
+    // On Unix: Sets umask to 0o077 (files 0600, directories 0700)
+    // On Windows: This is a no-op; directories are secured after creation with ACLs
+    clipper_security::set_restrictive_umask();
+
     rustls::crypto::ring::default_provider()
         .install_default()
         .expect("Failed to install rustls crypto provider");

@@ -201,6 +201,16 @@ impl SettingsManager {
             fs::create_dir_all(parent)
                 .await
                 .map_err(|e| format!("Failed to create config directory: {}", e))?;
+
+            // Secure the config directory and fix any incorrect permissions
+            match clipper_security::secure_directory_recursive(parent, |msg| log::warn!("{}", msg))
+            {
+                Ok(count) if count > 0 => {
+                    log::info!("Fixed permissions on {} items in config directory", count);
+                }
+                Err(e) => log::warn!("Failed to secure config directory: {}", e),
+                _ => {}
+            }
         }
 
         // Load settings if file exists

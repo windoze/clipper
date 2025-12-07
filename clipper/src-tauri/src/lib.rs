@@ -189,6 +189,11 @@ async fn check_certificate_on_startup(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Set restrictive permissions for newly created files and directories.
+    // On Unix: Sets umask to 0o077 (files 0600, directories 0700)
+    // On Windows: This is a no-op; directories are secured after creation with ACLs
+    clipper_security::set_restrictive_umask();
+
     // Install the ring crypto provider for rustls at startup
     // This is required for TLS certificate operations
     let _ = rustls::crypto::ring::default_provider().install_default();

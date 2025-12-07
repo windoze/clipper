@@ -50,6 +50,11 @@ const PAGE_SIZE: usize = 200;
 const FAVORITE_TAG: &str = "$favorite";
 
 fn main() -> Result<()> {
+    // Set restrictive permissions for newly created files and directories.
+    // On Unix: Sets umask to 0o077 (files 0600, directories 0700)
+    // On Windows: This is a no-op; directories are secured after creation with ACLs
+    clipper_security::set_restrictive_umask();
+
     let runtime = tokio::runtime::Runtime::new().context("Failed to start Tokio runtime")?;
 
     // Initialize settings
