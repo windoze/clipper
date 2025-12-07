@@ -424,7 +424,16 @@ impl ClipperIndexer {
         filters: SearchFilters,
         paging: PagingParams,
     ) -> Result<PagedResult<ClipboardEntry>> {
-        let mut where_clauses = vec![format!("search_content @@ '{}'", search_query)];
+        // Return all entries if search query is empty
+        if search_query.trim().is_empty() {
+            return self.list_entries(filters, paging).await;
+        }
+
+        // Pre-tokenize search query for better Chinese search
+        let mut where_clauses = vec![format!(
+            "search_content @@ '{}'",
+            crate::models::tokenize(search_query)
+        )];
 
         if let Some(start_date) = filters.start_date {
             where_clauses.push(format!(

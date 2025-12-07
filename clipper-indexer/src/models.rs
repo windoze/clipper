@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 static JIEBA: OnceCell<jieba_rs::Jieba> = OnceCell::new();
 
-fn tokenize(text: &str) -> String {
+pub(crate) fn tokenize(text: &str) -> String {
     // Use jieba-rs for Chinese text segmentation
     let jieba = JIEBA.get_or_init(jieba_rs::Jieba::new);
     // Tokenize text and join tokens with zero-width space
