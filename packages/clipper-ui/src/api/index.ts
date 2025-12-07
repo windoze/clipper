@@ -56,8 +56,11 @@ export interface ClipperApi {
   /** Download a file attachment */
   downloadFile(clipId: string, filename: string): Promise<void>;
 
-  /** Share a clip and get its short URL (optional, only available when server has sharing enabled) */
-  shareClip?: (clipId: string) => Promise<string>;
+  /** Share a clip and get its short URL (optional, only available when server has sharing enabled)
+   * @param clipId - The clip ID to share
+   * @param expiresInHours - Optional expiration time in hours (0 = no expiration, undefined = server default)
+   */
+  shareClip?: (clipId: string, expiresInHours?: number) => Promise<string>;
 }
 
 // Context for the API client
@@ -334,11 +337,15 @@ export function createRestApiClient(
       }
     },
 
-    async shareClip(clipId: string): Promise<string> {
+    async shareClip(clipId: string, expiresInHours?: number): Promise<string> {
+      const body: { expires_in_hours?: number } = {};
+      if (expiresInHours !== undefined) {
+        body.expires_in_hours = expiresInHours;
+      }
       const response = await fetch(`${baseUrl}/clips/${clipId}/short-url`, {
         method: "POST",
         headers: getHeaders("application/json"),
-        body: JSON.stringify({}),
+        body: JSON.stringify(body),
       });
       const result = await handleResponse<{ full_url: string }>(response);
       return result.full_url;

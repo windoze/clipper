@@ -8,6 +8,15 @@ import {
   SensitiveContentWarning,
 } from "../utils/sensitiveContentDetector";
 
+// Expiration options in hours (fractional for minutes)
+const EXPIRATION_OPTIONS = [
+  { value: 0.25, labelKey: "share.expiration.15min" },
+  { value: 1, labelKey: "share.expiration.1hour" },
+  { value: 6, labelKey: "share.expiration.6hours" },
+  { value: 12, labelKey: "share.expiration.12hours" },
+  { value: 24, labelKey: "share.expiration.24hours" },
+];
+
 interface ShareDialogProps {
   clipId: string;
   clipContent?: string;
@@ -32,6 +41,15 @@ export function ShareDialog({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [expirationHours, setExpirationHours] = useState<number>(1);
+
+  // Filter expiration options based on server's max expiration setting
+  const availableExpirationOptions = useMemo(() => {
+    const maxHours = serverConfig?.shortUrlExpirationHours;
+    // If maxHours is 0 or undefined, show all options (0 means no limit)
+    if (!maxHours) return EXPIRATION_OPTIONS;
+    return EXPIRATION_OPTIONS.filter((option) => option.value <= maxHours);
+  }, [serverConfig?.shortUrlExpirationHours]);
 
   // Detect sensitive content in the clip
   const sensitiveWarnings = useMemo<SensitiveContentWarning[]>(() => {
@@ -46,8 +64,11 @@ export function ShareDialog({
       setError(null);
       setCopied(false);
       setConfirmed(false);
+      // Default to 1 hour if available, otherwise use the first available option
+      const defaultOption = availableExpirationOptions.find((o) => o.value === 1);
+      setExpirationHours(defaultOption?.value ?? availableExpirationOptions[0]?.value ?? 1);
     }
-  }, [isOpen, clipId]);
+  }, [isOpen, clipId, availableExpirationOptions]);
 
   // Handle ESC key to close dialog
   useEffect(() => {
@@ -81,7 +102,7 @@ export function ShareDialog({
     setError(null);
 
     try {
-      const url = await api.shareClip(clipId);
+      const url = await api.shareClip(clipId, expirationHours);
       setShareUrl(url);
     } catch (err) {
       console.error("Failed to generate share URL:", err);
@@ -144,13 +165,21 @@ export function ShareDialog({
                 </svg>
               </div>
               <p className="share-dialog-warning-text">{t("share.warning")}</p>
-              <p className="share-dialog-warning-note">
-                {serverConfig?.shortUrlExpirationHours === 0
-                  ? t("share.warningNoteNoExpiry")
-                  : t("share.warningNote", {
-                      hours: serverConfig?.shortUrlExpirationHours ?? 24,
-                    })}
-              </p>
+              <div className="share-dialog-expiration">
+                <label htmlFor="share-expiration">{t("share.expiration.label")}</label>
+                <select
+                  id="share-expiration"
+                  className="share-dialog-expiration-select"
+                  value={expirationHours}
+                  onChange={(e) => setExpirationHours(Number(e.target.value))}
+                >
+                  {availableExpirationOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {sensitiveWarnings.length > 0 && (
                 <div className="share-dialog-sensitive-warning">
                   <div className="share-dialog-sensitive-header">

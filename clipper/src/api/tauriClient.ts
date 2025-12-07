@@ -93,7 +93,7 @@ export function createTauriApiClient(): ClipperApi {
       await invoke("download_file", { clipId, filename });
     },
 
-    async shareClip(clipId: string): Promise<string> {
+    async shareClip(clipId: string, expiresInHours?: number): Promise<string> {
       // Get the server URL and settings (for auth token)
       const serverUrl = await invoke<string>("get_server_url");
       const settings = await invoke<{
@@ -114,10 +114,15 @@ export function createTauriApiClient(): ClipperApi {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
+      const body: { expires_in_hours?: number } = {};
+      if (expiresInHours !== undefined) {
+        body.expires_in_hours = expiresInHours;
+      }
+
       const response = await fetch(`${serverUrl}/clips/${clipId}/short-url`, {
         method: "POST",
         headers,
-        body: JSON.stringify({}),
+        body: JSON.stringify(body),
       });
       if (!response.ok) {
         throw new Error(`Failed to share clip: ${response.status}`);

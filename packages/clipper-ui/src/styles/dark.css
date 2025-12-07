@@ -653,6 +653,29 @@
   color: #adb5bd;
 }
 
+:root[data-theme="dark"] .share-dialog-expiration {
+  background: #2d2d2d;
+}
+
+:root[data-theme="dark"] .share-dialog-expiration label {
+  color: #e5e7eb;
+}
+
+:root[data-theme="dark"] .share-dialog-expiration-select {
+  background: #1a1a1a;
+  border-color: #404040;
+  color: #e5e7eb;
+}
+
+:root[data-theme="dark"] .share-dialog-expiration-select:hover {
+  border-color: #525252;
+}
+
+:root[data-theme="dark"] .share-dialog-expiration-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
 :root[data-theme="dark"] .share-dialog-sensitive-warning {
   background: #450a0a;
   border-color: #7f1d1d;
@@ -1266,6 +1289,29 @@
 
   :root:not([data-theme="light"]) .share-dialog-warning-note {
     color: #adb5bd;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-expiration {
+    background: #2d2d2d;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-expiration label {
+    color: #e5e7eb;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-expiration-select {
+    background: #1a1a1a;
+    border-color: #404040;
+    color: #e5e7eb;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-expiration-select:hover {
+    border-color: #525252;
+  }
+
+  :root:not([data-theme="light"]) .share-dialog-expiration-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
   }
 
   :root:not([data-theme="light"]) .share-dialog-sensitive-warning {

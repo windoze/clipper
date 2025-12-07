@@ -2738,6 +2738,45 @@
   line-height: 1.4;
 }
 
+.share-dialog-expiration {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background: #f3f4f6;
+  border-radius: 8px;
+}
+
+.share-dialog-expiration label {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.share-dialog-expiration-select {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2937;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.share-dialog-expiration-select:hover {
+  border-color: #9ca3af;
+}
+
+.share-dialog-expiration-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 .share-dialog-sensitive-warning {
   margin-top: 16px;
   padding: 12px;
