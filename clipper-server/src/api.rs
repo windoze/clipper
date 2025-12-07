@@ -7,7 +7,8 @@ use axum::{
     Router,
 };
 use clipper_indexer::{
-    ClipboardEntry, ImportResult, PagedResult, PagingParams, SearchFilters, ShortUrl,
+    ClipboardEntry, HighlightOptions, ImportResult, PagedResult, PagingParams, SearchFilters,
+    SearchResultItem, ShortUrl,
 };
 use serde::{Deserialize, Serialize};
 
@@ -213,6 +214,65 @@ impl From<PagedResult<ClipboardEntry>> for PagedClipResponse {
     }
 }
 
+/// Search result item with optional highlighted content
+#[derive(Debug, Serialize)]
+struct SearchClipResponse {
+    id: String,
+    content: String,
+    created_at: String,
+    tags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    additional_notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    file_attachment: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    original_filename: Option<String>,
+    /// Highlighted content with search terms wrapped by highlight markers.
+    /// Only present when highlight_begin and highlight_end query params are provided.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    highlighted_content: Option<String>,
+}
+
+impl From<SearchResultItem> for SearchClipResponse {
+    fn from(item: SearchResultItem) -> Self {
+        Self {
+            id: item.entry.id,
+            content: item.entry.content,
+            created_at: item.entry.created_at.to_rfc3339(),
+            tags: item.entry.tags,
+            additional_notes: item.entry.additional_notes,
+            file_attachment: item.entry.file_attachment,
+            original_filename: item.entry.original_filename,
+            highlighted_content: item.highlighted_content,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct PagedSearchClipResponse {
+    items: Vec<SearchClipResponse>,
+    total: usize,
+    page: usize,
+    page_size: usize,
+    total_pages: usize,
+}
+
+impl From<PagedResult<SearchResultItem>> for PagedSearchClipResponse {
+    fn from(result: PagedResult<SearchResultItem>) -> Self {
+        Self {
+            items: result
+                .items
+                .into_iter()
+                .map(SearchClipResponse::from)
+                .collect(),
+            total: result.total,
+            page: result.page,
+            page_size: result.page_size,
+            total_pages: result.total_pages,
+        }
+    }
+}
+
 async fn create_clip(
     State(state): State<AppState>,
     Json(payload): Json<CreateClipRequest>,
@@ -309,12 +369,18 @@ struct SearchClipsQuery {
     page: usize,
     #[serde(default = "default_page_size")]
     page_size: usize,
+    /// Optional highlight begin marker (e.g., "<mark>"). Both begin and end must be provided to enable highlighting.
+    #[serde(default)]
+    highlight_begin: Option<String>,
+    /// Optional highlight end marker (e.g., "</mark>"). Both begin and end must be provided to enable highlighting.
+    #[serde(default)]
+    highlight_end: Option<String>,
 }
 
 async fn search_clips(
     State(state): State<AppState>,
     Query(query): Query<SearchClipsQuery>,
-) -> Result<Json<PagedClipResponse>> {
+) -> Result<Json<PagedSearchClipResponse>> {
     let mut filters = SearchFilters::new();
 
     if let Some(start_date) = query.start_date {
@@ -348,10 +414,16 @@ async fn search_clips(
         }
     }
 
+    // Build highlight options if both begin and end markers are provided
+    let highlight = match (query.highlight_begin, query.highlight_end) {
+        (Some(begin), Some(end)) => Some(HighlightOptions::new(begin, end)),
+        _ => None,
+    };
+
     let paging = PagingParams::new(query.page, query.page_size);
     let result = state
         .indexer
-        .search_entries(&query.q, filters, paging)
+        .search_entries_with_highlight(&query.q, filters, paging, highlight)
         .await?;
     Ok(Json(result.into()))
 }

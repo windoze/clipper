@@ -39,7 +39,7 @@ function isImageFile(filename: string): boolean {
   return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
-const MAX_CONTENT_LENGTH = 200;
+const MAX_CONTENT_LINES = 6;
 
 // Minimum opacity to ensure readability (0.5 = 50%)
 const MIN_OPACITY = 0.5;
@@ -64,10 +64,88 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#039;");
 }
 
-// Truncate content
+// Count number of lines in content
+function countLines(content: string): number {
+  return content.split("\n").length;
+}
+
+// Get content up to N lines
+function getFirstNLines(content: string, n: number): string {
+  const lines = content.split("\n");
+  if (lines.length <= n) return content;
+  return lines.slice(0, n).join("\n");
+}
+
+// Check if content exceeds max lines
+function isLongContentByLines(content: string): boolean {
+  return countLines(content) > MAX_CONTENT_LINES;
+}
+
+// Truncate content by lines
 function truncateContent(content: string): string {
-  if (content.length <= MAX_CONTENT_LENGTH) return content;
-  return content.substring(0, MAX_CONTENT_LENGTH) + "...";
+  if (!isLongContentByLines(content)) return content;
+  return getFirstNLines(content, MAX_CONTENT_LINES) + "\n...";
+}
+
+// Truncate highlighted content by lines while ensuring at least one highlight is visible
+// Returns truncated content with "..." prefix/suffix as needed
+function truncateHighlightedContent(highlightedContent: string, plainContent: string): string {
+  // If content is short enough (by lines), return as-is
+  if (!isLongContentByLines(plainContent)) {
+    return highlightedContent;
+  }
+
+  // Split into lines (preserving HTML tags within lines)
+  const lines = highlightedContent.split("\n");
+
+  // Find the line index containing the first <mark> tag
+  let firstMarkLineIndex = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes("<mark>")) {
+      firstMarkLineIndex = i;
+      break;
+    }
+  }
+
+  // If no highlights found, just truncate from the beginning
+  if (firstMarkLineIndex === -1) {
+    if (lines.length <= MAX_CONTENT_LINES) {
+      return highlightedContent;
+    }
+    return lines.slice(0, MAX_CONTENT_LINES).join("\n") + "\n...";
+  }
+
+  // If first highlight is within the first MAX_CONTENT_LINES lines, show from start
+  if (firstMarkLineIndex < MAX_CONTENT_LINES) {
+    // First highlight is early enough, truncate from the end
+    if (lines.length <= MAX_CONTENT_LINES) {
+      return highlightedContent;
+    }
+    return lines.slice(0, MAX_CONTENT_LINES).join("\n") + "\n...";
+  }
+
+  // First highlight is beyond initial lines, need to start from before the highlight
+  // Show 1 line of context before the highlight
+  const CONTEXT_LINES_BEFORE = 1;
+  const startLineIndex = Math.max(0, firstMarkLineIndex - CONTEXT_LINES_BEFORE);
+  const endLineIndex = Math.min(lines.length, startLineIndex + MAX_CONTENT_LINES);
+
+  const prefix = startLineIndex > 0 ? "...\n" : "";
+  const suffix = endLineIndex < lines.length ? "\n..." : "";
+
+  return prefix + lines.slice(startLineIndex, endLineIndex).join("\n") + suffix;
+}
+
+// Escape HTML but preserve <mark> tags for search highlighting
+function escapeHtmlPreserveMark(text: string): string {
+  // Split by <mark> and </mark> tags, escape the parts, then rejoin
+  const parts = text.split(/(<\/?mark>)/g);
+  return parts.map(part => {
+    if (part === "<mark>" || part === "</mark>") {
+      return part;
+    }
+    return escapeHtml(part);
+  }).join("");
 }
 
 export function ClipEntry({
@@ -117,11 +195,15 @@ export function ClipEntry({
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(() => detectLanguage(clip.content));
 
   const isImage = clip.file_attachment && isImageFile(clip.file_attachment);
-  const isLongContent = clip.content.length > MAX_CONTENT_LENGTH;
+  const isLongContent = isLongContentByLines(clip.content);
 
-  // Generate highlighted HTML
-  const highlightedContent = useMemo(() => {
-    if (selectedLanguage === "plaintext") {
+  // Check if we have search highlighting from the server
+  const hasSearchHighlight = !!clip.highlighted_content;
+
+  // Generate syntax highlighted HTML (only when no search highlight)
+  const syntaxHighlightedContent = useMemo(() => {
+    // Don't apply syntax highlighting if we have search highlights
+    if (hasSearchHighlight || selectedLanguage === "plaintext") {
       return null;
     }
     try {
@@ -130,15 +212,30 @@ export function ClipEntry({
     } catch {
       return null;
     }
-  }, [clip.content, selectedLanguage]);
+  }, [clip.content, selectedLanguage, hasSearchHighlight]);
 
-  // Truncate highlighted content (preserving HTML structure is complex, so we use plain truncation for preview)
+  // Prepare display content with proper handling of search highlights and syntax highlighting
   const displayContent = useMemo(() => {
+    // Case 1: We have search-highlighted content from the server
+    if (hasSearchHighlight && clip.highlighted_content) {
+      if (isExpanded) {
+        // Show full highlighted content, escape HTML but preserve <mark> tags
+        return { __html: escapeHtmlPreserveMark(clip.highlighted_content) };
+      } else {
+        // Truncate with smart positioning to show at least one highlight
+        const truncated = truncateHighlightedContent(clip.highlighted_content, clip.content);
+        return { __html: escapeHtmlPreserveMark(truncated) };
+      }
+    }
+
+    // Case 2: No search highlight, use syntax highlighting or plain text
     const content = isExpanded ? clip.content : truncateContent(clip.content);
-    if (selectedLanguage === "plaintext" || !highlightedContent) {
+
+    if (selectedLanguage === "plaintext" || !syntaxHighlightedContent) {
       return { __html: escapeHtml(content) };
     }
-    // For highlighted content, we need to re-highlight the truncated version
+
+    // For syntax highlighted content, we need to re-highlight the truncated version
     if (!isExpanded && isLongContent) {
       try {
         const result = hljs.highlight(content.replace(/\.\.\.$/, ""), { language: selectedLanguage });
@@ -147,8 +244,8 @@ export function ClipEntry({
         return { __html: escapeHtml(content) };
       }
     }
-    return { __html: highlightedContent };
-  }, [clip.content, selectedLanguage, highlightedContent, isExpanded, isLongContent]);
+    return { __html: syntaxHighlightedContent };
+  }, [clip.content, clip.highlighted_content, hasSearchHighlight, selectedLanguage, syntaxHighlightedContent, isExpanded, isLongContent]);
 
   // Get file URL for image clips
   useEffect(() => {

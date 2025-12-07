@@ -148,6 +148,12 @@
   color: #9ec5fe;
 }
 
+/* Search Highlight - Dark Theme */
+:root[data-theme="dark"] .clip-content mark {
+  background-color: #665c00;
+  color: #ffc107;
+}
+
 /* Language Selector - Dark Theme */
 :root[data-theme="dark"] .language-selector-button {
   background: #363636;

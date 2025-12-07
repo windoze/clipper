@@ -374,6 +374,9 @@ impl ClipperClient {
     /// * `filters` - Optional filters (date range, tags)
     /// * `page` - Page number (starting from 1)
     /// * `page_size` - Number of items per page
+    ///
+    /// # Note
+    /// Results include `highlighted_content` with search terms wrapped by `<mark>` tags.
     pub async fn search_clips(
         &self,
         query: &str,
@@ -387,6 +390,11 @@ impl ClipperClient {
         url.query_pairs_mut().append_pair("page", &page.to_string());
         url.query_pairs_mut()
             .append_pair("page_size", &page_size.to_string());
+        // Add highlight markers for search result highlighting
+        url.query_pairs_mut()
+            .append_pair("highlight_begin", "<mark>");
+        url.query_pairs_mut()
+            .append_pair("highlight_end", "</mark>");
 
         if let Some(start_date) = filters.start_date {
             url.query_pairs_mut()

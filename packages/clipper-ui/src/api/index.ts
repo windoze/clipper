@@ -184,6 +184,9 @@ export function createRestApiClient(
       params.set("q", query);
       params.set("page", String(page));
       params.set("page_size", String(pageSize));
+      // Add highlight markers for search result highlighting
+      params.set("highlight_begin", "<mark>");
+      params.set("highlight_end", "</mark>");
 
       if (filters.start_date) {
         params.set("start_date", filters.start_date);

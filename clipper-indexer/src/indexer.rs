@@ -2,7 +2,10 @@ use crate::error::{IndexerError, Result};
 use crate::export::{
     ExportBuilder, ExportedClip, ImportParser, ImportResult, calculate_content_hash,
 };
-use crate::models::{ClipboardEntry, PagedResult, PagingParams, SearchFilters, ShortUrl};
+use crate::models::{
+    ClipboardEntry, HighlightOptions, PagedResult, PagingParams, SearchFilters, SearchResultItem,
+    ShortUrl,
+};
 use crate::storage::FileStorage;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -60,6 +63,11 @@ fn generate_short_code() -> String {
             SHORT_CODE_CHARS[idx] as char
         })
         .collect()
+}
+
+/// Escape a string for use in SurrealQL single-quoted strings
+fn escape_surql_string(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
 pub struct ClipperIndexer {
@@ -424,15 +432,74 @@ impl ClipperIndexer {
         filters: SearchFilters,
         paging: PagingParams,
     ) -> Result<PagedResult<ClipboardEntry>> {
+        let result = self
+            .search_entries_with_highlight(search_query, filters, paging, None)
+            .await?;
+
+        // Convert SearchResultItem back to ClipboardEntry
+        let items: Vec<ClipboardEntry> = result.items.into_iter().map(|item| item.entry).collect();
+
+        Ok(PagedResult::new(
+            items,
+            result.total,
+            result.page,
+            result.page_size,
+        ))
+    }
+
+    /// Search entries with optional highlighting support.
+    ///
+    /// When `highlight` is provided with both prefix and suffix, the returned
+    /// `SearchResultItem` will include `highlighted_content` with matching terms
+    /// wrapped by the prefix and suffix strings.
+    ///
+    /// # Arguments
+    /// * `search_query` - The search query string
+    /// * `filters` - Optional filters for date range and tags
+    /// * `paging` - Pagination parameters
+    /// * `highlight` - Optional highlight options (prefix/suffix for matched terms)
+    ///
+    /// # Returns
+    /// A paged result containing search result items with optional highlighted content
+    pub async fn search_entries_with_highlight(
+        &self,
+        search_query: &str,
+        filters: SearchFilters,
+        paging: PagingParams,
+        highlight: Option<HighlightOptions>,
+    ) -> Result<PagedResult<SearchResultItem>> {
         // Return all entries if search query is empty
         if search_query.trim().is_empty() {
-            return self.list_entries(filters, paging).await;
+            let result = self.list_entries(filters, paging).await?;
+            let items: Vec<SearchResultItem> = result
+                .items
+                .into_iter()
+                .map(|entry| SearchResultItem {
+                    entry,
+                    highlighted_content: None,
+                })
+                .collect();
+            return Ok(PagedResult::new(
+                items,
+                result.total,
+                result.page,
+                result.page_size,
+            ));
         }
 
+        let highlight_enabled = highlight
+            .as_ref()
+            .map(|h| h.is_enabled())
+            .unwrap_or(false);
+
         // Pre-tokenize search query for better Chinese search
+        let tokenized_query = crate::models::tokenize(search_query);
+
+        // Use reference number 0 for the matches operator
+        let match_operator = if highlight_enabled { "@0@" } else { "@@" };
         let mut where_clauses = vec![format!(
-            "search_content @@ '{}'",
-            crate::models::tokenize(search_query)
+            "search_content {} '{}'",
+            match_operator, tokenized_query
         )];
 
         if let Some(start_date) = filters.start_date {
@@ -476,9 +543,24 @@ impl ClipperIndexer {
         let count_results: Vec<CountResult> = count_response.take(0).unwrap_or_default();
         let total = count_results.first().map(|c| c.count as usize).unwrap_or(0);
 
+        // Build select clause with optional highlight
+        let select_clause = if highlight_enabled {
+            let h = highlight.as_ref().unwrap();
+            let prefix = h.prefix.as_ref().unwrap();
+            let suffix = h.suffix.as_ref().unwrap();
+            format!(
+                "*, search::highlight('{}', '{}', 0) AS highlighted_content",
+                escape_surql_string(prefix),
+                escape_surql_string(suffix)
+            )
+        } else {
+            "*".to_string()
+        };
+
         // Get paginated results
         let query = format!(
-            "SELECT * FROM {} WHERE {} ORDER BY created_at DESC LIMIT {} START {};",
+            "SELECT {} FROM {} WHERE {} ORDER BY created_at DESC LIMIT {} START {};",
+            select_clause,
             TABLE_NAME,
             where_clause,
             paging.page_size,
@@ -487,30 +569,77 @@ impl ClipperIndexer {
 
         let mut response = self.db.query(query).await?;
 
-        let entries: Vec<DbClipboardEntry> = response
-            .take(0)
-            .map_err(|e| IndexerError::Serialization(e.to_string()))?;
+        // Use a different struct when highlight is enabled
+        if highlight_enabled {
+            #[derive(Deserialize)]
+            struct DbClipboardEntryWithHighlight {
+                id: surrealdb::sql::Thing,
+                content: String,
+                created_at: surrealdb::sql::Datetime,
+                tags: Vec<String>,
+                additional_notes: Option<String>,
+                file_attachment: Option<String>,
+                original_filename: Option<String>,
+                search_content: String,
+                highlighted_content: Option<String>,
+            }
 
-        let items: Vec<ClipboardEntry> = entries
-            .into_iter()
-            .map(|db_entry| ClipboardEntry {
-                id: db_entry.id.id.to_string(),
-                content: db_entry.content,
-                created_at: *db_entry.created_at,
-                tags: db_entry.tags,
-                additional_notes: db_entry.additional_notes,
-                file_attachment: db_entry.file_attachment,
-                original_filename: db_entry.original_filename,
-                search_content: db_entry.search_content,
-            })
-            .collect();
+            let entries: Vec<DbClipboardEntryWithHighlight> = response
+                .take(0)
+                .map_err(|e| IndexerError::Serialization(e.to_string()))?;
 
-        Ok(PagedResult::new(
-            items,
-            total,
-            paging.page,
-            paging.page_size,
-        ))
+            let items: Vec<SearchResultItem> = entries
+                .into_iter()
+                .map(|db_entry| SearchResultItem {
+                    entry: ClipboardEntry {
+                        id: db_entry.id.id.to_string(),
+                        content: db_entry.content,
+                        created_at: *db_entry.created_at,
+                        tags: db_entry.tags,
+                        additional_notes: db_entry.additional_notes,
+                        file_attachment: db_entry.file_attachment,
+                        original_filename: db_entry.original_filename,
+                        search_content: db_entry.search_content,
+                    },
+                    highlighted_content: db_entry.highlighted_content,
+                })
+                .collect();
+
+            Ok(PagedResult::new(
+                items,
+                total,
+                paging.page,
+                paging.page_size,
+            ))
+        } else {
+            let entries: Vec<DbClipboardEntry> = response
+                .take(0)
+                .map_err(|e| IndexerError::Serialization(e.to_string()))?;
+
+            let items: Vec<SearchResultItem> = entries
+                .into_iter()
+                .map(|db_entry| SearchResultItem {
+                    entry: ClipboardEntry {
+                        id: db_entry.id.id.to_string(),
+                        content: db_entry.content,
+                        created_at: *db_entry.created_at,
+                        tags: db_entry.tags,
+                        additional_notes: db_entry.additional_notes,
+                        file_attachment: db_entry.file_attachment,
+                        original_filename: db_entry.original_filename,
+                        search_content: db_entry.search_content,
+                    },
+                    highlighted_content: None,
+                })
+                .collect();
+
+            Ok(PagedResult::new(
+                items,
+                total,
+                paging.page,
+                paging.page_size,
+            ))
+        }
     }
 
     pub async fn list_entries(

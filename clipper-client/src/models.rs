@@ -13,6 +13,10 @@ pub struct Clip {
     pub file_attachment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub original_filename: Option<String>,
+    /// Highlighted content with search terms wrapped by highlight markers.
+    /// Only present in search results when highlight params are provided.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub highlighted_content: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

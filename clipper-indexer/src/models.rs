@@ -237,3 +237,38 @@ impl ShortUrl {
         }
     }
 }
+
+/// Options for highlighting search results
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct HighlightOptions {
+    /// The string to insert before matched text (e.g., "<mark>" or "**")
+    pub prefix: Option<String>,
+    /// The string to insert after matched text (e.g., "</mark>" or "**")
+    pub suffix: Option<String>,
+}
+
+impl HighlightOptions {
+    /// Create new highlight options with specified prefix and suffix
+    pub fn new(prefix: String, suffix: String) -> Self {
+        Self {
+            prefix: Some(prefix),
+            suffix: Some(suffix),
+        }
+    }
+
+    /// Check if highlighting is enabled (both prefix and suffix are set)
+    pub fn is_enabled(&self) -> bool {
+        self.prefix.is_some() && self.suffix.is_some()
+    }
+}
+
+/// A search result item with optional highlighted content
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchResultItem {
+    /// The clipboard entry
+    #[serde(flatten)]
+    pub entry: ClipboardEntry,
+    /// Highlighted content (only present when highlight options are provided)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub highlighted_content: Option<String>,
+}

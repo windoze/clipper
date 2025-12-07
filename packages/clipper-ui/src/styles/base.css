@@ -733,6 +733,15 @@
   color: #0056b3;
 }
 
+/* Search Highlight Styles */
+.clip-content mark {
+  background-color: #fff3cd;
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 500;
+}
+
 /* ============================================
    Language Selector
    ============================================ */

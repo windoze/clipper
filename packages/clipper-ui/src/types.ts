@@ -6,6 +6,9 @@ export interface Clip {
   additional_notes?: string;
   file_attachment?: string;
   original_filename?: string;
+  /** Highlighted content with search terms wrapped by highlight markers.
+   * Only present in search results when highlight params are provided. */
+  highlighted_content?: string;
 }
 
 export interface PagedResult {
