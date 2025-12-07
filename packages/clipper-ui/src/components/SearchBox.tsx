@@ -95,6 +95,12 @@ export function SearchBox({
           }
           value={localValue}
           onChange={(e) => setLocalValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              handleClearAll();
+            }
+          }}
           className="search-input"
           spellCheck={false}
           autoCorrect="off"
