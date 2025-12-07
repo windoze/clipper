@@ -44,6 +44,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy only the crates needed for clipper-server
+COPY clipper-security ./clipper-security
 COPY clipper-indexer ./clipper-indexer
 COPY clipper-server ./clipper-server
 
