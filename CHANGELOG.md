@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.0] - 2025-12-07
+
+### Added
+- PII (Personally Identifiable Information) detection before sharing clips
+- Configurable short URL expiration time
+- Token generation utility for creating secure bearer tokens
+
+### Improved
+- Chinese language search support
+- File and directory permissions security
+
+### Security
+- Added comprehensive security considerations documentation
+- Proper file and directory permissions for data storage
+
+### Fixed
+- Dockerfile build configuration
+
 ## [0.17.0] - 2025-12-07
 
 ### Added
