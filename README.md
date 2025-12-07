@@ -432,10 +432,10 @@ Clipper stores clipboard history which may contain sensitive information. Unders
 
 - **Network Binding**: By default, the server binds to `0.0.0.0`, making it accessible on all network interfaces. For local-only use, set `CLIPPER_LISTEN_ADDR=127.0.0.1`.
 - **Authentication**: Always enable bearer token authentication (`CLIPPER_BEARER_TOKEN`) when exposing the server to a network. Without authentication, anyone with network access can read and modify your clipboard history.
-- **TLS/HTTPS**: Use TLS encryption when running over untrusted networks. Configure with manual certificates or automatic Let's Encrypt.
+- **TLS/HTTPS**: Use TLS encryption when running over untrusted networks. Configure with manual certificates or automatic Let's Encrypt. Note: ACME/Let's Encrypt requires the server to be publicly accessible on ports 80 and 443 for domain validation. For private networks or NAT environments, use your own certificates or self-signed certificates instead.
 - **Short URLs**: Shared clips via short URLs are publicly accessible without authentication. Use appropriate expiration times and only share non-sensitive content.
 - **Data Storage**: All clipboard data is stored locally. Ensure database and storage directories have appropriate file system permissions and are not world-readable.
-- **Docker Deployment**: When using Docker, avoid exposing ports directly to the internet without a reverse proxy with TLS termination.
+- **Internet Deployment**: When exposing Clipper to the public internet, always enable both TLS and authentication. Use the built-in ACME support to automatically obtain and renew Let's Encrypt certificates if you have a domain name, or use a [reverse proxy](https://www.cloudflare.com/learning/cdn/glossary/reverse-proxy/) (like Nginx or Caddy) for TLS termination.
 
 ### Client Security
 
