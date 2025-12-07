@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.4]
+
+### Added
+- Search result highlighting with `<mark>` tags for matched terms
+  - New `highlight_begin` and `highlight_end` query parameters in search API
+  - `highlighted_content` field in search results (optional, backward compatible)
+  - Visual highlighting in Web UI and Desktop app with smart truncation
+  - Line-based content truncation (6 lines) ensuring highlighted terms are visible
+
 ## [0.18.3] - 2025-12-07
 
 ### Fixed
