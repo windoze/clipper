@@ -1,3 +1,5 @@
+use std::io::IsTerminal;
+
 use axum::{
     Router,
     body::Body,
@@ -44,14 +46,14 @@ async fn main() {
             .install_default()
             .expect("Failed to install rustls crypto provider");
     }
-
+    let use_color = std::io::stdout().is_terminal();
     // Initialize tracing
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "clipper_server=debug,tower_http=debug".into()),
         )
-        .with(tracing_subscriber::fmt::layer())
+        .with(tracing_subscriber::fmt::layer().with_ansi(use_color))
         .init();
 
     // Set restrictive permissions for newly created files and directories.
@@ -127,8 +129,9 @@ async fn main() {
         _ => {}
     }
 
-    match clipper_security::secure_directory_recursive(storage_path, |msg| tracing::warn!("{}", msg))
-    {
+    match clipper_security::secure_directory_recursive(storage_path, |msg| {
+        tracing::warn!("{}", msg)
+    }) {
         Ok(count) if count > 0 => {
             tracing::info!("Fixed permissions on {} items in storage directory", count);
         }
@@ -566,8 +569,8 @@ async fn run_http_redirect_server(
     https_port: u16,
     acme_challenges: std::sync::Arc<tokio::sync::RwLock<std::collections::HashMap<String, String>>>,
 ) {
-    use axum::response::{IntoResponse, Redirect};
     use axum::extract::Path;
+    use axum::response::{IntoResponse, Redirect};
 
     // Handler for ACME challenges
     let challenge_handler = {
@@ -602,7 +605,10 @@ async fn run_http_redirect_server(
     };
 
     let redirect_app = Router::new()
-        .route("/.well-known/acme-challenge/{token}", get(challenge_handler))
+        .route(
+            "/.well-known/acme-challenge/{token}",
+            get(challenge_handler),
+        )
         .fallback(redirect_handler);
 
     let listener = match tokio::net::TcpListener::bind(&http_addr).await {
@@ -768,7 +774,7 @@ async fn shutdown_signal(parent_shutdown_rx: Option<tokio::sync::broadcast::Rece
             tracing::info!("Received terminate signal, starting graceful shutdown");
         },
         _ = parent_exit => {
-            tracing::info!("Parent process exited, starting graceful shutdown");
+            tracing::info!("Shutdown signal received from parent, starting graceful shutdown");
         },
     }
 }

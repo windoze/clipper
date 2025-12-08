@@ -293,7 +293,7 @@ pub async fn clear_all_data(
 ) -> Result<(), String> {
     use tauri::Emitter;
 
-    eprintln!("[clipper] Clearing all data...");
+    log::debug!("[clipper] Clearing all data...");
 
     // 1. Stop the server
     server_manager.stop().await?;
@@ -310,8 +310,8 @@ pub async fn clear_all_data(
     // 5. Emit event to refresh the clip list in the main window
     let _ = app.emit("data-cleared", ());
 
-    eprintln!(
-        "[clipper] All data cleared and server restarted at {}",
+    log::info!(
+        "All data cleared and server restarted at {}",
         new_url
     );
     Ok(())
@@ -348,7 +348,7 @@ pub async fn export_clips(app: tauri::AppHandle, state: State<'_, AppState>) -> 
         .await
         .map_err(|e| e.to_string())?;
 
-    eprintln!("[clipper] Exported clips to {}", path_str);
+    log::debug!("[clipper] Exported clips to {}", path_str);
     Ok(path_str)
 }
 
@@ -382,7 +382,7 @@ pub async fn import_clips(
         .await
         .map_err(|e| e.to_string())?;
 
-    eprintln!(
+    log::debug!(
         "[clipper] Imported {} clips from {} (skipped {})",
         result.imported_count, path_str, result.skipped_count
     );
@@ -405,7 +405,7 @@ pub async fn switch_to_bundled_server(
 ) -> Result<String, String> {
     use tauri::Emitter;
 
-    eprintln!("[clipper] Switching to bundled server...");
+    log::debug!("[clipper] Switching to bundled server...");
 
     // Always restart the server to pick up any configuration changes (token, cleanup, etc.)
     // If already running, restart; otherwise just start
@@ -433,7 +433,7 @@ pub async fn switch_to_bundled_server(
     // Emit event to refresh the clip list
     let _ = app.emit("server-switched", ());
 
-    eprintln!("[clipper] Switched to bundled server at {}", server_url);
+    log::info!("Switched to bundled server at {}", server_url);
     Ok(server_url)
 }
 
@@ -450,7 +450,7 @@ pub async fn switch_to_external_server(
 ) -> Result<Option<String>, String> {
     use tauri::Emitter;
 
-    eprintln!(
+    log::debug!(
         "[clipper] Switching to external server at {}...",
         server_url
     );
@@ -475,7 +475,7 @@ pub async fn switch_to_external_server(
     // Emit event to refresh the clip list
     let _ = app.emit("server-switched", ());
 
-    eprintln!("[clipper] Switched to external server at {}", server_url);
+    log::info!("Switched to external server at {}", server_url);
 
     // Check if the external server is reachable (but don't block the switch)
     // Use current trusted fingerprints for certificate verification
@@ -484,8 +484,8 @@ pub async fn switch_to_external_server(
         check_server_reachable(&server_url, token.as_deref(), trusted_fingerprints).await;
 
     if let Some(ref err) = connection_error {
-        eprintln!(
-            "[clipper] Warning: External server is not reachable: {}",
+        log::warn!(
+            "External server is not reachable: {}",
             err
         );
     }
@@ -563,7 +563,7 @@ pub async fn toggle_listen_on_all_interfaces(
 ) -> Result<String, String> {
     use tauri::Emitter;
 
-    eprintln!(
+    log::debug!(
         "[clipper] Toggling listen_on_all_interfaces to {}...",
         listen_on_all
     );
@@ -586,7 +586,7 @@ pub async fn toggle_listen_on_all_interfaces(
         // Emit event to refresh the clip list
         let _ = app.emit("server-switched", ());
 
-        eprintln!(
+        log::debug!(
             "[clipper] Server restarted with listen_on_all_interfaces={}",
             listen_on_all
         );
@@ -627,7 +627,7 @@ pub fn update_global_shortcut(app: tauri::AppHandle, shortcut: String) -> Result
         .register(new_shortcut)
         .map_err(|e| format!("Failed to register shortcut '{}': {}", shortcut, e))?;
 
-    eprintln!("[clipper] Global shortcut updated to: {}", shortcut);
+    log::debug!("[clipper] Global shortcut updated to: {}", shortcut);
     Ok(())
 }
 
@@ -679,6 +679,11 @@ pub async fn check_for_updates(app: tauri::AppHandle) -> Result<Option<UpdateInf
     match updater.check().await {
         Ok(Some(update)) => {
             let current_version = app.package_info().version.to_string();
+            log::info!(
+                "Update available: {} -> {}",
+                current_version,
+                update.version
+            );
             Ok(Some(UpdateInfo {
                 version: update.version.clone(),
                 current_version,
@@ -719,6 +724,8 @@ pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
 
     match updater.check().await {
         Ok(Some(update)) => {
+            log::info!("Starting update download for version {}", update.version);
+
             // Track download progress with timing for speed calculation
             let downloaded_bytes = Arc::new(AtomicU64::new(0));
             let start_time = Arc::new(std::sync::Mutex::new(Instant::now()));
@@ -732,7 +739,8 @@ pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
             let app_handle_finished = app.clone();
             let downloaded_bytes_finished = downloaded_bytes.clone();
 
-            update
+            let update_version = update.version.clone();
+            let result = update
                 .download_and_install(
                     move |chunk_length, content_length| {
                         // Update total downloaded bytes
@@ -787,16 +795,26 @@ pub async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
                         let _ = app_handle_finished.emit("update-ready", ());
                     },
                 )
-                .await
-                .map_err(|e| e.to_string())?;
+                .await;
 
-            // Also emit here in case the finished callback didn't fire
-            let _ = app.emit("update-ready", ());
-
-            Ok(())
+            match result {
+                Ok(_) => {
+                    log::info!("Update download completed for version {}", update_version);
+                    // Also emit here in case the finished callback didn't fire
+                    let _ = app.emit("update-ready", ());
+                    Ok(())
+                }
+                Err(e) => {
+                    log::warn!("Update download failed: {}", e);
+                    Err(e.to_string())
+                }
+            }
         }
         Ok(None) => Err("No update available".to_string()),
-        Err(e) => Err(e.to_string()),
+        Err(e) => {
+            log::warn!("Failed to check for updates: {}", e);
+            Err(e.to_string())
+        }
     }
 }
 
@@ -1005,7 +1023,7 @@ pub async fn trust_certificate(
     // Signal WebSocket to reconnect with the new trusted certificate
     state.signal_ws_reconnect();
 
-    eprintln!(
+    log::debug!(
         "[clipper] Trusted certificate for {}: {}",
         host, fingerprint
     );
@@ -1026,7 +1044,7 @@ pub async fn untrust_certificate(
     let trusted = settings_manager.get_trusted_certificates();
     state.set_trusted_fingerprints(trusted);
 
-    eprintln!("[clipper] Removed certificate trust for {}", host);
+    log::debug!("[clipper] Removed certificate trust for {}", host);
     Ok(())
 }
 

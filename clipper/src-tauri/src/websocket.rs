@@ -76,7 +76,7 @@ async fn check_and_emit_certificate_trust(app: &AppHandle, url: &str) -> bool {
 
                 if fingerprint_mismatch {
                     // This is a critical security warning - fingerprint changed!
-                    eprintln!("CRITICAL: Certificate fingerprint mismatch for {}!", host);
+                    log::warn!("CRITICAL: Certificate fingerprint mismatch for {}!", host);
                     let _ = app.emit(
                         "certificate-fingerprint-mismatch",
                         serde_json::json!({
@@ -91,7 +91,7 @@ async fn check_and_emit_certificate_trust(app: &AppHandle, url: &str) -> bool {
 
                 // Only emit trust required if certificate is not trusted at all
                 if !is_system_trusted && !is_user_trusted {
-                    eprintln!("Certificate trust required for {}", host);
+                    log::info!("Certificate trust required for {}", host);
                     let _ = app.emit(
                         "certificate-trust-required",
                         serde_json::json!({
@@ -104,7 +104,7 @@ async fn check_and_emit_certificate_trust(app: &AppHandle, url: &str) -> bool {
                 }
             }
             Err(e) => {
-                eprintln!("Failed to fetch certificate for {}: {}", host, e);
+                log::warn!("Failed to fetch certificate for {}: {}", host, e);
             }
         }
     }
@@ -128,12 +128,12 @@ pub async fn start_websocket_listener(app: AppHandle) {
                 // Connected successfully
                 emit_ws_status(&app, true);
                 reconnect_delay = 1; // Reset delay on successful connection
-                eprintln!("WebSocket connected");
+                log::info!("WebSocket connected");
 
                 loop {
                     // Check if we should reconnect (e.g., token changed)
                     if state.ws_reconnect_counter() != reconnect_counter_at_connect {
-                        eprintln!("WebSocket: reconnect signal received, disconnecting...");
+                        log::debug!("WebSocket: reconnect signal received, disconnecting...");
                         handle.abort();
                         break;
                     }
@@ -178,14 +178,14 @@ pub async fn start_websocket_listener(app: AppHandle) {
                                                         if let Err(e) =
                                                             set_clipboard_image(&image_bytes)
                                                         {
-                                                            eprintln!(
+                                                            log::warn!(
                                                                 "Failed to set clipboard image: {}",
                                                                 e
                                                             );
                                                         }
                                                     }
                                                     Err(e) => {
-                                                        eprintln!(
+                                                        log::warn!(
                                                             "Failed to download image for clipboard: {}",
                                                             e
                                                         );
@@ -198,7 +198,7 @@ pub async fn start_websocket_listener(app: AppHandle) {
                                     } else {
                                         // For text clips, update system clipboard
                                         if let Err(e) = set_clipboard_content(content) {
-                                            eprintln!("Failed to set clipboard: {}", e);
+                                            log::warn!("Failed to set clipboard: {}", e);
                                         } else {
                                             // Update last synced content to prevent loop
                                             state.set_last_synced_content(content.clone());
@@ -245,7 +245,7 @@ pub async fn start_websocket_listener(app: AppHandle) {
 
                 // Connection closed, mark as disconnected
                 emit_ws_status(&app, false);
-                eprintln!("WebSocket disconnected");
+                log::info!("WebSocket disconnected");
 
                 // Wait for the handle to complete (if not already aborted)
                 let _ = handle.await;
@@ -253,7 +253,7 @@ pub async fn start_websocket_listener(app: AppHandle) {
             Err(e) => {
                 emit_ws_status(&app, false);
                 let error_msg = e.to_string();
-                eprintln!("Failed to connect to WebSocket: {}", error_msg);
+                log::warn!("Cannot connect to server: {}", error_msg);
 
                 // Check if this is a certificate error
                 if is_certificate_error(&error_msg) {
@@ -262,7 +262,7 @@ pub async fn start_websocket_listener(app: AppHandle) {
                     if check_and_emit_certificate_trust(&app, &base_url).await {
                         // Certificate trust is required, wait longer before retrying
                         // to give user time to trust the certificate
-                        eprintln!("Waiting for certificate trust before retrying...");
+                        log::debug!("Waiting for certificate trust before retrying...");
                         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                         continue;
                     }
@@ -272,13 +272,13 @@ pub async fn start_websocket_listener(app: AppHandle) {
 
         // If reconnect was signaled, reconnect immediately without delay
         if state.ws_reconnect_counter() != reconnect_counter_at_connect {
-            eprintln!("Reconnecting to WebSocket immediately (credentials changed)...");
+            log::debug!("Reconnecting to WebSocket immediately (credentials changed)...");
             reconnect_delay = 1;
             continue;
         }
 
         // Exponential backoff with max delay of 30 seconds
-        eprintln!(
+        log::debug!(
             "Reconnecting to WebSocket in {} seconds...",
             reconnect_delay
         );

@@ -57,8 +57,8 @@ pub fn start_parent_monitor(handle: u64) {
         loop {
             match pipe.read(&mut buf) {
                 Ok(0) => {
-                    // EOF - pipe was closed (parent exited)
-                    tracing::warn!("Parent process pipe closed - parent has exited");
+                    // EOF - pipe was closed (shutdown signal from parent)
+                    tracing::info!("Parent process pipe closed - shutdown requested");
                     break;
                 }
                 Ok(_) => {
@@ -76,8 +76,8 @@ pub fn start_parent_monitor(handle: u64) {
             }
         }
 
-        // Parent has exited - initiate graceful shutdown
-        tracing::info!("Initiating graceful shutdown due to parent process exit");
+        // Shutdown requested - initiate graceful shutdown
+        tracing::info!("Initiating graceful shutdown due to parent signal");
 
         // Send shutdown signal via the broadcast channel
         if let Some(tx) = PARENT_SHUTDOWN_TX.get() {

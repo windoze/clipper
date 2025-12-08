@@ -184,10 +184,10 @@ impl ServerManager {
         // Try to reuse saved port, or pick a new one
         let port = if let Some(saved_port) = settings_manager.get_server_port() {
             if Self::is_port_available(saved_port) {
-                eprintln!("[clipper-server] Reusing saved port: {}", saved_port);
+                log::debug!("[clipper-server] Reusing saved port: {}", saved_port);
                 saved_port
             } else {
-                eprintln!(
+                log::debug!(
                     "[clipper-server] Saved port {} is in use, picking new port",
                     saved_port
                 );
@@ -259,7 +259,7 @@ impl ServerManager {
         let max_upload_size_mb = settings_manager.get_max_upload_size_mb();
 
         // Log all parameters
-        eprintln!(
+        log::debug!(
             "[clipper-server] Starting bundled server with parameters:\n  \
              db_path: {}\n  \
              storage_path: {}\n  \
@@ -331,7 +331,7 @@ impl ServerManager {
 
         // Find the sidecar binary path
         let sidecar_path = Self::find_sidecar_path(app)?;
-        eprintln!("[clipper-server] Sidecar path: {:?}", sidecar_path);
+        log::debug!("[clipper-server] Sidecar path: {:?}", sidecar_path);
 
         // Spawn the server process using std::process::Command
         // This gives us control over handle inheritance
@@ -390,8 +390,8 @@ impl ServerManager {
                 )
             };
             if result == 0 {
-                eprintln!(
-                    "[clipper-server] Warning: Failed to make pipe handle inheritable"
+                log::warn!(
+                    "[clipper-server] Failed to make pipe handle inheritable"
                 );
             }
 
@@ -428,13 +428,18 @@ impl ServerManager {
             windows_sys::Win32::Foundation::CloseHandle(pipe_reader_handle as _);
         }
 
-        // Spawn tasks to forward stdout/stderr
+        // Spawn tasks to forward stdout/stderr with appropriate log levels
+        // The bundled server uses tracing with format like:
+        // "2024-01-15T10:30:00.000Z  INFO clipper_server: message"
+        // "2024-01-15T10:30:00.000Z  WARN clipper_server: message"
+        // "2024-01-15T10:30:00.000Z ERROR clipper_server: message"
         if let Some(stdout) = child.stdout.take() {
             std::thread::spawn(move || {
                 use std::io::{BufRead, BufReader};
                 let reader = BufReader::new(stdout);
                 for line in reader.lines().map_while(Result::ok) {
-                    eprintln!("[clipper-server] {}", line);
+                    // Parse log level from tracing output and forward appropriately
+                    forward_server_log(&line);
                 }
             });
         }
@@ -444,7 +449,8 @@ impl ServerManager {
                 use std::io::{BufRead, BufReader};
                 let reader = BufReader::new(stderr);
                 for line in reader.lines().map_while(Result::ok) {
-                    eprintln!("[clipper-server] {}", line);
+                    // Parse log level from tracing output and forward appropriately
+                    forward_server_log(&line);
                 }
             });
         }
@@ -461,7 +467,7 @@ impl ServerManager {
 
         // Save the port to settings for next startup
         if let Err(e) = settings_manager.set_server_port(port).await {
-            eprintln!("[clipper-server] Warning: Failed to save port: {}", e);
+            log::warn!("[clipper-server] Failed to save port: {}", e);
         }
 
         // Wait a bit for the server to start
@@ -474,7 +480,7 @@ impl ServerManager {
         while retries > 0 {
             match client.get(&health_url).send().await {
                 Ok(response) if response.status().is_success() => {
-                    eprintln!("[clipper-server] Server is healthy at {}", server_url);
+                    log::info!("Bundled server started at {}", server_url);
                     return Ok(server_url);
                 }
                 _ => {
@@ -485,8 +491,8 @@ impl ServerManager {
         }
 
         // Server might still be starting, return URL anyway
-        eprintln!(
-            "[clipper-server] Server started at {} (health check pending)",
+        log::info!(
+            "Bundled server started at {} (health check pending)",
             server_url
         );
         Ok(server_url)
@@ -506,7 +512,7 @@ impl ServerManager {
                 .map_err(|e| format!("Failed to kill server: {}", e))?;
             // Wait for the process to exit
             let _ = child.wait();
-            eprintln!("[clipper-server] Server stopped");
+            log::info!("Bundled server stopped");
 
             // Wait for the process to fully terminate and port to be released
             tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
@@ -520,7 +526,7 @@ impl ServerManager {
 
     /// Restart the server (stop and start)
     pub async fn restart(&self, app: &AppHandle) -> Result<String, String> {
-        eprintln!("[clipper-server] Restarting server...");
+        log::info!("Restarting bundled server...");
         self.stop().await?;
         self.start(app).await
     }
@@ -537,7 +543,7 @@ impl ServerManager {
             tokio::fs::remove_dir_all(&self.db_path)
                 .await
                 .map_err(|e| format!("Failed to remove database directory: {}", e))?;
-            eprintln!("[clipper-server] Database directory cleared");
+            log::debug!("[clipper-server] Database directory cleared");
         }
 
         // Remove storage directory
@@ -545,7 +551,7 @@ impl ServerManager {
             tokio::fs::remove_dir_all(&self.storage_path)
                 .await
                 .map_err(|e| format!("Failed to remove storage directory: {}", e))?;
-            eprintln!("[clipper-server] Storage directory cleared");
+            log::debug!("[clipper-server] Storage directory cleared");
         }
 
         Ok(())
@@ -566,6 +572,55 @@ impl Drop for ServerManager {
         {
             let _ = child.kill();
             let _ = child.wait();
+        }
+    }
+}
+
+/// Forward a log line from the bundled server with the appropriate log level.
+/// Parses the tracing format: "2024-01-15T10:30:00.000Z  INFO clipper_server: message"
+/// or "2024-01-15T10:30:00.000Z DEBUG request{...}: tower_http::trace: message"
+fn forward_server_log(line: &str) {
+    // Tracing format: ISO 8601 timestamp followed by log level
+    // Examples:
+    //   "2024-01-15T10:30:00.000000Z  INFO clipper_server: message"
+    //   "2024-01-15T10:30:00.000000Z DEBUG request{...}: tower_http::trace: message"
+    //   "2024-01-15T10:30:00.000000Z  WARN clipper_server: message"
+    //
+    // Pattern: timestamp ends with "Z " and then the level follows
+
+    // Find the 'Z' that ends the ISO 8601 timestamp, then check what follows
+    fn extract_level(line: &str) -> Option<&'static str> {
+        // Look for "Z " or "Z  " (timestamp end followed by space(s))
+        if let Some(z_pos) = line.find('Z') {
+            // Get the part after "Z"
+            let after_z = &line[z_pos + 1..];
+            // Skip leading spaces
+            let trimmed = after_z.trim_start();
+            // Check which level it starts with
+            if trimmed.starts_with("ERROR") {
+                return Some("ERROR");
+            } else if trimmed.starts_with("WARN") {
+                return Some("WARN");
+            } else if trimmed.starts_with("DEBUG") {
+                return Some("DEBUG");
+            } else if trimmed.starts_with("TRACE") {
+                return Some("TRACE");
+            } else if trimmed.starts_with("INFO") {
+                return Some("INFO");
+            }
+        }
+        None
+    }
+
+    match extract_level(line) {
+        Some("ERROR") => log::error!("[clipper-server] {}", line),
+        Some("WARN") => log::warn!("[clipper-server] {}", line),
+        Some("DEBUG") => log::debug!("[clipper-server] {}", line),
+        Some("TRACE") => log::trace!("[clipper-server] {}", line),
+        Some("INFO") => log::info!("[clipper-server] {}", line),
+        _ => {
+            // Default to INFO for unrecognized formats
+            log::info!("[clipper-server] {}", line);
         }
     }
 }

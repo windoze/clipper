@@ -202,18 +202,21 @@ pub fn run() {
         // Log plugin should be registered early to capture all logs
         .plugin(
             tauri_plugin_log::Builder::new()
-                .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::Stdout,
-                ))
-                .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::LogDir {
+                // Clear default targets (Stdout + LogDir) to avoid duplicates
+                .clear_targets()
+                .targets([
+                    // Stdout: show all logs including debug (for development)
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                    // Log file: only INFO and above (no debug logs)
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
                         file_name: Some("clipper".into()),
-                    },
-                ))
-                .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::Webview,
-                ))
-                .level(log::LevelFilter::Info)
+                    })
+                    .filter(|metadata| metadata.level() <= log::Level::Info),
+                    // Webview: show all logs for frontend debugging
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
+                ])
+                // Allow debug logs globally (filtered per-target above)
+                .level(log::LevelFilter::Debug)
                 // Rotate logs when they reach 1MB, keep only one backup file
                 .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
                 .max_file_size(1_000_000) // 1MB per file
