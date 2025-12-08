@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.19.0]
+
+### Added
+
+- Tags management with dedicated tags table in database
+- Tag search functionality with autocomplete support
+- Tag editing with autocomplete suggestions in UI
+
 ## [0.18.5]
 
 ### Added
