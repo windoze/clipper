@@ -883,3 +883,205 @@ async fn test_short_url_unique_codes() {
 
     assert_eq!(short_codes.len(), 10);
 }
+
+// ==================== Tags Tests ====================
+
+#[tokio::test]
+async fn test_tags_synced_on_add_entry() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry with tags
+    indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["rust".to_string(), "programming".to_string()],
+            None,
+        )
+        .await
+        .expect("Failed to add entry");
+
+    // List tags and verify they were synced
+    let tags = indexer
+        .list_tags(PagingParams::default())
+        .await
+        .expect("Failed to list tags");
+
+    assert_eq!(tags.total, 2);
+    let tag_texts: Vec<&str> = tags.items.iter().map(|t| t.text.as_str()).collect();
+    assert!(tag_texts.contains(&"rust"));
+    assert!(tag_texts.contains(&"programming"));
+}
+
+#[tokio::test]
+async fn test_tags_synced_on_update_entry() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry with initial tags
+    let entry = indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["initial".to_string()],
+            None,
+        )
+        .await
+        .expect("Failed to add entry");
+
+    // Update with new tags
+    indexer
+        .update_entry(
+            &entry.id,
+            Some(vec!["initial".to_string(), "updated".to_string()]),
+            None,
+        )
+        .await
+        .expect("Failed to update entry");
+
+    // List tags and verify new tag was synced
+    let tags = indexer
+        .list_tags(PagingParams::default())
+        .await
+        .expect("Failed to list tags");
+
+    assert_eq!(tags.total, 2);
+    let tag_texts: Vec<&str> = tags.items.iter().map(|t| t.text.as_str()).collect();
+    assert!(tag_texts.contains(&"initial"));
+    assert!(tag_texts.contains(&"updated"));
+}
+
+#[tokio::test]
+async fn test_tags_deduplication() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add multiple entries with overlapping tags
+    indexer
+        .add_entry_from_text(
+            "Test 1".to_string(),
+            vec!["common".to_string(), "unique1".to_string()],
+            None,
+        )
+        .await
+        .expect("Failed to add entry 1");
+
+    indexer
+        .add_entry_from_text(
+            "Test 2".to_string(),
+            vec!["common".to_string(), "unique2".to_string()],
+            None,
+        )
+        .await
+        .expect("Failed to add entry 2");
+
+    // List tags - "common" should only appear once
+    let tags = indexer
+        .list_tags(PagingParams::default())
+        .await
+        .expect("Failed to list tags");
+
+    assert_eq!(tags.total, 3); // common, unique1, unique2
+    let tag_texts: Vec<&str> = tags.items.iter().map(|t| t.text.as_str()).collect();
+    assert!(tag_texts.contains(&"common"));
+    assert!(tag_texts.contains(&"unique1"));
+    assert!(tag_texts.contains(&"unique2"));
+}
+
+#[tokio::test]
+async fn test_search_tags() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add entries with various tags
+    indexer
+        .add_entry_from_text(
+            "Test".to_string(),
+            vec![
+                "rust-programming".to_string(),
+                "typescript".to_string(),
+                "database".to_string(),
+            ],
+            None,
+        )
+        .await
+        .expect("Failed to add entry");
+
+    // Search for tags containing "rust"
+    let results = indexer
+        .search_tags("rust", PagingParams::default())
+        .await
+        .expect("Failed to search tags");
+
+    assert!(results.total >= 1);
+    let tag_texts: Vec<&str> = results.items.iter().map(|t| t.text.as_str()).collect();
+    assert!(tag_texts.contains(&"rust-programming"));
+}
+
+#[tokio::test]
+async fn test_get_tag_by_text() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry with a tag
+    indexer
+        .add_entry_from_text(
+            "Test content".to_string(),
+            vec!["test-tag".to_string()],
+            None,
+        )
+        .await
+        .expect("Failed to add entry");
+
+    // Get the tag by text
+    let tag = indexer
+        .get_tag_by_text("test-tag")
+        .await
+        .expect("Failed to get tag");
+
+    assert_eq!(tag.text, "test-tag");
+}
+
+#[tokio::test]
+async fn test_get_tag_by_text_not_found() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Try to get a nonexistent tag
+    let result = indexer.get_tag_by_text("nonexistent").await;
+
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), IndexerError::NotFound(_)));
+}
+
+#[tokio::test]
+async fn test_list_tags_pagination() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry with many tags
+    let tags: Vec<String> = (0..25).map(|i| format!("tag{:02}", i)).collect();
+    indexer
+        .add_entry_from_text("Test".to_string(), tags, None)
+        .await
+        .expect("Failed to add entry");
+
+    // Test pagination
+    let page1 = indexer
+        .list_tags(PagingParams::new(1, 10))
+        .await
+        .expect("Failed to list tags page 1");
+
+    assert_eq!(page1.items.len(), 10);
+    assert_eq!(page1.total, 25);
+    assert_eq!(page1.page, 1);
+    assert_eq!(page1.total_pages, 3);
+
+    let page2 = indexer
+        .list_tags(PagingParams::new(2, 10))
+        .await
+        .expect("Failed to list tags page 2");
+
+    assert_eq!(page2.items.len(), 10);
+    assert_eq!(page2.page, 2);
+
+    let page3 = indexer
+        .list_tags(PagingParams::new(3, 10))
+        .await
+        .expect("Failed to list tags page 3");
+
+    assert_eq!(page3.items.len(), 5);
+    assert_eq!(page3.page, 3);
+}

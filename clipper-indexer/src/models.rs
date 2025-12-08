@@ -272,3 +272,12 @@ pub struct SearchResultItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub highlighted_content: Option<String>,
 }
+
+/// Represents a tag that has been used by clip entries
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Tag {
+    pub id: String,
+    pub text: String,
+    #[serde(with = "datetime_conversion")]
+    pub created_at: DateTime<Utc>,
+}

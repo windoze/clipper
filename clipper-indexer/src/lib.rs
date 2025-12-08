@@ -9,5 +9,5 @@ pub use export::{ExportBuilder, ExportManifest, ExportedClip, ImportParser, Impo
 pub use indexer::ClipperIndexer;
 pub use models::{
     ClipboardEntry, HighlightOptions, PagedResult, PagingParams, SearchFilters, SearchResultItem,
-    ShortUrl,
+    ShortUrl, Tag,
 };

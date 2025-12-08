@@ -4,7 +4,7 @@ use crate::export::{
 };
 use crate::models::{
     ClipboardEntry, HighlightOptions, PagedResult, PagingParams, SearchFilters, SearchResultItem,
-    ShortUrl,
+    ShortUrl, Tag,
 };
 use crate::storage::FileStorage;
 use rand::Rng;
@@ -16,13 +16,16 @@ use surrealdb::engine::local::{Db, RocksDb};
 
 const TABLE_NAME: &str = "clipboard";
 const SHORT_URL_TABLE: &str = "short_url";
+const TAGS_TABLE: &str = "tags";
 const CONFIG_TABLE: &str = "config";
 const INDEX_VERSION_KEY: &str = "index_schema";
 const SEARCH_ANALYZER_NAME: &str = "clipper_analyzer";
+const TAGS_ANALYZER_NAME: &str = "clipper_tags_analyzer";
 const SEARCH_INDEX_NAME: &str = "idx_search_content";
+const TAGS_SEARCH_INDEX_NAME: &str = "idx_tag_text";
 const NAMESPACE: &str = "clipper";
 const DATABASE: &str = "library";
-const CURRENT_INDEX_VERSION: i64 = 1;
+const CURRENT_INDEX_VERSION: i64 = 2;
 
 /// Characters used for generating short codes (alphanumeric, excluding ambiguous characters)
 const SHORT_CODE_CHARS: &[u8] = b"23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz";
@@ -52,6 +55,13 @@ struct DbShortUrl {
     short_code: String,
     created_at: surrealdb::sql::Datetime,
     expires_at: Option<surrealdb::sql::Datetime>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DbTag {
+    id: surrealdb::sql::Thing,
+    text: String,
+    created_at: surrealdb::sql::Datetime,
 }
 
 /// Generate a random short code using alphanumeric characters
@@ -115,6 +125,10 @@ impl ClipperIndexer {
             DEFINE FIELD IF NOT EXISTS short_code ON TABLE {SHORT_URL_TABLE} TYPE string;
             DEFINE FIELD IF NOT EXISTS created_at ON TABLE {SHORT_URL_TABLE} TYPE datetime;
             DEFINE FIELD IF NOT EXISTS expires_at ON TABLE {SHORT_URL_TABLE} TYPE option<datetime>;
+
+            DEFINE TABLE IF NOT EXISTS {TAGS_TABLE} SCHEMAFULL;
+            DEFINE FIELD IF NOT EXISTS text ON TABLE {TAGS_TABLE} TYPE string;
+            DEFINE FIELD IF NOT EXISTS created_at ON TABLE {TAGS_TABLE} TYPE datetime;
             "#
         );
 
@@ -128,6 +142,7 @@ impl ClipperIndexer {
             DEFINE INDEX IF NOT EXISTS idx_short_code ON TABLE {SHORT_URL_TABLE} COLUMNS short_code UNIQUE;
             DEFINE INDEX IF NOT EXISTS idx_short_url_clip_id ON TABLE {SHORT_URL_TABLE} COLUMNS clip_id;
             DEFINE INDEX IF NOT EXISTS idx_short_url_expires_at ON TABLE {SHORT_URL_TABLE} COLUMNS expires_at;
+            DEFINE INDEX IF NOT EXISTS idx_tag_text_unique ON TABLE {TAGS_TABLE} COLUMNS text UNIQUE;
             "#
         );
 
@@ -146,6 +161,11 @@ impl ClipperIndexer {
         if version < 1 {
             Self::migrate_to_v1(db).await?;
             version = 1;
+        }
+
+        if version < 2 {
+            Self::migrate_to_v2(db).await?;
+            version = 2;
         }
 
         if version != CURRENT_INDEX_VERSION {
@@ -191,6 +211,114 @@ impl ClipperIndexer {
         Ok(())
     }
 
+    async fn migrate_to_v2(db: &Surreal<Db>) -> Result<()> {
+        // Define a new analyzer for tags using edgengram instead of ngram
+        // edgengram is better for prefix/autocomplete matching on tag names
+        let analyzer_query = format!(
+            r#"
+            REMOVE ANALYZER IF EXISTS {analyzer};
+            DEFINE ANALYZER {analyzer} TOKENIZERS blank,class,camel FILTERS lowercase,edgengram(1, 24);
+            "#,
+            analyzer = TAGS_ANALYZER_NAME
+        );
+        db.query(analyzer_query).await?;
+
+        // Add FTS index for tags table
+        let index_query = format!(
+            r#"
+            REMOVE INDEX IF EXISTS {index} ON TABLE {table};
+            DEFINE INDEX {index} ON TABLE {table} COLUMNS text
+                SEARCH ANALYZER {analyzer} BM25 HIGHLIGHTS;
+            "#,
+            index = TAGS_SEARCH_INDEX_NAME,
+            table = TAGS_TABLE,
+            analyzer = TAGS_ANALYZER_NAME
+        );
+        db.query(index_query).await?;
+
+        // Collect existing tags from clipboard entries into the tags table
+        let select_query = format!("SELECT tags FROM {};", TABLE_NAME);
+        let mut response = db.query(select_query).await?;
+
+        #[derive(Deserialize)]
+        struct TagsOnly {
+            tags: Vec<String>,
+        }
+
+        let entries: Vec<TagsOnly> = response.take(0).unwrap_or_default();
+
+        // Collect all unique tags
+        let mut unique_tags = std::collections::HashSet::new();
+        for entry in entries {
+            for tag in entry.tags {
+                if !tag.is_empty() {
+                    unique_tags.insert(tag);
+                }
+            }
+        }
+
+        // Insert each unique tag into the tags table
+        let now = chrono::Utc::now();
+        for tag in unique_tags {
+            let tag_id = {
+                use std::collections::hash_map::DefaultHasher;
+                use std::hash::{Hash, Hasher};
+                let mut hasher = DefaultHasher::new();
+                tag.hash(&mut hasher);
+                format!("tag_{:x}", hasher.finish())
+            };
+            let insert_query = format!(
+                "INSERT INTO {} {{ id: '{}', text: '{}', created_at: <datetime>'{}' }} ON DUPLICATE KEY UPDATE id = id;",
+                TAGS_TABLE,
+                escape_surql_string(&tag_id),
+                escape_surql_string(&tag),
+                now.to_rfc3339()
+            );
+            db.query(insert_query).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Sync tags to the tags table. This ensures all tags from the given list
+    /// exist in the tags table. Tags that already exist are skipped.
+    async fn sync_tags(&self, tags: &[String]) -> Result<()> {
+        if tags.is_empty() {
+            return Ok(());
+        }
+
+        let now = chrono::Utc::now();
+        for tag in tags {
+            if tag.is_empty() {
+                continue;
+            }
+            // Use UPSERT to create the tag if it doesn't exist, or do nothing if it does
+            // We use the tag text as the record ID to ensure uniqueness
+            let tag_id = Self::tag_text_to_id(tag);
+            let query = format!(
+                "INSERT INTO {} {{ id: '{}', text: '{}', created_at: <datetime>'{}' }} ON DUPLICATE KEY UPDATE id = id;",
+                TAGS_TABLE,
+                escape_surql_string(&tag_id),
+                escape_surql_string(tag),
+                now.to_rfc3339()
+            );
+            self.db.query(query).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Convert tag text to a valid record ID (lowercase, alphanumeric with underscores)
+    fn tag_text_to_id(tag: &str) -> String {
+        // Create a deterministic ID from the tag text using a hash
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+        tag.hash(&mut hasher);
+        format!("tag_{:x}", hasher.finish())
+    }
+
     pub async fn add_entry_from_text(
         &self,
         content: String,
@@ -219,6 +347,9 @@ impl ClipperIndexer {
                 search_content: entry.search_content.clone(),
             })
             .await?;
+
+        // Sync tags to the tags table
+        self.sync_tags(&entry.tags).await?;
 
         Ok(entry)
     }
@@ -280,6 +411,9 @@ impl ClipperIndexer {
                 search_content: entry.search_content.clone(),
             })
             .await?;
+
+        // Sync tags to the tags table
+        self.sync_tags(&entry.tags).await?;
 
         Ok(entry)
     }
@@ -350,6 +484,9 @@ impl ClipperIndexer {
             })
             .await?;
 
+        // Sync tags to the tags table
+        self.sync_tags(&entry.tags).await?;
+
         Ok(entry)
     }
 
@@ -393,6 +530,7 @@ impl ClipperIndexer {
         let mut updates = Vec::new();
         let mut query_string = format!("UPDATE {}:{} SET ", TABLE_NAME, id);
 
+        let tags_to_sync = tags.clone();
         if tags.is_some() {
             updates.push("tags = $tags");
         }
@@ -421,6 +559,11 @@ impl ClipperIndexer {
         }
 
         query.await?;
+
+        // Sync tags to the tags table if tags were updated
+        if let Some(new_tags) = tags_to_sync {
+            self.sync_tags(&new_tags).await?;
+        }
 
         // Return updated entry
         self.get_entry(id).await
@@ -1048,6 +1191,159 @@ impl ClipperIndexer {
         Ok(count)
     }
 
+    // ==================== Tags Functions ====================
+
+    /// List all tags with optional pagination.
+    ///
+    /// # Arguments
+    /// * `paging` - Pagination parameters
+    ///
+    /// # Returns
+    /// A paged result containing all tags ordered by creation date
+    pub async fn list_tags(&self, paging: PagingParams) -> Result<PagedResult<Tag>> {
+        // Get total count
+        let count_query = format!("SELECT count() FROM {} GROUP ALL;", TAGS_TABLE);
+        let mut count_response = self.db.query(count_query).await?;
+
+        #[derive(Deserialize)]
+        struct CountResult {
+            count: i64,
+        }
+
+        let count_results: Vec<CountResult> = count_response.take(0).unwrap_or_default();
+        let total = count_results.first().map(|c| c.count as usize).unwrap_or(0);
+
+        // Get paginated results - order by created_at instead of text to avoid
+        // conflicts with the FTS SEARCH index on the text field
+        let query = format!(
+            "SELECT * FROM {} ORDER BY created_at DESC LIMIT {} START {};",
+            TAGS_TABLE,
+            paging.page_size,
+            paging.offset()
+        );
+
+        let mut response = self.db.query(query).await?;
+        let db_tags: Vec<DbTag> = response
+            .take(0)
+            .map_err(|e| IndexerError::Serialization(e.to_string()))?;
+
+        let items: Vec<Tag> = db_tags
+            .into_iter()
+            .map(|db_tag| Tag {
+                id: db_tag.id.id.to_string(),
+                text: db_tag.text,
+                created_at: *db_tag.created_at,
+            })
+            .collect();
+
+        Ok(PagedResult::new(
+            items,
+            total,
+            paging.page,
+            paging.page_size,
+        ))
+    }
+
+    /// Search tags using full-text search.
+    ///
+    /// # Arguments
+    /// * `search_query` - The search query string
+    /// * `paging` - Pagination parameters
+    ///
+    /// # Returns
+    /// A paged result containing matching tags
+    pub async fn search_tags(
+        &self,
+        search_query: &str,
+        paging: PagingParams,
+    ) -> Result<PagedResult<Tag>> {
+        // Return all tags if search query is empty
+        if search_query.trim().is_empty() {
+            return self.list_tags(paging).await;
+        }
+
+        // Pre-tokenize search query for better search
+        let tokenized_query = crate::models::tokenize(search_query);
+
+        let where_clause = format!("text @@ '{}'", tokenized_query);
+
+        // Get total count
+        let count_query = format!(
+            "SELECT count() FROM {} WHERE {} GROUP ALL;",
+            TAGS_TABLE, where_clause
+        );
+        let mut count_response = self.db.query(count_query).await?;
+
+        #[derive(Deserialize)]
+        struct CountResult {
+            count: i64,
+        }
+
+        let count_results: Vec<CountResult> = count_response.take(0).unwrap_or_default();
+        let total = count_results.first().map(|c| c.count as usize).unwrap_or(0);
+
+        // Get paginated results
+        let query = format!(
+            "SELECT * FROM {} WHERE {} ORDER BY text ASC LIMIT {} START {};",
+            TAGS_TABLE,
+            where_clause,
+            paging.page_size,
+            paging.offset()
+        );
+
+        let mut response = self.db.query(query).await?;
+        let db_tags: Vec<DbTag> = response
+            .take(0)
+            .map_err(|e| IndexerError::Serialization(e.to_string()))?;
+
+        let items: Vec<Tag> = db_tags
+            .into_iter()
+            .map(|db_tag| Tag {
+                id: db_tag.id.id.to_string(),
+                text: db_tag.text,
+                created_at: *db_tag.created_at,
+            })
+            .collect();
+
+        Ok(PagedResult::new(
+            items,
+            total,
+            paging.page,
+            paging.page_size,
+        ))
+    }
+
+    /// Get a tag by its text.
+    ///
+    /// # Arguments
+    /// * `text` - The tag text
+    ///
+    /// # Returns
+    /// The Tag if found
+    pub async fn get_tag_by_text(&self, text: &str) -> Result<Tag> {
+        let query = format!(
+            "SELECT * FROM {} WHERE text = '{}';",
+            TAGS_TABLE,
+            escape_surql_string(text)
+        );
+
+        let mut response = self.db.query(query).await?;
+        let results: Vec<DbTag> = response
+            .take(0)
+            .map_err(|e| IndexerError::Serialization(e.to_string()))?;
+
+        let db_tag = results
+            .into_iter()
+            .next()
+            .ok_or_else(|| IndexerError::NotFound(format!("Tag '{}' not found", text)))?;
+
+        Ok(Tag {
+            id: db_tag.id.id.to_string(),
+            text: db_tag.text,
+            created_at: *db_tag.created_at,
+        })
+    }
+
     // ==================== Export/Import Functions ====================
 
     /// Export all clipboard entries to a tar.gz archive file.
@@ -1290,6 +1586,9 @@ impl ClipperIndexer {
                 search_content: entry.search_content.clone(),
             })
             .await?;
+
+        // Sync tags to the tags table
+        self.sync_tags(&entry.tags).await?;
 
         Ok(())
     }
