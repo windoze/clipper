@@ -34,7 +34,6 @@ export {
   ConnectionError,
   DateFilter,
   DateTag,
-  EditClipDialog,
   FavoriteToggle,
   ImagePopup,
   SearchBox,

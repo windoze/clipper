@@ -395,6 +395,22 @@ export function ClipEntry({
     setNotesValue(clip.additional_notes || "");
   };
 
+  // Handle keyboard events for notes popup
+  useEffect(() => {
+    if (!showNotesPopup) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowNotesPopup(false);
+        setNotesValue(clip.additional_notes || "");
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showNotesPopup, clip.additional_notes]);
+
   const handleAddTagClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsAddingTag(true);
@@ -582,6 +598,24 @@ export function ClipEntry({
     e.stopPropagation();
     setTagToRemove(null);
   };
+
+  // Handle keyboard events for tag removal confirmation dialog
+  useEffect(() => {
+    if (!tagToRemove) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setTagToRemove(null);
+      } else if (e.key === "Enter" && !removingTag) {
+        e.preventDefault();
+        handleRemoveTagConfirm();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [tagToRemove, removingTag]);
 
   // Handle click on the clip entry itself - toggle expand/collapse for long content
   const handleEntryClick = () => {

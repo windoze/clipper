@@ -16,7 +16,6 @@ export const en = {
   // Clip Entry
   "clip.copy": "Click to copy",
   "clip.share": "Share clip",
-  "clip.edit": "Edit clip",
   "clip.delete": "Delete clip",
   "clip.favorite.add": "Add to favorites",
   "clip.favorite.remove": "Remove from favorites",
@@ -108,14 +107,9 @@ export const en = {
   "settings.about.updateAvailable": "New version available: {version}",
   "settings.about.checkFailed": "Failed to check for updates",
 
-  // Edit Clip Dialog
-  "editClip.title": "Edit Clip",
-  "editClip.tags": "Tags",
-  "editClip.tags.placeholder": "Add tags...",
-  "editClip.tags.hint": "Press Enter to add a tag, Backspace to remove the last one.",
+  // Notes Popup
   "editClip.notes": "Notes",
   "editClip.notes.placeholder": "Add notes about this clip...",
-  "editClip.saveError": "Failed to save: {error}",
 
   // Share Dialog
   "share.title": "Share Clip",

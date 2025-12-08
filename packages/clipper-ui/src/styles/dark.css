@@ -500,18 +500,6 @@
   color: #ff6b6b;
 }
 
-/* ============================================
-   Edit Clip Dialog - Dark Theme
-   ============================================ */
-:root[data-theme="dark"] .edit-button {
-  color: #6c757d;
-}
-
-:root[data-theme="dark"] .edit-button:hover {
-  color: #99aaf7;
-  background: rgba(102, 126, 234, 0.2);
-}
-
 :root[data-theme="dark"] .share-button {
   color: #6c757d;
 }
@@ -549,94 +537,6 @@
 }
 
 :root[data-theme="dark"] .delete-confirm-btn.cancel:hover:not(:disabled) {
-  background: #4a4a4a;
-}
-
-:root[data-theme="dark"] .edit-clip-dialog {
-  background: #2d2d2d;
-}
-
-:root[data-theme="dark"] .edit-clip-header {
-  border-color: #404040;
-}
-
-:root[data-theme="dark"] .edit-clip-header h2 {
-  color: #e9ecef;
-}
-
-:root[data-theme="dark"] .edit-clip-close {
-  color: #adb5bd;
-}
-
-:root[data-theme="dark"] .edit-clip-close:hover {
-  background: #404040;
-  color: #e9ecef;
-}
-
-:root[data-theme="dark"] .edit-clip-error {
-  background: #4a2020;
-  color: #f8a0a0;
-}
-
-:root[data-theme="dark"] .edit-clip-field label {
-  color: #e9ecef;
-}
-
-:root[data-theme="dark"] .edit-clip-hint {
-  color: #adb5bd;
-}
-
-:root[data-theme="dark"] .tag-editor {
-  background: #363636;
-  border-color: #404040;
-}
-
-:root[data-theme="dark"] .tag.editable {
-  background: #404040;
-  color: #e9ecef;
-}
-
-:root[data-theme="dark"] .tag-remove {
-  color: #adb5bd;
-}
-
-:root[data-theme="dark"] .tag-remove:hover {
-  color: #f8a0a0;
-}
-
-:root[data-theme="dark"] .tag-input {
-  color: #e9ecef;
-}
-
-:root[data-theme="dark"] .tag-input::placeholder {
-  color: #6c757d;
-}
-
-:root[data-theme="dark"] .notes-input {
-  background: #363636;
-  border-color: #404040;
-  color: #e9ecef;
-}
-
-:root[data-theme="dark"] .notes-input:focus {
-  border-color: #667eea;
-}
-
-:root[data-theme="dark"] .notes-input::placeholder {
-  color: #6c757d;
-}
-
-:root[data-theme="dark"] .edit-clip-footer {
-  border-color: #404040;
-}
-
-:root[data-theme="dark"] .edit-clip-btn.secondary {
-  background: #404040;
-  border-color: #4a4a4a;
-  color: #e9ecef;
-}
-
-:root[data-theme="dark"] .edit-clip-btn.secondary:hover:not(:disabled) {
   background: #4a4a4a;
 }
 
@@ -1206,16 +1106,6 @@
     background: #4a4a4a;
   }
 
-  /* Edit clip dialog dark mode fallback */
-  :root:not([data-theme="light"]) .edit-button {
-    color: #6c757d;
-  }
-
-  :root:not([data-theme="light"]) .edit-button:hover {
-    color: #99aaf7;
-    background: rgba(102, 126, 234, 0.2);
-  }
-
   :root:not([data-theme="light"]) .share-button {
     color: #6c757d;
   }
@@ -1244,94 +1134,6 @@
   }
 
   :root:not([data-theme="light"]) .delete-confirm-btn.cancel:hover:not(:disabled) {
-    background: #4a4a4a;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-dialog {
-    background: #2d2d2d;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-header {
-    border-color: #404040;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-header h2 {
-    color: #e9ecef;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-close {
-    color: #adb5bd;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-close:hover {
-    background: #404040;
-    color: #e9ecef;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-error {
-    background: #4a2020;
-    color: #f8a0a0;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-field label {
-    color: #e9ecef;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-hint {
-    color: #adb5bd;
-  }
-
-  :root:not([data-theme="light"]) .tag-editor {
-    background: #363636;
-    border-color: #404040;
-  }
-
-  :root:not([data-theme="light"]) .tag.editable {
-    background: #404040;
-    color: #e9ecef;
-  }
-
-  :root:not([data-theme="light"]) .tag-remove {
-    color: #adb5bd;
-  }
-
-  :root:not([data-theme="light"]) .tag-remove:hover {
-    color: #f8a0a0;
-  }
-
-  :root:not([data-theme="light"]) .tag-input {
-    color: #e9ecef;
-  }
-
-  :root:not([data-theme="light"]) .tag-input::placeholder {
-    color: #6c757d;
-  }
-
-  :root:not([data-theme="light"]) .notes-input {
-    background: #363636;
-    border-color: #404040;
-    color: #e9ecef;
-  }
-
-  :root:not([data-theme="light"]) .notes-input:focus {
-    border-color: #667eea;
-  }
-
-  :root:not([data-theme="light"]) .notes-input::placeholder {
-    color: #6c757d;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-footer {
-    border-color: #404040;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-btn.secondary {
-    background: #404040;
-    border-color: #4a4a4a;
-    color: #e9ecef;
-  }
-
-  :root:not([data-theme="light"]) .edit-clip-btn.secondary:hover:not(:disabled) {
     background: #4a4a4a;
   }
 

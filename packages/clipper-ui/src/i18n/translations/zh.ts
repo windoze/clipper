@@ -16,7 +16,6 @@ export const zh = {
   // Clip Entry
   "clip.copy": "点击复制",
   "clip.share": "分享剪贴",
-  "clip.edit": "编辑剪贴",
   "clip.delete": "删除剪贴",
   "clip.favorite.add": "添加到收藏",
   "clip.favorite.remove": "从收藏中移除",
@@ -107,14 +106,9 @@ export const zh = {
   "settings.about.updateAvailable": "有新版本可用：{version}",
   "settings.about.checkFailed": "检查更新失败",
 
-  // Edit Clip Dialog
-  "editClip.title": "编辑剪贴",
-  "editClip.tags": "标签",
-  "editClip.tags.placeholder": "添加标签...",
-  "editClip.tags.hint": "按 Enter 添加标签，按 Backspace 删除最后一个。",
+  // Notes Popup
   "editClip.notes": "备注",
   "editClip.notes.placeholder": "添加关于这条剪贴的备注...",
-  "editClip.saveError": "保存失败：{error}",
 
   // Share Dialog
   "share.title": "分享剪贴",
