@@ -1,7 +1,7 @@
 {
   "name": "clipper-web",
   "private": true,
-  "version": "0.18.3",
+  "version": "0.18.5",
   "type": "module",
   "scripts": {
     "dev": "vite",

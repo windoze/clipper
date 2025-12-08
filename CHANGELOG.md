@@ -4,9 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.18.5]
+
 ### Added
 
 - Press ESC key to clear search box when focused
+- Debug logging option (`debug_logging` in settings.json) for troubleshooting
+- File logging with rotation for desktop app (log files in system log directory)
+- Bug reporting documentation in README
+
+### Fixed
+
+- Fixed "Clear All Data" not respecting bundled server token setting, causing connection failures after clearing data
 
 ## [0.18.4]
 
@@ -31,7 +40,7 @@ All notable changes to this project will be documented in this file.
 - Token generation utility for creating secure bearer tokens
 
 ### Improved
-- Chinese language search support
+- Chinese language search improvements with better tokenization
 - File and directory permissions security
 
 ### Security
@@ -49,7 +58,7 @@ All notable changes to this project will be documented in this file.
   - `POST /import` - Import clips from a tar.gz archive with automatic deduplication
   - CLI commands: `clipper-cli export` and `clipper-cli import`
   - Client library methods: `export_to_file()`, `export_to_writer()`, `import_from_file()`, `import_from_reader()`
-- Deduplication on import (skips clips with same ID or content hash)
+- Deduplication on import (skips clips with same ID)
 - Streaming support for efficient handling of large archives
 
 ### Documentation
