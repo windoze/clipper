@@ -157,7 +157,8 @@ The following commands are available via `invoke()`:
 - `update_clip(id, tags, additional_notes)` - Update clip metadata
 - `delete_clip(id)` - Delete a clip
 - `get_clip(id)` - Get clip by ID
-- `copy_to_clipboard(content)` - Copy content to system clipboard
+- `copy_to_clipboard(content)` - Copy text content to system clipboard
+- `copy_image_to_clipboard(clip_id)` - Copy image clip to system clipboard
 - `upload_file(path, tags, additional_notes)` - Upload file as clip
 - `download_file(clip_id, filename)` - Download file attachment
 

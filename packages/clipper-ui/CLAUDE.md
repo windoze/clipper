@@ -68,3 +68,18 @@ interface ApiClient {
   // ... other methods
 }
 ```
+
+## Copy Image Feature
+
+The `ClipEntry` component supports copying images to clipboard:
+- Image clips show a "Copy" button as well
+- Calls `api.copyImageToClipboard(clipId)` to copy the image
+- Works in both desktop app (via Tauri command) and web UI (via Clipboard API)
+
+The API client interface requires a `copyImageToClipboard` method:
+```typescript
+interface ApiClient {
+  copyImageToClipboard?(clipId: string): Promise<void>;
+  // ... other methods
+}
+```

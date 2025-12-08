@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.19.1]
+
+### Added
+
+- Copy image from clip list
+- Send image from the clipboard to the server via web UI
+
+### Security
+
+- Pass server configuration via environment variables instead of command-line arguments
+  - Prevents sensitive data (bearer token) from being visible in process listings (`ps`)
+
 ## [0.19.0]
 
 ### Added

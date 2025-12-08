@@ -31,7 +31,8 @@ npm run build
 - Theme support (light/dark/auto)
 - **Internationalization**: English and Chinese languages
 - **Drag-and-drop file upload**: Drop files anywhere to upload
-- **Send clipboard button**: Manually send clipboard content (browsers can't auto-monitor)
+- **Send clipboard button**: Manually send clipboard content including images (browsers can't auto-monitor)
+- **Copy image to clipboard**: Copy image clips back to clipboard via copy button
 - **WebSocket real-time sync**: Toast notifications on new/updated clips (HTTPS only)
 - **WebSocket connection status indicator**: connected/disconnected/HTTPS required
 - **Visual fade-out**: Clips approaching auto-cleanup date gradually fade

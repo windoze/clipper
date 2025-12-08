@@ -94,6 +94,7 @@ update_clip(id: string, tags?: string[], additional_notes?: string): Promise<Cli
 delete_clip(id: string): Promise<void>
 get_clip(id: string): Promise<Clip>
 copy_to_clipboard(content: string): Promise<void>
+copy_image_to_clipboard(clip_id: string): Promise<void>
 upload_file(path: string, tags: string[], additional_notes?: string): Promise<Clip>
 get_file_url(clip_id: string): string
 download_file(clip_id: string, filename: string): Promise<string>
