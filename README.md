@@ -452,6 +452,58 @@ Clipper stores clipboard history which may contain sensitive information. Unders
 4. **Backup Security**: Export archives contain all clipboard history including attachments - store backups securely
 5. **Sensitive Data**: Consider the sensitivity of data you copy to clipboard; Clipper stores everything indiscriminately
 
+## Bug Reports
+
+Your bug reports help us improve Clipper. If you encounter any issues, please report them so we can investigate and fix them.
+
+### How to Report
+
+Submit bug reports on our [GitHub Issues](https://github.com/windoze/clipper/issues) page.
+
+### What to Include
+
+Please include the following information in your bug report:
+
+- **System Information**: Operating system and version, Clipper version, server deployment method (bundled/standalone/Docker)
+- **Steps to Reproduce**: Clear, numbered steps to reproduce the issue
+- **Expected Behavior**: What you expected to happen
+- **Actual Behavior**: What actually happened
+- **Screenshots or Recordings**: If applicable, include visual evidence of the issue
+
+### Enabling Debug Logs
+
+Debug logs provide valuable information for troubleshooting. Here's how to enable them:
+
+**For the standalone server (`clipper-server`):**
+
+Set the `RUST_LOG` environment variable before starting the server:
+
+```bash
+RUST_LOG=clipper_server=debug,tower_http=debug cargo run --bin clipper-server
+```
+
+**For the desktop app (GUI):**
+
+Edit the `settings.json` file in your config directory and add:
+
+```json
+{
+  "debug_logging": true
+}
+```
+
+Config directory locations:
+- **macOS**: `~/Library/Application Support/codes.unwritten.clipper/settings.json`
+- **Windows**: `%APPDATA%\codes.unwritten.clipper\settings.json`
+- **Linux**: `~/.config/codes.unwritten.clipper/settings.json`
+
+Then restart the app. Log files are located at:
+- **macOS**: `~/Library/Logs/codes.unwritten.clipper/clipper.log`
+- **Windows**: `%LOCALAPPDATA%\codes.unwritten.clipper\logs\clipper.log`
+- **Linux**: `~/.local/share/codes.unwritten.clipper/logs/clipper.log`
+
+> **⚠️ Privacy Warning**: Debug logs may contain sensitive information from your clipboard history, including passwords, tokens, and personal data. **Please review and redact any sensitive content before submitting logs with your bug report.**
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

@@ -4,7 +4,7 @@ use std::sync::{Arc, RwLock};
 use tauri::Manager;
 use tokio::fs;
 
-const SETTINGS_FILE_NAME: &str = "settings.json";
+pub const SETTINGS_FILE_NAME: &str = "settings.json";
 
 /// Theme preference: "light", "dark", or "auto" (follows system)
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
@@ -122,6 +122,11 @@ pub struct Settings {
     /// Maps server hostname to SHA-256 fingerprint (hex encoded)
     #[serde(default)]
     pub trusted_certificates: std::collections::HashMap<String, String>,
+    /// Enable debug logging to log file (manually configurable only)
+    /// When false (default), only INFO and above are written to the log file
+    /// When true, DEBUG logs are also written to the log file
+    #[serde(default)]
+    pub debug_logging: bool,
 }
 
 fn default_cleanup_retention_days() -> u32 {
@@ -174,6 +179,7 @@ impl Default for Settings {
             settings_window_geometry: SettingsWindowGeometry::default(),
             main_window_geometry: MainWindowGeometry::default(),
             trusted_certificates: std::collections::HashMap::new(),
+            debug_logging: false,
         }
     }
 }
@@ -296,6 +302,11 @@ impl SettingsManager {
     /// Get the maximum upload size in MB
     pub fn get_max_upload_size_mb(&self) -> u64 {
         self.settings.read().unwrap().max_upload_size_mb
+    }
+
+    /// Get whether debug logging to file is enabled
+    pub fn get_debug_logging(&self) -> bool {
+        self.settings.read().unwrap().debug_logging
     }
 
     /// Get all trusted certificate fingerprints

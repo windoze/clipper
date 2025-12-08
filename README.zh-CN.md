@@ -454,6 +454,58 @@ Clipper 会存储剪贴板历史记录，其中可能包含敏感信息。了解
 4. **备份安全**：导出的归档包含所有剪贴板历史（包括附件）- 请安全存储备份
 5. **敏感数据**：注意你复制到剪贴板的数据敏感性；Clipper 会无差别地存储所有内容
 
+## 错误报告
+
+你的错误报告有助于我们改进 Clipper。如果你遇到任何问题，请向我们报告，以便我们调查和修复。
+
+### 如何报告
+
+在我们的 [GitHub Issues](https://github.com/windoze/clipper/issues) 页面提交错误报告。
+
+### 报告内容
+
+请在错误报告中包含以下信息：
+
+- **系统信息**：操作系统及版本、Clipper 版本、服务器部署方式（内置/独立/Docker）
+- **重现步骤**：清晰的、有编号的重现问题的步骤
+- **预期行为**：你期望发生什么
+- **实际行为**：实际发生了什么
+- **截图或录屏**：如适用，请提供问题的视觉证据
+
+### 启用调试日志
+
+调试日志为故障排查提供了有价值的信息。以下是启用方法：
+
+**对于独立服务器 (`clipper-server`)：**
+
+在启动服务器前设置 `RUST_LOG` 环境变量：
+
+```bash
+RUST_LOG=clipper_server=debug,tower_http=debug cargo run --bin clipper-server
+```
+
+**对于桌面应用（GUI）：**
+
+编辑配置目录中的 `settings.json` 文件，添加：
+
+```json
+{
+  "debug_logging": true
+}
+```
+
+配置目录位置：
+- **macOS**: `~/Library/Application Support/codes.unwritten.clipper/settings.json`
+- **Windows**: `%APPDATA%\codes.unwritten.clipper\settings.json`
+- **Linux**: `~/.config/codes.unwritten.clipper/settings.json`
+
+然后重启应用。日志文件位置：
+- **macOS**: `~/Library/Logs/codes.unwritten.clipper/clipper.log`
+- **Windows**: `%LOCALAPPDATA%\codes.unwritten.clipper\logs\clipper.log`
+- **Linux**: `~/.local/share/codes.unwritten.clipper/logs/clipper.log`
+
+> **⚠️ 隐私警告**：调试日志可能包含你剪贴板历史中的敏感信息，包括密码、令牌和个人数据。**在提交错误报告前，请检查并删除日志中的任何敏感内容。**
+
 ## 贡献
 
 欢迎贡献！请随时提交 Pull Request。

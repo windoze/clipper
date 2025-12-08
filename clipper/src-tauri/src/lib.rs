@@ -11,12 +11,35 @@ mod websocket;
 
 use log::{error, info, warn};
 use server::{ServerManager, get_server_data_dir};
-use settings::{MainWindowGeometry, SettingsManager, get_app_config_dir};
+use settings::{MainWindowGeometry, SettingsManager, get_app_config_dir, SETTINGS_FILE_NAME};
 use state::AppState;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
 use tauri::{DragDropEvent, Emitter, Manager, RunEvent};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+
+/// Read the debug_logging setting from the settings file before the app is fully initialized.
+/// This is needed because the log plugin must be configured before the settings manager is available.
+fn read_debug_logging_setting() -> bool {
+    // Try to find the settings file in the standard config location
+    if let Some(config_dir) = dirs::config_dir() {
+        let settings_path = config_dir
+            .join("codes.unwritten.clipper")
+            .join(SETTINGS_FILE_NAME);
+        if settings_path.exists() {
+            if let Ok(contents) = std::fs::read_to_string(&settings_path) {
+                // Parse just the debug_logging field from the JSON
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&contents) {
+                    if let Some(debug_logging) = json.get("debug_logging").and_then(|v| v.as_bool())
+                    {
+                        return debug_logging;
+                    }
+                }
+            }
+        }
+    }
+    false // Default to false if setting not found
+}
 
 /// Payload for single-instance events
 #[derive(Clone, serde::Serialize)]
@@ -198,6 +221,30 @@ pub fn run() {
     // This is required for TLS certificate operations
     let _ = rustls::crypto::ring::default_provider().install_default();
 
+    // Read debug_logging setting early, before the app is fully initialized
+    let debug_logging_enabled = read_debug_logging_setting();
+
+    // Build log file target with appropriate filter based on debug_logging setting
+    let log_file_target = if debug_logging_enabled {
+        // Debug logging enabled: write all logs including DEBUG to file
+        tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+            file_name: Some("clipper".into()),
+        })
+    } else {
+        // Default: only INFO and above to file (no DEBUG logs)
+        tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+            file_name: Some("clipper".into()),
+        })
+        .filter(|metadata| metadata.level() <= log::Level::Info)
+    };
+
+    // Use larger log file size when debug logging is enabled (10MB vs 1MB)
+    let max_log_file_size = if debug_logging_enabled {
+        10_000_000 // 10MB when debug logging enabled
+    } else {
+        1_000_000 // 1MB default
+    };
+
     let app = tauri::Builder::default()
         // Log plugin should be registered early to capture all logs
         .plugin(
@@ -207,19 +254,16 @@ pub fn run() {
                 .targets([
                     // Stdout: show all logs including debug (for development)
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
-                    // Log file: only INFO and above (no debug logs)
-                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
-                        file_name: Some("clipper".into()),
-                    })
-                    .filter(|metadata| metadata.level() <= log::Level::Info),
+                    // Log file: filtered based on debug_logging setting
+                    log_file_target,
                     // Webview: show all logs for frontend debugging
                     tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
                 ])
                 // Allow debug logs globally (filtered per-target above)
                 .level(log::LevelFilter::Debug)
-                // Rotate logs when they reach 1MB, keep only one backup file
+                // Rotate logs: keep only one backup file
                 .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
-                .max_file_size(1_000_000) // 1MB per file
+                .max_file_size(max_log_file_size)
                 .build(),
         )
         // Single instance plugin must be registered FIRST (after log)
@@ -256,6 +300,9 @@ pub fn run() {
 
             // Initialize settings manager
             info!("Config directory: {}", config_dir.display());
+            if debug_logging_enabled {
+                info!("Debug logging to file enabled (set debug_logging: false in settings.json to disable)");
+            }
             let settings_manager = SettingsManager::new(config_dir);
 
             // Load settings synchronously during setup
