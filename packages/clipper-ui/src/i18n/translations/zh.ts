@@ -39,8 +39,12 @@ export const zh = {
 
   // Search & Filters
   "search.label": "搜索",
-  "search.placeholder": "搜索剪贴...",
+  "search.placeholder": "搜索剪贴... (# 标签, @ 主机)",
   "search.placeholderWithTags": "在筛选的标签中搜索...",
+  "search.loadingTags": "加载标签中...",
+  "search.noTagsFound": "未找到标签",
+  "search.tagPlaceholder": "标签名",
+  "search.hostPlaceholder": "主机名",
   "filter.from": "从：",
   "filter.to": "至：",
   "filter.startDate": "开始日期",

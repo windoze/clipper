@@ -9,10 +9,12 @@ import {
   useSyntaxTheme,
   useI18n,
   useToast,
+  useApi,
   SearchBox,
   DateFilter,
   FavoriteToggle,
   ClipList,
+  Tag,
 } from "@unwritten-codes/clipper-ui";
 import { TitleBar } from "./components/TitleBar";
 import { DropZone } from "./components/DropZone";
@@ -67,6 +69,7 @@ function App() {
   const { updateTheme } = useTheme();
   const { setSyntaxTheme } = useSyntaxTheme();
   const { showToast } = useToast();
+  const api = useApi();
 
   // Track window maximized state for Windows and Linux
   useEffect(() => {
@@ -335,6 +338,29 @@ function App() {
     }));
   }, [setFilters]);
 
+  // Tag search handlers for autocomplete
+  const handleSearchTags = useCallback(async (query: string): Promise<Tag[]> => {
+    if (!api.searchTags) return [];
+    try {
+      const result = await api.searchTags(query, 1, 20);
+      return result.items;
+    } catch (err) {
+      console.error("Failed to search tags:", err);
+      return [];
+    }
+  }, [api]);
+
+  const handleListTags = useCallback(async (): Promise<Tag[]> => {
+    if (!api.listTags) return [];
+    try {
+      const result = await api.listTags(1, 20);
+      return result.items;
+    } catch (err) {
+      console.error("Failed to list tags:", err);
+      return [];
+    }
+  }, [api]);
+
   // Date filter handlers for DateTag component
   const handleSetStartDate = useCallback((isoDate: string) => {
     setFilters((prev) => ({
@@ -452,6 +478,9 @@ function App() {
                 filterTags={filterTags}
                 onRemoveTag={handleRemoveTagFilter}
                 onClearAllTags={handleClearAllTags}
+                onAddTag={handleAddTagFilter}
+                onSearchTags={handleSearchTags}
+                onListTags={handleListTags}
               />
               <DateFilter filters={filters} onChange={setFilters} />
               <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
@@ -591,6 +620,9 @@ function App() {
                 filterTags={filterTags}
                 onRemoveTag={handleRemoveTagFilter}
                 onClearAllTags={handleClearAllTags}
+                onAddTag={handleAddTagFilter}
+                onSearchTags={handleSearchTags}
+                onListTags={handleListTags}
               />
               <DateFilter filters={filters} onChange={setFilters} />
               <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />

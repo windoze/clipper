@@ -39,8 +39,12 @@ export const en = {
 
   // Search & Filters
   "search.label": "Search",
-  "search.placeholder": "Search clips...",
+  "search.placeholder": "Search clips... (# tags, @ hosts)",
   "search.placeholderWithTags": "Search within filtered tags...",
+  "search.loadingTags": "Loading tags...",
+  "search.noTagsFound": "No tags found",
+  "search.tagPlaceholder": "tag name",
+  "search.hostPlaceholder": "host name",
   "filter.from": "From:",
   "filter.to": "To:",
   "filter.startDate": "Start date",

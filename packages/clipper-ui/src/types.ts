@@ -11,6 +11,20 @@ export interface Clip {
   highlighted_content?: string;
 }
 
+export interface Tag {
+  id: string;
+  text: string;
+  created_at: string;
+}
+
+export interface PagedTagResult {
+  items: Tag[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 export interface PagedResult {
   items: Clip[];
   total: number;

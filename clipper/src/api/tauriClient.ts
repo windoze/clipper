@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ClipperApi, Clip, PagedResult, SearchFilters } from "@unwritten-codes/clipper-ui";
+import type { ClipperApi, Clip, PagedResult, PagedTagResult, SearchFilters } from "@unwritten-codes/clipper-ui";
 
 /**
  * Create a Tauri API client that uses invoke commands
@@ -129,6 +129,71 @@ export function createTauriApiClient(): ClipperApi {
       }
       const result = await response.json();
       return result.full_url;
+    },
+
+    async listTags(page: number, pageSize: number): Promise<PagedTagResult> {
+      const serverUrl = await invoke<string>("get_server_url");
+      const settings = await invoke<{
+        useBundledServer?: boolean;
+        bundledServerToken?: string;
+        externalServerToken?: string;
+      }>("get_settings");
+
+      const token = settings.useBundledServer
+        ? settings.bundledServerToken
+        : settings.externalServerToken;
+
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("page_size", String(pageSize));
+
+      const response = await fetch(`${serverUrl}/tags?${params.toString()}`, {
+        headers,
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to list tags: ${response.status}`);
+      }
+      return response.json();
+    },
+
+    async searchTags(
+      query: string,
+      page: number,
+      pageSize: number
+    ): Promise<PagedTagResult> {
+      const serverUrl = await invoke<string>("get_server_url");
+      const settings = await invoke<{
+        useBundledServer?: boolean;
+        bundledServerToken?: string;
+        externalServerToken?: string;
+      }>("get_settings");
+
+      const token = settings.useBundledServer
+        ? settings.bundledServerToken
+        : settings.externalServerToken;
+
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const params = new URLSearchParams();
+      params.set("q", query);
+      params.set("page", String(page));
+      params.set("page_size", String(pageSize));
+
+      const response = await fetch(`${serverUrl}/tags/search?${params.toString()}`, {
+        headers,
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to search tags: ${response.status}`);
+      }
+      return response.json();
     },
   };
 }

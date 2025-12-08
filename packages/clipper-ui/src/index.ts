@@ -2,9 +2,11 @@
 export type {
   Clip,
   PagedResult,
+  PagedTagResult,
   SearchFilters,
   CleanupConfig,
   ServerConfig,
+  Tag,
 } from "./types";
 export { FAVORITE_TAG, isFavorite, calculateAgeRatio } from "./types";
 

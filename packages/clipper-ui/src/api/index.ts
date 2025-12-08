@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { Clip, PagedResult, SearchFilters } from "../types";
+import { Clip, PagedResult, PagedTagResult, SearchFilters } from "../types";
 
 /**
  * API client interface that abstracts the differences between
@@ -61,6 +61,12 @@ export interface ClipperApi {
    * @param expiresInHours - Optional expiration time in hours (0 = no expiration, undefined = server default)
    */
   shareClip?: (clipId: string, expiresInHours?: number) => Promise<string>;
+
+  /** List all tags with pagination */
+  listTags?: (page: number, pageSize: number) => Promise<PagedTagResult>;
+
+  /** Search tags by query string */
+  searchTags?: (query: string, page: number, pageSize: number) => Promise<PagedTagResult>;
 }
 
 // Context for the API client
@@ -352,6 +358,33 @@ export function createRestApiClient(
       });
       const result = await handleResponse<{ full_url: string }>(response);
       return result.full_url;
+    },
+
+    async listTags(page: number, pageSize: number): Promise<PagedTagResult> {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("page_size", String(pageSize));
+
+      const response = await fetch(`${baseUrl}/tags?${params.toString()}`, {
+        headers: getHeaders(),
+      });
+      return handleResponse<PagedTagResult>(response);
+    },
+
+    async searchTags(
+      query: string,
+      page: number,
+      pageSize: number
+    ): Promise<PagedTagResult> {
+      const params = new URLSearchParams();
+      params.set("q", query);
+      params.set("page", String(page));
+      params.set("page_size", String(pageSize));
+
+      const response = await fetch(`${baseUrl}/tags/search?${params.toString()}`, {
+        headers: getHeaders(),
+      });
+      return handleResponse<PagedTagResult>(response);
     },
   };
 }
