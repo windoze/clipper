@@ -190,6 +190,7 @@ pub struct SettingsManager {
     config_path: PathBuf,
 }
 
+#[allow(dead_code)]
 impl SettingsManager {
     /// Create a new settings manager with the given config directory
     pub fn new(config_dir: PathBuf) -> Self {
@@ -365,7 +366,10 @@ impl SettingsManager {
     }
 
     /// Save the main window geometry
-    pub async fn save_main_window_geometry(&self, geometry: MainWindowGeometry) -> Result<(), String> {
+    pub async fn save_main_window_geometry(
+        &self,
+        geometry: MainWindowGeometry,
+    ) -> Result<(), String> {
         {
             self.settings.write().unwrap().main_window_geometry = geometry;
         }

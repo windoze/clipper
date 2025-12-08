@@ -11,7 +11,7 @@ mod websocket;
 
 use log::{error, info, warn};
 use server::{ServerManager, get_server_data_dir};
-use settings::{MainWindowGeometry, SettingsManager, get_app_config_dir, SETTINGS_FILE_NAME};
+use settings::{MainWindowGeometry, SETTINGS_FILE_NAME, SettingsManager, get_app_config_dir};
 use state::AppState;
 #[cfg(target_os = "macos")]
 use tauri::ActivationPolicy;
@@ -26,16 +26,12 @@ fn read_debug_logging_setting() -> bool {
         let settings_path = config_dir
             .join("codes.unwritten.clipper")
             .join(SETTINGS_FILE_NAME);
-        if settings_path.exists() {
-            if let Ok(contents) = std::fs::read_to_string(&settings_path) {
-                // Parse just the debug_logging field from the JSON
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&contents) {
-                    if let Some(debug_logging) = json.get("debug_logging").and_then(|v| v.as_bool())
-                    {
-                        return debug_logging;
-                    }
-                }
-            }
+        if settings_path.exists()
+            && let Ok(contents) = std::fs::read_to_string(&settings_path)
+            && let Ok(json) = serde_json::from_str::<serde_json::Value>(&contents)
+            && let Some(debug_logging) = json.get("debug_logging").and_then(|v| v.as_bool())
+        {
+            return debug_logging;
         }
     }
     false // Default to false if setting not found
@@ -171,13 +167,17 @@ async fn check_certificate_on_startup(
                 let is_user_trusted = settings_manager.is_certificate_trusted(host, &fingerprint);
 
                 // CRITICAL: Check for fingerprint mismatch - potential MITM attack
-                let fingerprint_mismatch = stored_fingerprint.as_ref()
+                let fingerprint_mismatch = stored_fingerprint
+                    .as_ref()
                     .map(|stored| stored != &fingerprint)
                     .unwrap_or(false);
 
                 if fingerprint_mismatch {
                     // This is a critical security warning - fingerprint changed!
-                    warn!("CRITICAL: Certificate fingerprint mismatch on startup for {}!", host);
+                    warn!(
+                        "CRITICAL: Certificate fingerprint mismatch on startup for {}!",
+                        host
+                    );
                     let _ = app.emit(
                         "certificate-fingerprint-mismatch",
                         serde_json::json!({
