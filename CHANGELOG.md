@@ -4,14 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.19.2]
+
 ### Changed
 
-- Popup note editing - click notes indicator to edit notes in a popup
+- Popup note editing - click notes indicator to edit notes in a popup (ESC to cancel)
 - Inline tag management in clip list
   - Add tags directly with "+" button (Enter to save, ESC to cancel)
-  - Remove tags with "X" button on hover (with confirmation popup)
+  - Remove tags with "X" button on hover (confirmation popup with Enter/ESC support)
   - Tag autocomplete when adding new tags
 - Removed edit button and edit dialog from clip entry (replaced by inline editing)
+- Various UI/UX improvements for tag and note editing
+
+### Removed
+
+- Removed unused EditClipDialog component and related CSS/translations
 
 ## [0.19.1]
 
