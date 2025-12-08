@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import hljs from "highlight.js";
 import { Clip, Tag, isFavorite, calculateAgeRatio } from "../types";
 import { ImagePopup } from "./ImagePopup";
-import { EditClipDialog } from "./EditClipDialog";
 import { ShareDialog } from "./ShareDialog";
 import { LanguageSelector, LanguageId, LANGUAGES } from "./LanguageSelector";
 import { DateTag } from "./DateTag";
@@ -190,7 +189,6 @@ export function ClipEntry({
   const getHostTagDisplay = (tag: string) => tag.replace("$host:", "");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -301,15 +299,6 @@ export function ClipEntry({
   const handleImageClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowPopup(true);
-  };
-
-  const handleEditClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowEditDialog(true);
-  };
-
-  const handleClipSaved = (updatedClip: Clip) => {
-    onClipUpdated?.(updatedClip);
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -457,12 +446,21 @@ export function ClipEntry({
     return () => clearTimeout(timeoutId);
   }, [newTagValue, isAddingTag, onSearchTags, clip.tags]);
 
+  // Helper to get the scrollable container
+  const getScrollContainer = () => {
+    // The scrollable container is .app-main which has overflow-y: auto
+    return document.querySelector(".app-main") || document.scrollingElement || document.documentElement;
+  };
+
   const saveTag = async (tagText: string) => {
     const trimmedTag = tagText.trim();
     if (!trimmedTag || clip.tags.includes(trimmedTag)) {
       return false;
     }
     setSavingTag(true);
+    // Save scroll position before update
+    const scrollContainer = getScrollContainer();
+    const scrollTop = scrollContainer?.scrollTop || 0;
     try {
       const newTags = [...clip.tags, trimmedTag];
       const updatedClip = await api.updateClip(clip.id, newTags, clip.additional_notes || undefined);
@@ -472,6 +470,12 @@ export function ClipEntry({
       setNewTagValue("");
       setTagSuggestions([]);
       setShowTagSuggestions(false);
+      // Restore scroll position after state update
+      requestAnimationFrame(() => {
+        if (scrollContainer) {
+          scrollContainer.scrollTop = scrollTop;
+        }
+      });
       return true;
     } catch (err) {
       console.error("Failed to add tag:", err);
@@ -551,12 +555,21 @@ export function ClipEntry({
   const handleRemoveTagConfirm = async () => {
     if (!tagToRemove) return;
     setRemovingTag(true);
+    // Save scroll position before update
+    const scrollContainer = getScrollContainer();
+    const scrollTop = scrollContainer?.scrollTop || 0;
     try {
       const newTags = clip.tags.filter((t) => t !== tagToRemove);
       const updatedClip = await api.updateClip(clip.id, newTags, clip.additional_notes || undefined);
       onClipUpdated?.(updatedClip);
       showToast(t("toast.clipUpdated"));
       setTagToRemove(null);
+      // Restore scroll position after state update
+      requestAnimationFrame(() => {
+        if (scrollContainer) {
+          scrollContainer.scrollTop = scrollTop;
+        }
+      });
     } catch (err) {
       console.error("Failed to remove tag:", err);
       showToast(t("toast.updateFailed"), "error");
@@ -707,25 +720,6 @@ export function ClipEntry({
               </>
             )}
             <span className="clip-action-separator">|</span>
-            <button
-              className="edit-button"
-              onClick={handleEditClick}
-              title={t("clip.edit")}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-            </button>
             <button
               className={`favorite-button ${favorite ? "active" : ""}`}
               onClick={(e) => {
@@ -927,14 +921,6 @@ export function ClipEntry({
           onClose={() => setShowPopup(false)}
         />
       )}
-
-      <EditClipDialog
-        clip={clip}
-        isOpen={showEditDialog}
-        onClose={() => setShowEditDialog(false)}
-        onSave={handleClipSaved}
-        onSearchTags={onSearchTags}
-      />
 
       <ShareDialog
         clipId={clip.id}
