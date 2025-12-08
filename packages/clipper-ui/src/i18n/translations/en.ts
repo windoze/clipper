@@ -152,6 +152,7 @@ export const en = {
   "tooltip.copyImage": "Copy image to clipboard",
   "tooltip.sendClipboard": "Send clipboard content",
   "tooltip.viewNotes": "View notes",
+  "tooltip.addNotes": "Add notes",
 
   // File Drop
   "fileDrop.hint": "Drop files here to upload",

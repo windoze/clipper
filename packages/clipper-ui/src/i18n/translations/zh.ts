@@ -151,6 +151,7 @@ export const zh = {
   "tooltip.copyImage": "复制图片到剪贴板",
   "tooltip.sendClipboard": "发送剪贴板内容",
   "tooltip.viewNotes": "查看备注",
+  "tooltip.addNotes": "添加备注",
 
   // File Drop
   "fileDrop.hint": "拖拽文件到此处上传",

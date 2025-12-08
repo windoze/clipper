@@ -3393,7 +3393,7 @@
 
 .tooltip {
   position: absolute;
-  z-index: 1000;
+  z-index: 10000;
   padding: 10px 14px;
   background: #1f2937;
   color: #f9fafb;
@@ -3500,6 +3500,61 @@
   }
 }
 
+/* Portal-based tooltip (rendered at document.body) */
+.tooltip-portal {
+  position: fixed !important;
+  /* Use opacity-only animation to avoid transform conflicts with inline styles */
+  animation: tooltipPortalFadeIn 0.15s ease-out !important;
+}
+
+@keyframes tooltipPortalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tooltip-portal.tooltip-top,
+.tooltip-portal.tooltip-bottom,
+.tooltip-portal.tooltip-left,
+.tooltip-portal.tooltip-right {
+  /* Reset the absolute positioning rules - JS handles position via inline styles */
+  top: auto;
+  bottom: auto;
+  left: auto;
+  right: auto;
+}
+
+.tooltip-portal.tooltip-top .tooltip-arrow {
+  bottom: -4px;
+  left: 50%;
+  margin-left: -4px;
+  top: auto;
+}
+
+.tooltip-portal.tooltip-bottom .tooltip-arrow {
+  top: -4px;
+  left: 50%;
+  margin-left: -4px;
+  bottom: auto;
+}
+
+.tooltip-portal.tooltip-left .tooltip-arrow {
+  right: -4px;
+  top: 50%;
+  margin-top: -4px;
+  left: auto;
+}
+
+.tooltip-portal.tooltip-right .tooltip-arrow {
+  left: -4px;
+  top: 50%;
+  margin-top: -4px;
+  right: auto;
+}
+
 /* Notes Indicator Button */
 .notes-indicator {
   background: none;
@@ -3517,4 +3572,118 @@
 .notes-indicator:hover {
   color: #5a6fd6;
   background: rgba(102, 126, 234, 0.1);
+}
+
+.notes-indicator-empty {
+  color: #9ca3af;
+  opacity: 0.6;
+}
+
+.notes-indicator-empty:hover {
+  color: #667eea;
+  opacity: 1;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+/* ============================================
+   Notes Popup
+   ============================================ */
+.notes-popup-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.notes-popup-dialog {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+}
+
+/* Ensure popup stays within viewport horizontally */
+.notes-popup-dialog {
+  max-width: min(320px, calc(100vw - 32px));
+}
+
+.notes-popup-header {
+  margin-bottom: 16px;
+}
+
+.notes-popup-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.notes-popup-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 100px;
+  box-sizing: border-box;
+}
+
+.notes-popup-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.notes-popup-input::placeholder {
+  color: #9ca3af;
+}
+
+.notes-popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.notes-popup-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.notes-popup-btn.cancel {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.notes-popup-btn.cancel:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.notes-popup-btn.save {
+  background: #667eea;
+  border: 1px solid #667eea;
+  color: white;
+}
+
+.notes-popup-btn.save:hover:not(:disabled) {
+  background: #5a6fd6;
+  border-color: #5a6fd6;
+}
+
+.notes-popup-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import hljs from "highlight.js";
 import { Clip, Tag, isFavorite, calculateAgeRatio } from "../types";
 import { ImagePopup } from "./ImagePopup";
@@ -196,6 +196,11 @@ export function ClipEntry({
   const [deleting, setDeleting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(() => detectLanguage(clip.content));
+  const [showNotesPopup, setShowNotesPopup] = useState(false);
+  const [notesValue, setNotesValue] = useState(clip.additional_notes || "");
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [notesPopupPosition, setNotesPopupPosition] = useState<{ top: number; left: number; showBelow: boolean } | null>(null);
+  const notesButtonRef = useRef<HTMLButtonElement>(null);
 
   const isImage = clip.file_attachment && isImageFile(clip.file_attachment);
   const isLongContent = isLongContentByLines(clip.content);
@@ -348,6 +353,49 @@ export function ClipEntry({
     setShowShareDialog(true);
   };
 
+  const handleNotesClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNotesValue(clip.additional_notes || "");
+
+    // Calculate position based on button location
+    const button = notesButtonRef.current;
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      const popupHeight = 220; // Approximate height of popup
+      const spaceAbove = rect.top;
+      const showBelow = spaceAbove < popupHeight + 10; // Show below if not enough space above
+
+      setNotesPopupPosition({
+        top: showBelow ? rect.bottom + 8 : rect.top - 8,
+        left: rect.left + rect.width / 2,
+        showBelow,
+      });
+    }
+
+    setShowNotesPopup(true);
+  };
+
+  const handleNotesSave = async () => {
+    setSavingNotes(true);
+    try {
+      const updatedClip = await api.updateClip(clip.id, clip.tags, notesValue || undefined);
+      setShowNotesPopup(false);
+      onClipUpdated?.(updatedClip);
+      showToast(t("toast.clipUpdated"));
+    } catch (err) {
+      console.error("Failed to save notes:", err);
+      showToast(t("toast.updateFailed"), "error");
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
+  const handleNotesCancel = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowNotesPopup(false);
+    setNotesValue(clip.additional_notes || "");
+  };
+
   // Handle click on the clip entry itself - toggle expand/collapse for long content
   const handleEntryClick = () => {
     // Only toggle if content is long (not for images)
@@ -384,14 +432,12 @@ export function ClipEntry({
                 visible={true}
               />
             )}
-            {clip.additional_notes && (
-              <Tooltip content={clip.additional_notes} position="bottom" maxWidth={450}>
+            {clip.additional_notes ? (
+              <Tooltip content={clip.additional_notes} position="top" maxWidth={450}>
                 <button
+                  ref={notesButtonRef}
                   className="notes-indicator"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowEditDialog(true);
-                  }}
+                  onClick={handleNotesClick}
                   title={t("tooltip.viewNotes")}
                 >
                   <svg
@@ -412,6 +458,29 @@ export function ClipEntry({
                   </svg>
                 </button>
               </Tooltip>
+            ) : (
+              <button
+                ref={notesButtonRef}
+                className="notes-indicator notes-indicator-empty"
+                onClick={handleNotesClick}
+                title={t("tooltip.addNotes")}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="11" x2="12" y2="17"></line>
+                  <line x1="9" y1="14" x2="15" y2="14"></line>
+                </svg>
+              </button>
             )}
           </div>
           <div className="clip-actions">
@@ -655,6 +724,50 @@ export function ClipEntry({
                 disabled={deleting}
               >
                 {deleting ? t("common.deleting") : t("common.delete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showNotesPopup && notesPopupPosition && (
+        <div className="notes-popup-backdrop" onClick={handleNotesCancel}>
+          <div
+            className={`notes-popup-dialog ${notesPopupPosition.showBelow ? "notes-popup-below" : "notes-popup-above"}`}
+            style={{
+              position: "fixed",
+              top: notesPopupPosition.showBelow ? notesPopupPosition.top : "auto",
+              bottom: notesPopupPosition.showBelow ? "auto" : `calc(100vh - ${notesPopupPosition.top}px)`,
+              left: notesPopupPosition.left,
+              transform: "translateX(-50%)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="notes-popup-header">
+              <h3>{clip.additional_notes ? t("editClip.notes") : t("tooltip.addNotes")}</h3>
+            </div>
+            <textarea
+              className="notes-popup-input"
+              value={notesValue}
+              onChange={(e) => setNotesValue(e.target.value)}
+              placeholder={t("editClip.notes.placeholder")}
+              autoFocus
+              rows={4}
+            />
+            <div className="notes-popup-actions">
+              <button
+                className="notes-popup-btn cancel"
+                onClick={handleNotesCancel}
+                disabled={savingNotes}
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                className="notes-popup-btn save"
+                onClick={handleNotesSave}
+                disabled={savingNotes}
+              >
+                {savingNotes ? t("common.saving") : t("common.save")}
               </button>
             </div>
           </div>

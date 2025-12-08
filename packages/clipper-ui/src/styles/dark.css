@@ -1454,6 +1454,49 @@
     color: #b3c0fa;
     background: rgba(102, 126, 234, 0.2);
   }
+
+  :root:not([data-theme="light"]) .notes-indicator-empty {
+    color: #6b7280;
+  }
+
+  :root:not([data-theme="light"]) .notes-indicator-empty:hover {
+    color: #99aaf7;
+  }
+
+  /* Notes Popup - Dark Theme (implicit) */
+  :root:not([data-theme="light"]) .notes-popup-dialog {
+    background: #1f2937;
+    border: 1px solid #374151;
+  }
+
+  :root:not([data-theme="light"]) .notes-popup-header h3 {
+    color: #f3f4f6;
+  }
+
+  :root:not([data-theme="light"]) .notes-popup-input {
+    background: #111827;
+    border-color: #374151;
+    color: #f3f4f6;
+  }
+
+  :root:not([data-theme="light"]) .notes-popup-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  }
+
+  :root:not([data-theme="light"]) .notes-popup-input::placeholder {
+    color: #6b7280;
+  }
+
+  :root:not([data-theme="light"]) .notes-popup-btn.cancel {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f3f4f6;
+  }
+
+  :root:not([data-theme="light"]) .notes-popup-btn.cancel:hover:not(:disabled) {
+    background: #4b5563;
+  }
 }
 
 /* ============================================
@@ -1476,4 +1519,47 @@
 :root[data-theme="dark"] .notes-indicator:hover {
   color: #b3c0fa;
   background: rgba(102, 126, 234, 0.2);
+}
+
+:root[data-theme="dark"] .notes-indicator-empty {
+  color: #6b7280;
+}
+
+:root[data-theme="dark"] .notes-indicator-empty:hover {
+  color: #99aaf7;
+}
+
+/* Notes Popup - Dark Theme */
+:root[data-theme="dark"] .notes-popup-dialog {
+  background: #1f2937;
+  border: 1px solid #374151;
+}
+
+:root[data-theme="dark"] .notes-popup-header h3 {
+  color: #f3f4f6;
+}
+
+:root[data-theme="dark"] .notes-popup-input {
+  background: #111827;
+  border-color: #374151;
+  color: #f3f4f6;
+}
+
+:root[data-theme="dark"] .notes-popup-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+:root[data-theme="dark"] .notes-popup-input::placeholder {
+  color: #6b7280;
+}
+
+:root[data-theme="dark"] .notes-popup-btn.cancel {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f3f4f6;
+}
+
+:root[data-theme="dark"] .notes-popup-btn.cancel:hover:not(:disabled) {
+  background: #4b5563;
 }
