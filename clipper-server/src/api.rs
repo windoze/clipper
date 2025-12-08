@@ -8,7 +8,7 @@ use axum::{
 };
 use clipper_indexer::{
     ClipboardEntry, HighlightOptions, ImportResult, PagedResult, PagingParams, SearchFilters,
-    SearchResultItem, ShortUrl,
+    SearchResultItem, ShortUrl, Tag,
 };
 use serde::{Deserialize, Serialize};
 
@@ -26,6 +26,9 @@ pub fn routes() -> Router<AppState> {
         .route("/clips/{id}", put(update_clip))
         .route("/clips/{id}", delete(delete_clip))
         .route("/clips/{id}/file", get(get_clip_file))
+        // Tags endpoints
+        .route("/tags", get(list_tags))
+        .route("/tags/search", get(search_tags))
         // Short URL endpoints
         .route("/clips/{id}/short-url", post(create_short_url))
         .route("/short/{code}", get(get_short_url_redirect))
@@ -43,6 +46,8 @@ pub fn routes() -> Router<AppState> {
 pub struct VersionResponse {
     /// Server version string
     pub version: String,
+    /// Index schema version (indicates available features)
+    pub index_version: i64,
     /// Uptime in seconds
     pub uptime_secs: u64,
     /// Number of active WebSocket connections
@@ -149,8 +154,12 @@ async fn get_version(State(state): State<AppState>) -> Json<VersionResponse> {
         export_import_enabled: true, // Always enabled
     };
 
+    // Get index version, default to 0 if there's an error
+    let index_version = state.indexer.get_index_version().await.unwrap_or(0);
+
     Json(VersionResponse {
         version: env!("CARGO_PKG_VERSION").to_string(),
+        index_version,
         uptime_secs: state.uptime_secs(),
         active_ws_connections: state.active_ws_connections(),
         config: config_info,
@@ -560,6 +569,83 @@ async fn upload_clip_file(
     state.notify_new_clip(entry.id.clone(), entry.content.clone(), entry.tags.clone());
 
     Ok((StatusCode::CREATED, Json(entry.into())))
+}
+
+// ==================== Tags Endpoints ====================
+
+#[derive(Debug, Serialize)]
+struct TagResponse {
+    id: String,
+    text: String,
+    created_at: String,
+}
+
+impl From<Tag> for TagResponse {
+    fn from(tag: Tag) -> Self {
+        Self {
+            id: tag.id,
+            text: tag.text,
+            created_at: tag.created_at.to_rfc3339(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct PagedTagResponse {
+    items: Vec<TagResponse>,
+    total: usize,
+    page: usize,
+    page_size: usize,
+    total_pages: usize,
+}
+
+impl From<PagedResult<Tag>> for PagedTagResponse {
+    fn from(result: PagedResult<Tag>) -> Self {
+        Self {
+            items: result.items.into_iter().map(TagResponse::from).collect(),
+            total: result.total,
+            page: result.page,
+            page_size: result.page_size,
+            total_pages: result.total_pages,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct ListTagsQuery {
+    #[serde(default = "default_page")]
+    page: usize,
+    #[serde(default = "default_page_size")]
+    page_size: usize,
+}
+
+/// List all tags with pagination
+async fn list_tags(
+    State(state): State<AppState>,
+    Query(query): Query<ListTagsQuery>,
+) -> Result<Json<PagedTagResponse>> {
+    let paging = PagingParams::new(query.page, query.page_size);
+    let result = state.indexer.list_tags(paging).await?;
+    Ok(Json(result.into()))
+}
+
+#[derive(Debug, Deserialize)]
+struct SearchTagsQuery {
+    q: String,
+    #[serde(default = "default_page")]
+    page: usize,
+    #[serde(default = "default_page_size")]
+    page_size: usize,
+}
+
+/// Search tags using full-text search
+async fn search_tags(
+    State(state): State<AppState>,
+    Query(query): Query<SearchTagsQuery>,
+) -> Result<Json<PagedTagResponse>> {
+    let paging = PagingParams::new(query.page, query.page_size);
+    let result = state.indexer.search_tags(&query.q, paging).await?;
+    Ok(Json(result.into()))
 }
 
 // ==================== Short URL Endpoints ====================

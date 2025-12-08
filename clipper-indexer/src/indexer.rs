@@ -165,12 +165,10 @@ impl ClipperIndexer {
 
         if version < 2 {
             Self::migrate_to_v2(db).await?;
-            version = 2;
         }
 
-        if version != CURRENT_INDEX_VERSION {
-            Self::set_index_schema_version(db, CURRENT_INDEX_VERSION).await?;
-        }
+        // Always save the version after migrations complete
+        Self::set_index_schema_version(db, CURRENT_INDEX_VERSION).await?;
 
         Ok(())
     }
@@ -184,7 +182,7 @@ impl ClipperIndexer {
 
     async fn set_index_schema_version(db: &Surreal<Db>, version: i64) -> Result<()> {
         let _: Option<IndexSchemaVersion> = db
-            .update((CONFIG_TABLE, INDEX_VERSION_KEY))
+            .upsert((CONFIG_TABLE, INDEX_VERSION_KEY))
             .content(IndexSchemaVersion { version })
             .await?;
 
@@ -217,7 +215,7 @@ impl ClipperIndexer {
         let analyzer_query = format!(
             r#"
             REMOVE ANALYZER IF EXISTS {analyzer};
-            DEFINE ANALYZER {analyzer} TOKENIZERS blank,class,camel FILTERS lowercase,edgengram(1, 24);
+            DEFINE ANALYZER {analyzer} FILTERS lowercase,edgengram(1, 24);
             "#,
             analyzer = TAGS_ANALYZER_NAME
         );
@@ -317,6 +315,16 @@ impl ClipperIndexer {
         let mut hasher = DefaultHasher::new();
         tag.hash(&mut hasher);
         format!("tag_{:x}", hasher.finish())
+    }
+
+    /// Get the current index schema version.
+    ///
+    /// This version number indicates which features are available in the index:
+    /// - Version 0: Initial schema (no FTS)
+    /// - Version 1: Full-text search with ngram analyzer
+    /// - Version 2: Tags table with edgengram FTS
+    pub async fn get_index_version(&self) -> Result<i64> {
+        Self::get_index_schema_version(&self.db).await
     }
 
     pub async fn add_entry_from_text(
@@ -630,10 +638,7 @@ impl ClipperIndexer {
             ));
         }
 
-        let highlight_enabled = highlight
-            .as_ref()
-            .map(|h| h.is_enabled())
-            .unwrap_or(false);
+        let highlight_enabled = highlight.as_ref().map(|h| h.is_enabled()).unwrap_or(false);
 
         // Pre-tokenize search query for better Chinese search
         let tokenized_query = crate::models::tokenize(search_query);
@@ -1263,9 +1268,9 @@ impl ClipperIndexer {
         }
 
         // Pre-tokenize search query for better search
-        let tokenized_query = crate::models::tokenize(search_query);
+        // let tokenized_query = crate::models::tokenize(search_query);
 
-        let where_clause = format!("text @@ '{}'", tokenized_query);
+        let where_clause = format!("text @@ '{}'", search_query);
 
         // Get total count
         let count_query = format!(

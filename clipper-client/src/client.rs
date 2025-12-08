@@ -2,7 +2,8 @@ use crate::certificate::create_tls_config_with_trusted_certs;
 use crate::error::{ClientError, Result};
 use crate::models::{
     Clip, ClipNotification, CreateClipRequest, CreateShortUrlRequest, ImportResult, PagedResult,
-    SearchFilters, ServerInfo, ShortUrl, UpdateClipRequest, WsAuthRequest, WsAuthResponse,
+    PagedTagResult, SearchFilters, ServerInfo, ShortUrl, UpdateClipRequest, WsAuthRequest,
+    WsAuthResponse,
 };
 use futures_util::{SinkExt, StreamExt};
 use reqwest::StatusCode;
@@ -679,6 +680,75 @@ impl ClipperClient {
             .apply_auth(self.client.post(&url).multipart(form))
             .send()
             .await?;
+
+        self.handle_response(response).await
+    }
+
+    /// List all tags with pagination
+    ///
+    /// # Arguments
+    /// * `page` - Page number (starting from 1)
+    /// * `page_size` - Number of items per page
+    ///
+    /// # Example
+    /// ```no_run
+    /// use clipper_client::ClipperClient;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = ClipperClient::new("http://localhost:3000");
+    /// let result = client.list_tags(1, 20).await?;
+    /// for tag in result.items {
+    ///     println!("{}", tag.text);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn list_tags(&self, page: usize, page_size: usize) -> Result<PagedTagResult> {
+        let mut url = Url::parse(&format!("{}/tags", self.base_url))?;
+
+        url.query_pairs_mut().append_pair("page", &page.to_string());
+        url.query_pairs_mut()
+            .append_pair("page_size", &page_size.to_string());
+
+        let response = self.apply_auth(self.client.get(url)).send().await?;
+
+        self.handle_response(response).await
+    }
+
+    /// Search tags using full-text search
+    ///
+    /// # Arguments
+    /// * `query` - Search query string
+    /// * `page` - Page number (starting from 1)
+    /// * `page_size` - Number of items per page
+    ///
+    /// # Example
+    /// ```no_run
+    /// use clipper_client::ClipperClient;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = ClipperClient::new("http://localhost:3000");
+    /// let result = client.search_tags("rust", 1, 20).await?;
+    /// for tag in result.items {
+    ///     println!("{}", tag.text);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn search_tags(
+        &self,
+        query: &str,
+        page: usize,
+        page_size: usize,
+    ) -> Result<PagedTagResult> {
+        let mut url = Url::parse(&format!("{}/tags/search", self.base_url))?;
+
+        url.query_pairs_mut().append_pair("q", query);
+        url.query_pairs_mut().append_pair("page", &page.to_string());
+        url.query_pairs_mut()
+            .append_pair("page_size", &page_size.to_string());
+
+        let response = self.apply_auth(self.client.get(url)).send().await?;
 
         self.handle_response(response).await
     }

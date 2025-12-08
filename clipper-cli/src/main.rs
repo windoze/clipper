@@ -193,6 +193,26 @@ enum Commands {
         #[arg(short, long, default_value = "text")]
         format: String,
     },
+
+    /// Search tags
+    #[clap(alias = "st")]
+    SearchTag {
+        /// Search query (leave empty to list all tags)
+        #[arg(default_value = "")]
+        query: String,
+
+        /// Page number (starting from 1)
+        #[arg(short, long, default_value = "1")]
+        page: usize,
+
+        /// Number of items per page
+        #[arg(long, default_value = "100")]
+        page_size: usize,
+
+        /// Output format: json or text (tag names only)
+        #[arg(short = 'f', long, default_value = "text")]
+        format: String,
+    },
 }
 
 #[tokio::main]
@@ -550,6 +570,57 @@ async fn main() -> Result<()> {
                     eprintln!("  Imported: {} clips ({} with attachments)",
                         result.imported_count, result.attachments_imported);
                     eprintln!("  Skipped:  {} clips (duplicates)", result.skipped_count);
+                }
+                "json" => {
+                    println!("{}", serde_json::to_string_pretty(&result)?);
+                }
+                _ => {
+                    anyhow::bail!("Invalid format. Use 'json' or 'text'");
+                }
+            }
+        }
+
+        Commands::SearchTag {
+            query,
+            page,
+            page_size,
+            format,
+        } => {
+            // Check if server supports tag search (requires index_version >= 2)
+            let server_info = client
+                .get_server_info()
+                .await
+                .context("Failed to get server info")?;
+            // If index_version is absent (default 0 from serde), assume version 1 for older servers
+            let index_version = if server_info.index_version == 0 { 1 } else { server_info.index_version };
+            if index_version < 2 {
+                anyhow::bail!(
+                    "Server does not support tag search (requires index version 2+, server has version {})",
+                    index_version
+                );
+            }
+
+            let result = if query.is_empty() {
+                client
+                    .list_tags(page, page_size)
+                    .await
+                    .context("Failed to list tags")?
+            } else {
+                client
+                    .search_tags(&query, page, page_size)
+                    .await
+                    .context("Failed to search tags")?
+            };
+
+            match format.as_str() {
+                "text" => {
+                    for tag in &result.items {
+                        println!("{}", tag.text);
+                    }
+                    eprintln!(
+                        "Page {} of {} (Total: {} tags)",
+                        result.page, result.total_pages, result.total
+                    );
                 }
                 "json" => {
                     println!("{}", serde_json::to_string_pretty(&result)?);

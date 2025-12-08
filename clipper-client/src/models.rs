@@ -164,6 +164,9 @@ fn default_max_upload_size() -> u64 {
 pub struct ServerInfo {
     /// Server version string
     pub version: String,
+    /// Index schema version (indicates available features)
+    #[serde(default)]
+    pub index_version: i64,
     /// Uptime in seconds
     pub uptime_secs: u64,
     /// Number of active WebSocket connections
@@ -211,4 +214,25 @@ pub struct ImportResult {
     pub imported_ids: Vec<String>,
     /// IDs of skipped clips (duplicates)
     pub skipped_ids: Vec<String>,
+}
+
+/// A tag that has been used by clip entries
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Tag {
+    /// Tag record ID
+    pub id: String,
+    /// Tag text
+    pub text: String,
+    /// Creation timestamp (RFC3339)
+    pub created_at: String,
+}
+
+/// Paged result for tag queries
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PagedTagResult {
+    pub items: Vec<Tag>,
+    pub total: usize,
+    pub page: usize,
+    pub page_size: usize,
+    pub total_pages: usize,
 }
