@@ -289,6 +289,7 @@ pub async fn is_bundled_server(server_manager: State<'_, ServerManager>) -> Resu
 pub async fn clear_all_data(
     app: tauri::AppHandle,
     server_manager: State<'_, ServerManager>,
+    settings_manager: State<'_, SettingsManager>,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     use tauri::Emitter;
@@ -304,10 +305,13 @@ pub async fn clear_all_data(
     // 3. Restart the server
     let new_url = server_manager.start(&app).await?;
 
-    // 4. Update the client with the new URL
-    state.set_server_url(&new_url);
+    // 4. Get token for bundled server - always use if set (server requires it when configured)
+    let token = settings_manager.get_bundled_server_token();
 
-    // 5. Emit event to refresh the clip list in the main window
+    // 5. Update the client with the new URL and token
+    state.set_server_url_with_token(&new_url, token);
+
+    // 6. Emit event to refresh the clip list in the main window
     let _ = app.emit("data-cleared", ());
 
     log::info!(
