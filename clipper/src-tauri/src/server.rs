@@ -279,33 +279,34 @@ impl ServerManager {
             max_upload_size_mb
         );
 
-        // Build args list
-        let mut args = vec![
-            "--db-path".to_string(),
-            db_path_str,
-            "--storage-path".to_string(),
-            storage_path_str,
-            "--listen-addr".to_string(),
-            listen_addr.to_string(),
-            "--port".to_string(),
-            port.to_string(),
+        // Build environment variables for server configuration
+        // Using env vars instead of CLI args to avoid exposing sensitive data (like tokens) in process listings
+        let mut env_vars: Vec<(String, String)> = vec![
+            ("CLIPPER_DB_PATH".to_string(), db_path_str),
+            ("CLIPPER_STORAGE_PATH".to_string(), storage_path_str),
+            ("CLIPPER_LISTEN_ADDR".to_string(), listen_addr.to_string()),
+            ("PORT".to_string(), port.to_string()),
+            (
+                "CLIPPER_CLEANUP_ENABLED".to_string(),
+                cleanup_enabled.to_string(),
+            ),
+            (
+                "CLIPPER_CLEANUP_RETENTION_DAYS".to_string(),
+                cleanup_retention_days.to_string(),
+            ),
+            (
+                "CLIPPER_MAX_UPLOAD_SIZE_MB".to_string(),
+                max_upload_size_mb.to_string(),
+            ),
         ];
-
-        // Add cleanup args
-        args.push("--cleanup-enabled".to_string());
-        args.push(cleanup_enabled.to_string());
-        args.push("--cleanup-retention-days".to_string());
-        args.push(cleanup_retention_days.to_string());
-
-        // Add max upload size
-        args.push("--max-upload-size-mb".to_string());
-        args.push(max_upload_size_mb.to_string());
 
         // Add bearer token if external access is enabled and token is set
         if let Some(ref token) = bundled_server_token {
-            args.push("--bearer-token".to_string());
-            args.push(token.clone());
+            env_vars.push(("CLIPPER_BEARER_TOKEN".to_string(), token.clone()));
         }
+
+        // Only arg needed is the parent pipe handle (not sensitive)
+        let mut args: Vec<String> = vec![];
 
         // Create a pipe for parent process monitoring
         // The child will monitor the read-end; when parent exits, the pipe closes
@@ -338,6 +339,7 @@ impl ServerManager {
         let mut command = std::process::Command::new(&sidecar_path);
         command
             .args(&args)
+            .envs(env_vars.clone())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
@@ -356,6 +358,7 @@ impl ServerManager {
             command = std::process::Command::new(&sidecar_path);
             command
                 .args(&args)
+                .envs(env_vars.clone())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped());
 
@@ -402,6 +405,7 @@ impl ServerManager {
             command = std::process::Command::new(&sidecar_path);
             command
                 .args(&args)
+                .envs(env_vars.clone())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped());
             // CREATE_NO_WINDOW to avoid console window popup
