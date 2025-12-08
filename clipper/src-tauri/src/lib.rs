@@ -644,6 +644,7 @@ pub fn run() {
             commands::delete_clip,
             commands::get_clip,
             commands::copy_to_clipboard,
+            commands::copy_image_to_clipboard,
             commands::upload_file,
             commands::get_file_url,
             commands::download_file,

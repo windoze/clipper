@@ -135,6 +135,28 @@ pub fn copy_to_clipboard(state: State<'_, AppState>, content: String) -> Result<
     Ok(())
 }
 
+/// Copy an image from a clip to the clipboard.
+/// Downloads the image from the server and sets it to the system clipboard.
+#[tauri::command]
+pub async fn copy_image_to_clipboard(state: State<'_, AppState>, clip_id: String) -> Result<(), String> {
+    use crate::clipboard::set_clipboard_image;
+
+    // Download the image bytes from the server
+    let client = state.client();
+    let bytes = client
+        .download_file(&clip_id)
+        .await
+        .map_err(|e| format!("Failed to download image: {}", e))?;
+
+    // Mark the image as synced to prevent clipboard monitor from re-uploading it
+    state.set_last_synced_image(bytes.clone());
+
+    // Set the image to the system clipboard
+    set_clipboard_image(&bytes)?;
+
+    Ok(())
+}
+
 /// Upload a file to create a clip entry
 #[tauri::command]
 pub async fn upload_file(

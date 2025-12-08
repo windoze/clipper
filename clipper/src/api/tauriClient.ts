@@ -89,6 +89,10 @@ export function createTauriApiClient(): ClipperApi {
       await invoke("copy_to_clipboard", { content });
     },
 
+    async copyImageToClipboard(clipId: string): Promise<void> {
+      await invoke("copy_image_to_clipboard", { clipId });
+    },
+
     async downloadFile(clipId: string, filename: string): Promise<void> {
       await invoke("download_file", { clipId, filename });
     },

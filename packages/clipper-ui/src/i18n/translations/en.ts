@@ -149,6 +149,7 @@ export const en = {
   "tooltip.settings": "Settings",
   "tooltip.refresh": "Refresh",
   "tooltip.copy": "Copy to clipboard",
+  "tooltip.copyImage": "Copy image to clipboard",
   "tooltip.sendClipboard": "Send clipboard content",
   "tooltip.viewNotes": "View notes",
 
@@ -163,6 +164,7 @@ export const en = {
 
   // Toast Messages
   "toast.clipCopied": "Copied to clipboard",
+  "toast.imageCopied": "Image copied to clipboard",
   "toast.clipSaved": "Clip saved",
   "toast.clipDeleted": "Clip deleted",
   "toast.copyFailed": "Failed to copy to clipboard",

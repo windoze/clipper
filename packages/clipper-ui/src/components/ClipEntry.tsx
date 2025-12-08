@@ -265,13 +265,23 @@ export function ClipEntry({
   const handleCopyClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await api.copyToClipboard(clip.content);
-      showToast(t("toast.clipCopied"));
+      if (isImage && api.copyImageToClipboard) {
+        // Copy image to clipboard
+        await api.copyImageToClipboard(clip.id);
+        showToast(t("toast.imageCopied"));
+      } else {
+        // Copy text content
+        await api.copyToClipboard(clip.content);
+        showToast(t("toast.clipCopied"));
+      }
     } catch (err) {
       console.error("Failed to copy to clipboard:", err);
       showToast(t("toast.copyFailed"), "error");
     }
   };
+
+  // Check if image copy is supported (either via API method or browser Clipboard API)
+  const canCopyImage = isImage && (api.copyImageToClipboard || typeof ClipboardItem !== "undefined");
 
   const handleImageClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -405,11 +415,11 @@ export function ClipEntry({
             )}
           </div>
           <div className="clip-actions">
-            {!isImage && (
+            {(!isImage || canCopyImage) && (
               <button
                 className="copy-button"
                 onClick={handleCopyClick}
-                title={t("tooltip.copy")}
+                title={isImage ? t("tooltip.copyImage") : t("tooltip.copy")}
               >
                 <svg
                   width="14"

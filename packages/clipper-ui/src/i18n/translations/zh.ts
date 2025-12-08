@@ -148,6 +148,7 @@ export const zh = {
   "tooltip.settings": "设置",
   "tooltip.refresh": "刷新",
   "tooltip.copy": "复制到剪贴板",
+  "tooltip.copyImage": "复制图片到剪贴板",
   "tooltip.sendClipboard": "发送剪贴板内容",
   "tooltip.viewNotes": "查看备注",
 
@@ -162,6 +163,7 @@ export const zh = {
 
   // Toast Messages
   "toast.clipCopied": "已复制到剪贴板",
+  "toast.imageCopied": "图片已复制到剪贴板",
   "toast.clipSaved": "剪贴已保存",
   "toast.clipDeleted": "剪贴已删除",
   "toast.copyFailed": "复制到剪贴板失败",

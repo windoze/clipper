@@ -211,17 +211,47 @@ function App({ authToken }: AppProps) {
     }
   }, [api, showToast, t, refetch]);
 
-  // Send clipboard content to server
+  // Send clipboard content to server (text or image)
   const handleSendClipboard = useCallback(async () => {
     try {
-      const text = await navigator.clipboard.readText();
-      if (!text || text.trim() === "") {
-        showToast(t("toast.clipboardEmpty"), "info");
+      // First try to read text
+      let text = "";
+      try {
+        text = await navigator.clipboard.readText();
+      } catch {
+        // Text read failed, might be an image-only clipboard
+      }
+
+      if (text && text.trim() !== "") {
+        // Send text content
+        await api.createClip(text);
+        showToast(t("toast.clipboardSent"), "success");
+        refetch();
         return;
       }
-      await api.createClip(text);
-      showToast(t("toast.clipboardSent"), "success");
-      refetch();
+
+      // Try to read image from clipboard
+      try {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          // Look for image types
+          const imageType = item.types.find(type => type.startsWith("image/"));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            // Convert blob to File for upload
+            const file = new File([blob], `clipboard-image.${imageType.split("/")[1] || "png"}`, { type: imageType });
+            await api.uploadFile(file);
+            showToast(t("toast.clipboardSent"), "success");
+            refetch();
+            return;
+          }
+        }
+      } catch {
+        // Clipboard read failed or no image found
+      }
+
+      // Neither text nor image found
+      showToast(t("toast.clipboardEmpty"), "info");
     } catch (err) {
       console.error("Failed to read clipboard:", err);
       showToast(t("toast.clipboardReadFailed"), "error");

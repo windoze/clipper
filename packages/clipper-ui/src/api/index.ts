@@ -2,6 +2,36 @@ import { createContext, useContext } from "react";
 import { Clip, PagedResult, PagedTagResult, SearchFilters } from "../types";
 
 /**
+ * Convert an image blob to PNG format using canvas.
+ * This is needed because the clipboard API typically only supports PNG.
+ */
+async function convertToPng(blob: Blob): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Failed to get canvas context"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((pngBlob) => {
+        if (pngBlob) {
+          resolve(pngBlob);
+        } else {
+          reject(new Error("Failed to convert image to PNG"));
+        }
+      }, "image/png");
+    };
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = URL.createObjectURL(blob);
+  });
+}
+
+/**
  * API client interface that abstracts the differences between
  * REST API (web) and Tauri invoke commands (desktop).
  */
@@ -52,6 +82,9 @@ export interface ClipperApi {
 
   /** Copy content to clipboard */
   copyToClipboard(content: string): Promise<void>;
+
+  /** Copy an image to clipboard by clip ID (optional, for desktop apps that can write images to clipboard) */
+  copyImageToClipboard?: (clipId: string) => Promise<void>;
 
   /** Download a file attachment */
   downloadFile(clipId: string, filename: string): Promise<void>;
@@ -311,6 +344,32 @@ export function createRestApiClient(
 
     async copyToClipboard(content: string): Promise<void> {
       await navigator.clipboard.writeText(content);
+    },
+
+    async copyImageToClipboard(clipId: string): Promise<void> {
+      // Fetch the image with authentication
+      const response = await fetch(`${baseUrl}/clips/${clipId}/file`, {
+        headers: getHeaders(),
+      });
+      if (response.status === 401) {
+        options.onAuthError?.();
+        throw new Error("Unauthorized");
+      }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+
+      // Convert to PNG if needed (clipboard API prefers PNG)
+      // Most browsers only support image/png for clipboard write
+      const pngBlob = blob.type === "image/png"
+        ? blob
+        : await convertToPng(blob);
+
+      // Write to clipboard
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": pngBlob }),
+      ]);
     },
 
     async downloadFile(clipId: string, filename: string): Promise<void> {
