@@ -417,6 +417,22 @@
   color: #34d399;
 }
 
+/* Dark theme for tag editor dropdown */
+[data-theme="dark"] .tag-editor-dropdown {
+  background: #1e1e1e;
+  border-color: #3a3a3a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .tag-editor-dropdown-item:hover,
+[data-theme="dark"] .tag-editor-dropdown-item.selected {
+  background-color: #2a2a2a;
+}
+
+[data-theme="dark"] .tag-editor-dropdown-item-hash {
+  color: #818cf8;
+}
+
 /* ============================================
    Date Filter
    ============================================ */
@@ -2538,12 +2554,51 @@
   margin-top: 6px;
 }
 
+.tag-editor-wrapper {
+  position: relative;
+}
+
 .tag-editor {
   border: 1px solid #dee2e6;
   border-radius: 6px;
   padding: 8px;
   min-height: 44px;
   background: #ffffff;
+}
+
+.tag-editor-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.tag-editor-dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color 0.15s;
+}
+
+.tag-editor-dropdown-item:hover,
+.tag-editor-dropdown-item.selected {
+  background-color: #f3f4f6;
+}
+
+.tag-editor-dropdown-item-hash {
+  color: #667eea;
+  font-weight: 600;
 }
 
 .tag-list {

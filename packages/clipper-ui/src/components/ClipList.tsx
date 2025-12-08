@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { Clip } from "../types";
+import { Clip, Tag } from "../types";
 import { ClipEntry } from "./ClipEntry";
 import { ConnectionError } from "./ConnectionError";
 import { useI18n } from "../i18n";
@@ -21,6 +21,8 @@ interface ClipListProps {
   onOpenSettings?: () => void;
   showBundledServerReason?: boolean;
   onOpenUrl?: (url: string) => void;
+  /** Function to search tags for autocomplete in edit dialog */
+  onSearchTags?: (query: string) => Promise<Tag[]>;
 }
 
 // Helper to detect connection errors vs other errors
@@ -65,6 +67,7 @@ export function ClipList({
   onOpenSettings,
   showBundledServerReason = false,
   onOpenUrl,
+  onSearchTags,
 }: ClipListProps) {
   const { t } = useI18n();
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -169,6 +172,7 @@ export function ClipList({
           onTagClick={onTagClick}
           onSetStartDate={onSetStartDate}
           onSetEndDate={onSetEndDate}
+          onSearchTags={onSearchTags}
         />
       ))}
 

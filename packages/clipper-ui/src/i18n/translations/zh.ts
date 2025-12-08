@@ -40,6 +40,7 @@ export const zh = {
   // Search & Filters
   "search.label": "搜索",
   "search.placeholder": "搜索剪贴... (# 标签, @ 主机)",
+  "search.placeholderNoTagSearch": "搜索剪贴...",
   "search.placeholderWithTags": "在筛选的标签中搜索...",
   "search.loadingTags": "加载标签中...",
   "search.noTagsFound": "未找到标签",

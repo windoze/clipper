@@ -6,6 +6,7 @@ import {
   useI18n,
   useToast,
   useApi,
+  useServerConfig,
   SearchBox,
   DateFilter,
   FavoriteToggle,
@@ -47,6 +48,10 @@ function App({ authToken }: AppProps) {
   const { syntaxTheme, setSyntaxTheme } = useSyntaxTheme();
   const { showToast } = useToast();
   const api = useApi();
+  const serverConfig = useServerConfig();
+
+  // Tag search requires index version >= 2
+  const tagSearchSupported = (serverConfig?.indexVersion ?? 0) >= 2;
 
   // Track if we've shown the connected toast (only show once per session)
   const hasShownConnectedToast = useRef(false);
@@ -411,8 +416,8 @@ function App({ authToken }: AppProps) {
           onRemoveTag={handleRemoveTagFilter}
           onClearAllTags={handleClearAllTags}
           onAddTag={handleAddTagFilter}
-          onSearchTags={handleSearchTags}
-          onListTags={handleListTags}
+          onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
+          onListTags={tagSearchSupported ? handleListTags : undefined}
         />
         <DateFilter filters={filters} onChange={setFilters} />
         <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
@@ -433,6 +438,7 @@ function App({ authToken }: AppProps) {
           onSetStartDate={handleSetStartDate}
           onSetEndDate={handleSetEndDate}
           onOpenUrl={(url) => window.open(url, "_blank", "noopener,noreferrer")}
+          onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
         />
       </main>
 

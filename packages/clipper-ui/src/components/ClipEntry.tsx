@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import hljs from "highlight.js";
-import { Clip, isFavorite, calculateAgeRatio } from "../types";
+import { Clip, Tag, isFavorite, calculateAgeRatio } from "../types";
 import { ImagePopup } from "./ImagePopup";
 import { EditClipDialog } from "./EditClipDialog";
 import { ShareDialog } from "./ShareDialog";
@@ -21,6 +21,8 @@ interface ClipEntryProps {
   onTagClick?: (tag: string) => void;
   onSetStartDate?: (isoDate: string) => void;
   onSetEndDate?: (isoDate: string) => void;
+  /** Function to search tags for autocomplete in edit dialog */
+  onSearchTags?: (query: string) => Promise<Tag[]>;
 }
 
 // Image file extensions
@@ -156,6 +158,7 @@ export function ClipEntry({
   onTagClick,
   onSetStartDate,
   onSetEndDate,
+  onSearchTags,
 }: ClipEntryProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
@@ -611,6 +614,7 @@ export function ClipEntry({
         isOpen={showEditDialog}
         onClose={() => setShowEditDialog(false)}
         onSave={handleClipSaved}
+        onSearchTags={onSearchTags}
       />
 
       <ShareDialog

@@ -58,6 +58,9 @@ export function SearchBox({
   const isTagInputModeActive = tagInputMode !== null;
   const isHostInputMode = tagInputMode === "host";
 
+  // Tag search is only available if both callbacks are provided
+  const tagSearchEnabled = Boolean(onSearchTags && onListTags);
+
   // Debounce the search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -182,33 +185,48 @@ export function SearchBox({
     onClearAllTags?.();
   };
 
-  // Handle search input changes - detect # or @ to enter tag mode
+  // Handle search input changes - detect # or @ to enter tag mode (only if tag search is enabled)
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    const lastChar = newValue[newValue.length - 1];
-    const secondLastChar = newValue[newValue.length - 2];
-    const isAtEndOrAfterSpace = newValue.length === 1 || secondLastChar === " ";
 
-    // Check if user just typed # at the end (or after a space) - enter regular tag mode
-    if (lastChar === "#" && isAtEndOrAfterSpace) {
-      setSearchText(newValue.slice(0, -1).trim());
-      setTagInputMode("tag");
-      setTagQuery("");
+    // Only process tag triggers if tag search is enabled
+    if (tagSearchEnabled) {
+      const lastChar = newValue[newValue.length - 1];
+      const secondLastChar = newValue[newValue.length - 2];
+      const isAtEndOrAfterSpace = newValue.length === 1 || secondLastChar === " ";
+
+      // Check if user just typed # at the end (or after a space) - enter regular tag mode
+      if (lastChar === "#" && isAtEndOrAfterSpace) {
+        setSearchText(newValue.slice(0, -1).trim());
+        setTagInputMode("tag");
+        setTagQuery("");
+        return;
+      }
+      // Check if user just typed @ at the end (or after a space) - enter host tag mode
+      if (lastChar === "@" && isAtEndOrAfterSpace) {
+        setSearchText(newValue.slice(0, -1).trim());
+        setTagInputMode("host");
+        setTagQuery("");
+        return;
+      }
     }
-    // Check if user just typed @ at the end (or after a space) - enter host tag mode
-    else if (lastChar === "@" && isAtEndOrAfterSpace) {
-      setSearchText(newValue.slice(0, -1).trim());
-      setTagInputMode("host");
-      setTagQuery("");
-    } else {
-      setSearchText(newValue);
-    }
+
+    setSearchText(newValue);
   };
 
   const handleSearchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       e.preventDefault();
       handleClearAll();
+    } else if (e.key === "Backspace") {
+      // Remove last filter tag when backspace is pressed at the beginning of input
+      const input = e.currentTarget;
+      const cursorAtStart = input.selectionStart === 0 && input.selectionEnd === 0;
+      if (cursorAtStart && filterTags.length > 0) {
+        e.preventDefault();
+        const lastTag = filterTags[filterTags.length - 1];
+        onRemoveTag?.(lastTag);
+      }
     }
   };
 
@@ -348,7 +366,9 @@ export function SearchBox({
             placeholder={
               filterTags.length > 0
                 ? t("search.placeholderWithTags")
-                : t("search.placeholder")
+                : tagSearchEnabled
+                  ? t("search.placeholder")
+                  : t("search.placeholderNoTagSearch")
             }
             value={searchText}
             onChange={handleSearchInputChange}

@@ -67,6 +67,8 @@ export interface ServerConfig {
   shortUrlBase?: string;
   /** Short URL expiration in hours (0 = no expiration) */
   shortUrlExpirationHours?: number;
+  /** Index version - tag search requires version >= 2 */
+  indexVersion?: number;
 }
 
 /**

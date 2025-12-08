@@ -10,6 +10,7 @@ import {
   useI18n,
   useToast,
   useApi,
+  useServerConfig,
   SearchBox,
   DateFilter,
   FavoriteToggle,
@@ -70,6 +71,10 @@ function App() {
   const { setSyntaxTheme } = useSyntaxTheme();
   const { showToast } = useToast();
   const api = useApi();
+  const serverConfig = useServerConfig();
+
+  // Tag search requires index version >= 2
+  const tagSearchSupported = (serverConfig?.indexVersion ?? 0) >= 2;
 
   // Track window maximized state for Windows and Linux
   useEffect(() => {
@@ -479,8 +484,8 @@ function App() {
                 onRemoveTag={handleRemoveTagFilter}
                 onClearAllTags={handleClearAllTags}
                 onAddTag={handleAddTagFilter}
-                onSearchTags={handleSearchTags}
-                onListTags={handleListTags}
+                onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
+                onListTags={tagSearchSupported ? handleListTags : undefined}
               />
               <DateFilter filters={filters} onChange={setFilters} />
               <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
@@ -621,8 +626,8 @@ function App() {
                 onRemoveTag={handleRemoveTagFilter}
                 onClearAllTags={handleClearAllTags}
                 onAddTag={handleAddTagFilter}
-                onSearchTags={handleSearchTags}
-                onListTags={handleListTags}
+                onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
+                onListTags={tagSearchSupported ? handleListTags : undefined}
               />
               <DateFilter filters={filters} onChange={setFilters} />
               <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
@@ -648,6 +653,7 @@ function App() {
             onOpenSettings={openSettings}
             showBundledServerReason={useBundledServer}
             onOpenUrl={openUrl}
+            onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
           />
         </main>
 

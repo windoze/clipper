@@ -7,6 +7,7 @@ interface VersionResponse {
   version: string;
   uptime_secs: number;
   active_ws_connections: number;
+  index_version: number;
   config: {
     port: number;
     tls_enabled: boolean;
@@ -44,10 +45,14 @@ export function useFetchServerConfig(): ServerConfig | null {
 
       const data: VersionResponse = await response.json();
 
+      // If index_version is 0 or absent (older servers), assume version 1
+      const indexVersion = data.index_version || 1;
+
       setServerConfig({
         shortUrlEnabled: data.config.short_url_enabled,
         shortUrlBase: data.config.short_url_base,
         shortUrlExpirationHours: data.config.short_url_expiration_hours,
+        indexVersion,
       });
     } catch (err) {
       console.warn("Failed to fetch server config:", err);

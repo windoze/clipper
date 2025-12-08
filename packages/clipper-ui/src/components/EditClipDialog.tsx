@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Clip } from "../types";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Clip, Tag } from "../types";
 import { useI18n } from "../i18n";
 import { useToast } from "./Toast";
 import { useApi } from "../api";
@@ -9,6 +9,8 @@ interface EditClipDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (updatedClip: Clip) => void;
+  /** Function to search tags by query (optional, enables tag autocomplete) */
+  onSearchTags?: (query: string) => Promise<Tag[]>;
 }
 
 export function EditClipDialog({
@@ -16,6 +18,7 @@ export function EditClipDialog({
   isOpen,
   onClose,
   onSave,
+  onSearchTags,
 }: EditClipDialogProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
@@ -30,7 +33,13 @@ export function EditClipDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Tag autocomplete state
+  const [tagSuggestions, setTagSuggestions] = useState<Tag[]>([]);
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [selectedTagIndex, setSelectedTagIndex] = useState(-1);
+
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const tagDropdownRef = useRef<HTMLDivElement>(null);
 
   // Reset state when clip changes or dialog opens
   useEffect(() => {
@@ -40,6 +49,9 @@ export function EditClipDialog({
       setNotes(clip.additional_notes || "");
       setTagInput("");
       setError(null);
+      setTagSuggestions([]);
+      setShowTagDropdown(false);
+      setSelectedTagIndex(-1);
     }
   }, [isOpen, clip]);
 
@@ -48,14 +60,73 @@ export function EditClipDialog({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !showTagDropdown) {
         onClose();
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showTagDropdown]);
+
+  // Fetch tag suggestions when input changes
+  useEffect(() => {
+    if (!onSearchTags || !tagInput.trim()) {
+      setTagSuggestions([]);
+      setShowTagDropdown(false);
+      return;
+    }
+
+    const fetchTags = async () => {
+      try {
+        const results = await onSearchTags(tagInput.trim());
+        // Filter out system tags and already-added tags
+        const filtered = results.filter(
+          (tag) => !tag.text.startsWith("$") && !tags.includes(tag.text)
+        );
+        setTagSuggestions(filtered);
+        setShowTagDropdown(filtered.length > 0);
+        setSelectedTagIndex(-1);
+      } catch (err) {
+        console.error("Failed to search tags:", err);
+        setTagSuggestions([]);
+        setShowTagDropdown(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchTags, 150);
+    return () => clearTimeout(debounceTimer);
+  }, [tagInput, onSearchTags, tags]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!showTagDropdown) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        tagDropdownRef.current &&
+        !tagDropdownRef.current.contains(target) &&
+        tagInputRef.current &&
+        !tagInputRef.current.contains(target)
+      ) {
+        setShowTagDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showTagDropdown]);
+
+  const handleSelectTagFromDropdown = useCallback((tagText: string) => {
+    if (!tags.includes(tagText) && !tagText.startsWith("$")) {
+      setTags((prev) => [...prev, tagText]);
+    }
+    setTagInput("");
+    setShowTagDropdown(false);
+    setSelectedTagIndex(-1);
+    tagInputRef.current?.focus();
+  }, [tags]);
 
   const handleAddTag = () => {
     const trimmedTag = tagInput.trim();
@@ -66,6 +137,8 @@ export function EditClipDialog({
     ) {
       setTags([...tags, trimmedTag]);
       setTagInput("");
+      setShowTagDropdown(false);
+      setSelectedTagIndex(-1);
       tagInputRef.current?.focus();
     }
   };
@@ -75,12 +148,66 @@ export function EditClipDialog({
   };
 
   const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    // Handle dropdown navigation when open
+    if (showTagDropdown && tagSuggestions.length > 0) {
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedTagIndex((prev) =>
+            prev < tagSuggestions.length - 1 ? prev + 1 : 0
+          );
+          return;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedTagIndex((prev) =>
+            prev > 0 ? prev - 1 : tagSuggestions.length - 1
+          );
+          return;
+        case "Enter":
+          e.preventDefault();
+          if (selectedTagIndex >= 0 && selectedTagIndex < tagSuggestions.length) {
+            handleSelectTagFromDropdown(tagSuggestions[selectedTagIndex].text);
+          } else {
+            handleAddTag();
+          }
+          return;
+        case "Tab":
+          if (selectedTagIndex >= 0 && selectedTagIndex < tagSuggestions.length) {
+            e.preventDefault();
+            handleSelectTagFromDropdown(tagSuggestions[selectedTagIndex].text);
+          }
+          return;
+        case "Escape":
+          e.preventDefault();
+          setShowTagDropdown(false);
+          setSelectedTagIndex(-1);
+          return;
+      }
+    }
+
+    // Handle Enter and comma to add tag
+    if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       handleAddTag();
     } else if (e.key === "Backspace" && tagInput === "" && tags.length > 0) {
       // Remove last tag when backspace is pressed on empty input
       setTags(tags.slice(0, -1));
+    }
+  };
+
+  const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // If user types comma, add the tag before the comma
+    if (value.endsWith(",")) {
+      const tagToAdd = value.slice(0, -1).trim();
+      if (tagToAdd && !tags.includes(tagToAdd) && !tagToAdd.startsWith("$")) {
+        setTags([...tags, tagToAdd]);
+        setTagInput("");
+        setShowTagDropdown(false);
+        setSelectedTagIndex(-1);
+      }
+    } else {
+      setTagInput(value);
     }
   };
 
@@ -126,32 +253,51 @@ export function EditClipDialog({
 
           <div className="edit-clip-field">
             <label>{t("editClip.tags")}</label>
-            <div className="tag-editor">
-              <div className="tag-list">
-                {tags.map((tag) => (
-                  <span key={tag} className="tag editable">
-                    {tag}
-                    <button
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag(tag)}
-                    >
-                      &times;
-                    </button>
-                  </span>
-                ))}
-                <input
-                  ref={tagInputRef}
-                  type="text"
-                  className="tag-input"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleTagInputKeyDown}
-                  placeholder={
-                    tags.length === 0 ? t("editClip.tags.placeholder") : ""
-                  }
-                />
+            <div className="tag-editor-wrapper">
+              <div className="tag-editor">
+                <div className="tag-list">
+                  {tags.map((tag) => (
+                    <span key={tag} className="tag editable">
+                      {tag}
+                      <button
+                        type="button"
+                        className="tag-remove"
+                        onClick={() => handleRemoveTag(tag)}
+                      >
+                        &times;
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    ref={tagInputRef}
+                    type="text"
+                    className="tag-input"
+                    value={tagInput}
+                    onChange={handleTagInputChange}
+                    onKeyDown={handleTagInputKeyDown}
+                    placeholder={
+                      tags.length === 0 ? t("editClip.tags.placeholder") : ""
+                    }
+                    autoComplete="off"
+                  />
+                </div>
               </div>
+              {/* Tag suggestions dropdown */}
+              {showTagDropdown && tagSuggestions.length > 0 && (
+                <div className="tag-editor-dropdown" ref={tagDropdownRef}>
+                  {tagSuggestions.map((tag, index) => (
+                    <div
+                      key={tag.id}
+                      className={`tag-editor-dropdown-item ${index === selectedTagIndex ? "selected" : ""}`}
+                      onClick={() => handleSelectTagFromDropdown(tag.text)}
+                      onMouseEnter={() => setSelectedTagIndex(index)}
+                    >
+                      <span className="tag-editor-dropdown-item-hash">#</span>
+                      {tag.text}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <p className="edit-clip-hint">{t("editClip.tags.hint")}</p>
           </div>

@@ -40,6 +40,7 @@ export const en = {
   // Search & Filters
   "search.label": "Search",
   "search.placeholder": "Search clips... (# tags, @ hosts)",
+  "search.placeholderNoTagSearch": "Search clips...",
   "search.placeholderWithTags": "Search within filtered tags...",
   "search.loadingTags": "Loading tags...",
   "search.noTagsFound": "No tags found",
