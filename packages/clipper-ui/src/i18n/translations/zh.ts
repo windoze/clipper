@@ -25,6 +25,14 @@ export const zh = {
   "clip.expand": "展开",
   "clip.collapse": "收起",
   "clip.selectLanguage": "选择语法高亮语言",
+  "clip.addTag": "添加标签",
+  "clip.addTag.placeholder": "新标签...",
+  "clip.removeTag": "移除标签",
+  "clip.removeTag_confirm": "从此剪贴移除标签 \"{tag}\"？",
+
+  // Common
+  "common.remove": "移除",
+  "common.removing": "移除中...",
 
   // Date Tag
   "dateTag.setStartDate": "从此日期开始筛选",
@@ -171,6 +179,7 @@ export const zh = {
   "toast.serverError": "服务器连接错误",
   "toast.newClip": "新剪贴已添加",
   "toast.clipUpdated": "剪贴已更新",
+  "toast.updateFailed": "更新剪贴失败",
   "toast.clipsCleanedUp": "已清理 {count} 条旧剪贴",
   "toast.wsConnected": "实时同步已连接",
   "toast.wsDisconnected": "实时同步已断开",

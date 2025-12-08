@@ -201,6 +201,16 @@ export function ClipEntry({
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesPopupPosition, setNotesPopupPosition] = useState<{ top: number; left: number; showBelow: boolean } | null>(null);
   const notesButtonRef = useRef<HTMLButtonElement>(null);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTagValue, setNewTagValue] = useState("");
+  const [savingTag, setSavingTag] = useState(false);
+  const addTagInputRef = useRef<HTMLInputElement>(null);
+  const [tagSuggestions, setTagSuggestions] = useState<Tag[]>([]);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const tagSuggestionsRef = useRef<HTMLDivElement>(null);
+  const [tagToRemove, setTagToRemove] = useState<string | null>(null);
+  const [removingTag, setRemovingTag] = useState(false);
 
   const isImage = clip.file_attachment && isImageFile(clip.file_attachment);
   const isLongContent = isLongContentByLines(clip.content);
@@ -394,6 +404,170 @@ export function ClipEntry({
     e.stopPropagation();
     setShowNotesPopup(false);
     setNotesValue(clip.additional_notes || "");
+  };
+
+  const handleAddTagClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsAddingTag(true);
+    setNewTagValue("");
+    setTagSuggestions([]);
+    setSelectedSuggestionIndex(-1);
+    setShowTagSuggestions(false);
+  };
+
+  // Focus the input when it becomes visible
+  useEffect(() => {
+    if (isAddingTag && addTagInputRef.current) {
+      addTagInputRef.current.focus();
+    }
+  }, [isAddingTag]);
+
+  // Fetch tag suggestions when input value changes
+  useEffect(() => {
+    if (!isAddingTag || !onSearchTags) {
+      setTagSuggestions([]);
+      setShowTagSuggestions(false);
+      return;
+    }
+
+    const query = newTagValue.trim();
+    if (query.length === 0) {
+      setTagSuggestions([]);
+      setShowTagSuggestions(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const results = await onSearchTags(query);
+        // Filter out system tags and tags already on this clip
+        const filtered = results.filter(
+          (tag) => !tag.text.startsWith("$") && !clip.tags.includes(tag.text)
+        );
+        setTagSuggestions(filtered);
+        setShowTagSuggestions(filtered.length > 0);
+        setSelectedSuggestionIndex(-1);
+      } catch (err) {
+        console.error("Failed to fetch tag suggestions:", err);
+        setTagSuggestions([]);
+        setShowTagSuggestions(false);
+      }
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
+  }, [newTagValue, isAddingTag, onSearchTags, clip.tags]);
+
+  const saveTag = async (tagText: string) => {
+    const trimmedTag = tagText.trim();
+    if (!trimmedTag || clip.tags.includes(trimmedTag)) {
+      return false;
+    }
+    setSavingTag(true);
+    try {
+      const newTags = [...clip.tags, trimmedTag];
+      const updatedClip = await api.updateClip(clip.id, newTags, clip.additional_notes || undefined);
+      onClipUpdated?.(updatedClip);
+      showToast(t("toast.clipUpdated"));
+      setIsAddingTag(false);
+      setNewTagValue("");
+      setTagSuggestions([]);
+      setShowTagSuggestions(false);
+      return true;
+    } catch (err) {
+      console.error("Failed to add tag:", err);
+      showToast(t("toast.updateFailed"), "error");
+      return false;
+    } finally {
+      setSavingTag(false);
+    }
+  };
+
+  const handleAddTagKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      setIsAddingTag(false);
+      setNewTagValue("");
+      setTagSuggestions([]);
+      setShowTagSuggestions(false);
+    } else if (e.key === "ArrowDown") {
+      if (showTagSuggestions && tagSuggestions.length > 0) {
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) =>
+          prev < tagSuggestions.length - 1 ? prev + 1 : prev
+        );
+      }
+    } else if (e.key === "ArrowUp") {
+      if (showTagSuggestions && tagSuggestions.length > 0) {
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+      }
+    } else if (e.key === "Enter") {
+      e.stopPropagation();
+      e.preventDefault();
+      // If a suggestion is selected, use it
+      if (selectedSuggestionIndex >= 0 && tagSuggestions[selectedSuggestionIndex]) {
+        await saveTag(tagSuggestions[selectedSuggestionIndex].text);
+      } else {
+        const trimmedTag = newTagValue.trim();
+        if (trimmedTag) {
+          await saveTag(trimmedTag);
+        } else {
+          // Empty input, just cancel
+          setIsAddingTag(false);
+          setNewTagValue("");
+          setTagSuggestions([]);
+          setShowTagSuggestions(false);
+        }
+      }
+    }
+  };
+
+  const handleSuggestionClick = async (e: React.MouseEvent, tagText: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    await saveTag(tagText);
+  };
+
+  const handleAddTagBlur = (e: React.FocusEvent) => {
+    // Don't close if clicking on a suggestion
+    if (tagSuggestionsRef.current?.contains(e.relatedTarget as Node)) {
+      return;
+    }
+    // Cancel if we lose focus without saving
+    if (!savingTag) {
+      setIsAddingTag(false);
+      setNewTagValue("");
+      setTagSuggestions([]);
+      setShowTagSuggestions(false);
+    }
+  };
+
+  const handleRemoveTagClick = (e: React.MouseEvent, tag: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setTagToRemove(tag);
+  };
+
+  const handleRemoveTagConfirm = async () => {
+    if (!tagToRemove) return;
+    setRemovingTag(true);
+    try {
+      const newTags = clip.tags.filter((t) => t !== tagToRemove);
+      const updatedClip = await api.updateClip(clip.id, newTags, clip.additional_notes || undefined);
+      onClipUpdated?.(updatedClip);
+      showToast(t("toast.clipUpdated"));
+      setTagToRemove(null);
+    } catch (err) {
+      console.error("Failed to remove tag:", err);
+      showToast(t("toast.updateFailed"), "error");
+    } finally {
+      setRemovingTag(false);
+    }
+  };
+
+  const handleRemoveTagCancel = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTagToRemove(null);
   };
 
   // Handle click on the clip entry itself - toggle expand/collapse for long content
@@ -596,11 +770,10 @@ export function ClipEntry({
           </div>
         )}
 
-        {displayTags.length > 0 && (
-          <div className="clip-tags">
-            {displayTags.map((tag) => (
+        <div className="clip-tags">
+          {displayTags.map((tag) => (
+            <div key={tag} className="tag-wrapper">
               <button
-                key={tag}
                 className={`tag tag-clickable ${isHostTag(tag) ? "tag-host" : ""}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -627,9 +800,76 @@ export function ClipEntry({
                 )}
                 {isHostTag(tag) ? getHostTagDisplay(tag) : tag}
               </button>
-            ))}
-          </div>
-        )}
+              {!isHostTag(tag) && (
+                <button
+                  className="tag-remove-btn"
+                  onClick={(e) => handleRemoveTagClick(e, tag)}
+                  title={t("clip.removeTag")}
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              )}
+            </div>
+          ))}
+          {isAddingTag ? (
+            <div className="tag-add-wrapper">
+              <input
+                ref={addTagInputRef}
+                type="text"
+                className="tag-add-input"
+                value={newTagValue}
+                onChange={(e) => setNewTagValue(e.target.value)}
+                onKeyDown={handleAddTagKeyDown}
+                onBlur={handleAddTagBlur}
+                onClick={(e) => e.stopPropagation()}
+                placeholder={t("clip.addTag.placeholder")}
+                disabled={savingTag}
+                autoCapitalize="off"
+                autoCorrect="off"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              {showTagSuggestions && tagSuggestions.length > 0 && (
+                <div
+                  ref={tagSuggestionsRef}
+                  className="tag-suggestions"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {tagSuggestions.map((tag, index) => (
+                    <button
+                      key={tag.id}
+                      className={`tag-suggestion-item ${index === selectedSuggestionIndex ? "selected" : ""}`}
+                      onMouseDown={(e) => handleSuggestionClick(e, tag.text)}
+                      onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                    >
+                      {tag.text}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              className="tag tag-add"
+              onClick={handleAddTagClick}
+              title={t("clip.addTag")}
+            >
+              +
+            </button>
+          )}
+        </div>
 
         {clip.file_attachment && !isImage && (
           <div className="clip-attachment">
@@ -768,6 +1008,33 @@ export function ClipEntry({
                 disabled={savingNotes}
               >
                 {savingNotes ? t("common.saving") : t("common.save")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tagToRemove && (
+        <div className="delete-confirm-backdrop" onClick={handleRemoveTagCancel}>
+          <div
+            className="delete-confirm-dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p>{t("clip.removeTag_confirm", { tag: tagToRemove })}</p>
+            <div className="delete-confirm-actions">
+              <button
+                className="delete-confirm-btn cancel"
+                onClick={handleRemoveTagCancel}
+                disabled={removingTag}
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                className="delete-confirm-btn confirm"
+                onClick={handleRemoveTagConfirm}
+                disabled={removingTag}
+              >
+                {removingTag ? t("common.removing") : t("common.remove")}
               </button>
             </div>
           </div>

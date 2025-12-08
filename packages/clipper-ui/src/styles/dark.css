@@ -272,6 +272,61 @@
   background: #7b93f5;
 }
 
+/* Add tag button - dark theme */
+:root[data-theme="dark"] .tag.tag-add {
+  background: #363636;
+  color: #adb5bd;
+  border-color: #4a4a4a;
+}
+
+:root[data-theme="dark"] .tag.tag-add:hover {
+  background: #404040;
+  color: #e9ecef;
+  border-color: #6c757d;
+}
+
+/* Add tag inline input - dark theme */
+:root[data-theme="dark"] .tag-add-input {
+  background: #2d2d2d;
+  color: #e9ecef;
+  border-color: #7b93f5;
+  box-shadow: 0 0 0 2px rgba(123, 147, 245, 0.15);
+}
+
+:root[data-theme="dark"] .tag-add-input:focus {
+  border-color: #7b93f5;
+  box-shadow: 0 0 0 2px rgba(123, 147, 245, 0.2);
+}
+
+:root[data-theme="dark"] .tag-add-input::placeholder {
+  color: #6c757d;
+}
+
+/* Tag suggestions dropdown - dark theme */
+:root[data-theme="dark"] .tag-suggestions {
+  background: #2d2d2d;
+  border-color: #404040;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .tag-suggestion-item {
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .tag-suggestion-item:hover,
+:root[data-theme="dark"] .tag-suggestion-item.selected {
+  background: #404040;
+}
+
+/* Tag remove button - dark theme */
+:root[data-theme="dark"] .tag-remove-btn {
+  background: #e53935;
+}
+
+:root[data-theme="dark"] .tag-remove-btn:hover {
+  background: #c62828;
+}
+
 /* ============================================
    Attachment & Buttons - Dark Theme
    ============================================ */
@@ -963,6 +1018,61 @@
   :root:not([data-theme="light"]) .tag.tag-host:hover {
     background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
     color: white !important;
+  }
+
+  /* Add tag button - auto dark mode */
+  :root:not([data-theme="light"]) .tag.tag-add {
+    background: #363636;
+    color: #adb5bd;
+    border-color: #4a4a4a;
+  }
+
+  :root:not([data-theme="light"]) .tag.tag-add:hover {
+    background: #404040;
+    color: #e9ecef;
+    border-color: #6c757d;
+  }
+
+  /* Add tag inline input - auto dark mode */
+  :root:not([data-theme="light"]) .tag-add-input {
+    background: #2d2d2d;
+    color: #e9ecef;
+    border-color: #7b93f5;
+    box-shadow: 0 0 0 2px rgba(123, 147, 245, 0.15);
+  }
+
+  :root:not([data-theme="light"]) .tag-add-input:focus {
+    border-color: #7b93f5;
+    box-shadow: 0 0 0 2px rgba(123, 147, 245, 0.2);
+  }
+
+  :root:not([data-theme="light"]) .tag-add-input::placeholder {
+    color: #6c757d;
+  }
+
+  /* Tag suggestions dropdown - auto dark mode */
+  :root:not([data-theme="light"]) .tag-suggestions {
+    background: #2d2d2d;
+    border-color: #404040;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  :root:not([data-theme="light"]) .tag-suggestion-item {
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .tag-suggestion-item:hover,
+  :root:not([data-theme="light"]) .tag-suggestion-item.selected {
+    background: #404040;
+  }
+
+  /* Tag remove button - auto dark mode */
+  :root:not([data-theme="light"]) .tag-remove-btn {
+    background: #e53935;
+  }
+
+  :root:not([data-theme="light"]) .tag-remove-btn:hover {
+    background: #c62828;
   }
 
   :root:not([data-theme="light"]) .clip-attachment {

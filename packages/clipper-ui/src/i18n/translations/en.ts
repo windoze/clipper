@@ -25,6 +25,14 @@ export const en = {
   "clip.expand": "Show more",
   "clip.collapse": "Show less",
   "clip.selectLanguage": "Select syntax highlighting language",
+  "clip.addTag": "Add tag",
+  "clip.addTag.placeholder": "New tag...",
+  "clip.removeTag": "Remove tag",
+  "clip.removeTag_confirm": "Remove tag \"{tag}\" from this clip?",
+
+  // Common
+  "common.remove": "Remove",
+  "common.removing": "Removing...",
 
   // Date Tag
   "dateTag.setStartDate": "Filter from this date",
@@ -172,6 +180,7 @@ export const en = {
   "toast.serverError": "Server connection error",
   "toast.newClip": "New clip added",
   "toast.clipUpdated": "Clip updated",
+  "toast.updateFailed": "Failed to update clip",
   "toast.clipsCleanedUp": "{count} old clips cleaned up",
   "toast.wsConnected": "Real-time sync connected",
   "toast.wsDisconnected": "Real-time sync disconnected",
