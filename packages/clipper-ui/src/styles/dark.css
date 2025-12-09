@@ -1409,6 +1409,17 @@
   :root:not([data-theme="light"]) .notes-popup-btn.cancel:hover:not(:disabled) {
     background: #4b5563;
   }
+
+  :root:not([data-theme="light"]) .notes-popup-btn.clear {
+    background: #450a0a;
+    border-color: #7f1d1d;
+    color: #fca5a5;
+  }
+
+  :root:not([data-theme="light"]) .notes-popup-btn.clear:hover:not(:disabled) {
+    background: #7f1d1d;
+    border-color: #991b1b;
+  }
 }
 
 /* ============================================
@@ -1474,4 +1485,15 @@
 
 :root[data-theme="dark"] .notes-popup-btn.cancel:hover:not(:disabled) {
   background: #4b5563;
+}
+
+:root[data-theme="dark"] .notes-popup-btn.clear {
+  background: #450a0a;
+  border-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+:root[data-theme="dark"] .notes-popup-btn.clear:hover:not(:disabled) {
+  background: #7f1d1d;
+  border-color: #991b1b;
 }

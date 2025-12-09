@@ -12,6 +12,8 @@ export const en = {
   "common.error": "Error",
   "common.saving": "Saving...",
   "common.deleting": "Deleting...",
+  "common.clear": "Clear",
+  "common.clearing": "Clearing...",
 
   // Clip Entry
   "clip.copy": "Click to copy",

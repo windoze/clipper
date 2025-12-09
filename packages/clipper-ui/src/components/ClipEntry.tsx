@@ -195,6 +195,9 @@ export function ClipEntry({
 
   // Get the display name for a host tag (remove the $host: prefix)
   const getHostTagDisplay = (tag: string) => tag.replace("$host:", "");
+
+  // Check if clip has meaningful notes (not empty or blank)
+  const hasNotes = clip.additional_notes?.trim();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -392,7 +395,11 @@ export function ClipEntry({
   const handleNotesSave = async () => {
     setSavingNotes(true);
     try {
-      const updatedClip = await api.updateClip(clip.id, clip.tags, notesValue || undefined);
+      const trimmedNotes = notesValue.trim();
+      // If existing note is cleared (trimmed to empty), send empty string to clear it
+      // Otherwise send trimmed value, or undefined if no change needed
+      const notesToSave = hasNotes && !trimmedNotes ? "" : (trimmedNotes || undefined);
+      const updatedClip = await api.updateClip(clip.id, clip.tags, notesToSave);
       setShowNotesPopup(false);
       onClipUpdated?.(updatedClip);
       showToast(t("toast.clipUpdated"));
@@ -408,6 +415,23 @@ export function ClipEntry({
     e.stopPropagation();
     setShowNotesPopup(false);
     setNotesValue(clip.additional_notes || "");
+  };
+
+  const handleNotesClear = async () => {
+    setSavingNotes(true);
+    try {
+      // Send empty string to clear notes (null means "don't change" in the API)
+      const updatedClip = await api.updateClip(clip.id, clip.tags, "");
+      setShowNotesPopup(false);
+      setNotesValue("");
+      onClipUpdated?.(updatedClip);
+      showToast(t("toast.clipUpdated"));
+    } catch (err) {
+      console.error("Failed to clear notes:", err);
+      showToast(t("toast.updateFailed"), "error");
+    } finally {
+      setSavingNotes(false);
+    }
   };
 
   // Handle keyboard events for notes popup
@@ -668,8 +692,8 @@ export function ClipEntry({
                 visible={true}
               />
             )}
-            {clip.additional_notes ? (
-              <Tooltip content={truncateNotesForTooltip(clip.additional_notes)} position="top" maxWidth={450}>
+            {hasNotes ? (
+              <Tooltip content={truncateNotesForTooltip(clip.additional_notes!)} position="top" maxWidth={450}>
                 <button
                   ref={notesButtonRef}
                   className="notes-indicator"
@@ -1019,7 +1043,7 @@ export function ClipEntry({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="notes-popup-header">
-              <h3>{clip.additional_notes ? t("editClip.notes") : t("tooltip.addNotes")}</h3>
+              <h3>{hasNotes ? t("editClip.notes") : t("tooltip.addNotes")}</h3>
             </div>
             <textarea
               className="notes-popup-input"
@@ -1037,6 +1061,15 @@ export function ClipEntry({
               >
                 {t("common.cancel")}
               </button>
+              {hasNotes && (
+                <button
+                  className="notes-popup-btn clear"
+                  onClick={handleNotesClear}
+                  disabled={savingNotes}
+                >
+                  {savingNotes ? t("common.clearing") : t("common.clear")}
+                </button>
+              )}
               <button
                 className="notes-popup-btn save"
                 onClick={handleNotesSave}

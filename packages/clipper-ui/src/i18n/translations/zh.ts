@@ -12,6 +12,8 @@ export const zh = {
   "common.error": "错误",
   "common.saving": "保存中...",
   "common.deleting": "删除中...",
+  "common.clear": "清空",
+  "common.clearing": "清空中...",
 
   // Clip Entry
   "clip.copy": "点击复制",
