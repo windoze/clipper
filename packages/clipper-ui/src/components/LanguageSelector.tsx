@@ -74,7 +74,7 @@ export function LanguageSelector({ value, onChange, visible }: LanguageSelectorP
   return (
     <div
       ref={dropdownRef}
-      className={`language-selector ${visible || isOpen ? "visible" : ""}`}
+      className={`language-selector ${visible || isOpen ? "visible" : ""} ${isOpen ? "open" : ""}`}
       onClick={(e) => e.stopPropagation()}
     >
       <button

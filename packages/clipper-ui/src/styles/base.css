@@ -877,6 +877,10 @@
   z-index: 10;
 }
 
+.language-selector.open {
+  z-index: 1000;
+}
+
 .language-selector-button {
   display: flex;
   align-items: center;
@@ -923,8 +927,9 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   max-height: 300px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   min-width: 140px;
-  z-index: 100;
+  z-index: 1000;
 }
 
 .language-selector-option {
