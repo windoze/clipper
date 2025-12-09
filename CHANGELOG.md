@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.19.4]
+
+### Added
+
+- Allow clearing notes from clips
+
+### Fixed
+
+- Use consistent placeholder in search box
+
+### Security
+
+- Always use token for bundled server to secure localhost access
+
 ## [0.19.3]
 
 ### Added
