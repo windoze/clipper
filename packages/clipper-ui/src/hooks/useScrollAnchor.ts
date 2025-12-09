@@ -92,12 +92,7 @@ export function useScrollAnchor() {
     const scrollContainer = getScrollContainer();
     const anchorElement = getClipElement(anchor.clipId);
 
-    console.log("[ScrollAnchor] restoreScroll called, anchor:", anchor);
-    console.log("[ScrollAnchor] scrollContainer:", scrollContainer?.className);
-    console.log("[ScrollAnchor] anchorElement:", anchorElement?.getAttribute("data-clip-id"));
-
     if (!scrollContainer || !anchorElement) {
-      console.log("[ScrollAnchor] Missing container or element, aborting");
       return;
     }
 
@@ -109,13 +104,8 @@ export function useScrollAnchor() {
     // Calculate how much we need to scroll to restore the original position
     const scrollDelta = currentOffset - anchor.offsetFromViewport;
 
-    console.log("[ScrollAnchor] currentOffset:", currentOffset, "originalOffset:", anchor.offsetFromViewport, "delta:", scrollDelta);
-    console.log("[ScrollAnchor] scrollTop before:", scrollContainer.scrollTop);
-
     // Apply the scroll adjustment
     scrollContainer.scrollTop += scrollDelta;
-
-    console.log("[ScrollAnchor] scrollTop after:", scrollContainer.scrollTop);
   }, []);
 
   /**

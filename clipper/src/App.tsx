@@ -83,9 +83,7 @@ function App() {
   // Called BEFORE any clip modification API call to register the clip ID
   // This ensures WebSocket event (which arrives before onClipUpdated/onClipDeleted) is skipped
   const handleBeforeClipModified = useCallback((clipId: string) => {
-    console.log("[BeforeModify] Registering clip:", clipId);
     recentlyModifiedClipIds.current.add(clipId);
-    console.log("[BeforeModify] Current set:", Array.from(recentlyModifiedClipIds.current));
     // Auto-cleanup after 5 seconds in case WebSocket event doesn't arrive
     setTimeout(() => {
       recentlyModifiedClipIds.current.delete(clipId);
@@ -94,13 +92,11 @@ function App() {
 
   // Wrap updateClipInList - no longer needs to register ID (done in handleBeforeClipModified)
   const handleClipUpdated = useCallback((updatedClip: Parameters<typeof updateClipInList>[0], onUpdated?: () => void) => {
-    console.log("[Action] Updating clip:", updatedClip.id);
     updateClipInList(updatedClip, onUpdated);
   }, [updateClipInList]);
 
   // Wrap deleteClipFromList - no longer needs to register ID (done in handleBeforeClipModified)
   const handleClipDeleted = useCallback((clipId: string, onDeleted?: () => void) => {
-    console.log("[Action] Deleting clip:", clipId);
     deleteClipFromList(clipId, onDeleted);
   }, [deleteClipFromList]);
 
@@ -280,27 +276,21 @@ function App() {
 
     const unlistenClipUpdated = listen<{ id: string }>("clip-updated", (event) => {
       const clipId = event.payload?.id;
-      console.log("[WS] clip-updated event:", clipId, "recentlyModified:", Array.from(recentlyModifiedClipIds.current));
       // Skip refetch if we just updated this clip ourselves (already updated locally)
       if (clipId && recentlyModifiedClipIds.current.has(clipId)) {
-        console.log("[WS] Skipping refetch for self-initiated update");
         recentlyModifiedClipIds.current.delete(clipId);
         return;
       }
-      console.log("[WS] Refetching due to external update");
       refetch();
     });
 
     const unlistenClipDeleted = listen<{ id: string }>("clip-deleted", (event) => {
       const clipId = event.payload?.id;
-      console.log("[WS] clip-deleted event:", clipId, "recentlyModified:", Array.from(recentlyModifiedClipIds.current));
       // Skip refetch if we just deleted this clip ourselves (already removed locally)
       if (clipId && recentlyModifiedClipIds.current.has(clipId)) {
-        console.log("[WS] Skipping refetch for self-initiated delete");
         recentlyModifiedClipIds.current.delete(clipId);
         return;
       }
-      console.log("[WS] Refetching due to external delete");
       refetch();
     });
 

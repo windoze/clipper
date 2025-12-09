@@ -81,10 +81,8 @@ export function ClipList({
 
   // Handle onBeforeClipModified: capture anchor AND call parent's onBeforeClipModified (to register clip ID)
   const handleBeforeClipModified = useCallback((clipId: string) => {
-    console.log("[ClipList] handleBeforeClipModified called with clipId:", clipId);
     // Capture anchor BEFORE any API call or state change
     const anchor = captureAnchor(clips, clipId);
-    console.log("[ClipList] Captured anchor:", anchor);
     // Store anchor for later use in delete/update handlers
     pendingAnchorRef.current = anchor;
     // Call parent's onBeforeClipModified to register the clip ID for WebSocket skip
@@ -93,36 +91,24 @@ export function ClipList({
 
   // Wrap onClipDeleted to handle scroll anchoring
   const handleClipDeleted = useCallback((clipId: string) => {
-    console.log("[ClipList] handleClipDeleted called with clipId:", clipId);
     // Use the anchor captured in handleBeforeClipModified
     const anchor = pendingAnchorRef.current;
     pendingAnchorRef.current = null;
-    console.log("[ClipList] Using pending anchor:", anchor);
 
     // Call the original delete callback with a restore callback
     // The restore callback will be called after state update completes
-    console.log("[ClipList] Calling onClipDeleted, exists:", !!onClipDeleted);
-    onClipDeleted?.(clipId, anchor ? () => {
-      console.log("[ClipList] Restore callback invoked");
-      restoreScroll(anchor);
-    } : undefined);
+    onClipDeleted?.(clipId, anchor ? () => restoreScroll(anchor) : undefined);
   }, [onClipDeleted, pendingAnchorRef, restoreScroll]);
 
   // Wrap onClipUpdated to handle scroll anchoring
   const handleClipUpdated = useCallback((updatedClip: Clip) => {
-    console.log("[ClipList] handleClipUpdated called with clipId:", updatedClip.id);
     // Use the anchor captured in handleBeforeClipModified
     const anchor = pendingAnchorRef.current;
     pendingAnchorRef.current = null;
-    console.log("[ClipList] Using pending anchor:", anchor);
 
     // Call the original update callback with a restore callback
     // The restore callback will be called after state update completes
-    console.log("[ClipList] Calling onClipUpdated, exists:", !!onClipUpdated);
-    onClipUpdated?.(updatedClip, anchor ? () => {
-      console.log("[ClipList] Restore callback invoked");
-      restoreScroll(anchor);
-    } : undefined);
+    onClipUpdated?.(updatedClip, anchor ? () => restoreScroll(anchor) : undefined);
   }, [onClipUpdated, pendingAnchorRef, restoreScroll]);
 
   // Use refs to track current values so the observer callback always has fresh values
