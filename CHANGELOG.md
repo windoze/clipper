@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.20.2]
+
+### Fixed
+
+- Keep scroll position after editing or deleting clips in Web UI
+
 ## [0.20.1]
 
 ### Added
