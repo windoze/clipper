@@ -1709,27 +1709,27 @@
 }
 
 /* Color variations for tags */
-.clip-tags .tag:nth-child(5n+1) {
+.clip-tags .tag:not(.tag-add):nth-child(5n+1) {
   background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
   box-shadow: 0 2px 4px rgba(20, 184, 166, 0.3);
 }
 
-.clip-tags .tag:nth-child(5n+2) {
+.clip-tags .tag:not(.tag-add):nth-child(5n+2) {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   box-shadow: 0 2px 4px rgba(245, 87, 108, 0.3);
 }
 
-.clip-tags .tag:nth-child(5n+3) {
+.clip-tags .tag:not(.tag-add):nth-child(5n+3) {
   background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
   box-shadow: 0 2px 4px rgba(8, 145, 178, 0.3);
 }
 
-.clip-tags .tag:nth-child(5n+4) {
+.clip-tags .tag:not(.tag-add):nth-child(5n+4) {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
 }
 
-.clip-tags .tag:nth-child(5n+5) {
+.clip-tags .tag:not(.tag-add):nth-child(5n+5) {
   background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
   box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);
 }
@@ -1768,9 +1768,9 @@
 
 /* Add tag button */
 .tag.tag-add {
-  background: #f8f9fa;
-  color: #868e96;
-  border: 1px solid #dee2e6;
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
   box-shadow: none;
   cursor: pointer;
   font-weight: 500;
@@ -1780,9 +1780,9 @@
 }
 
 .tag.tag-add:hover {
-  background: #e9ecef;
-  color: #495057;
-  border-color: #adb5bd;
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #9ca3af;
 }
 
 /* Add tag wrapper for positioning dropdown */
