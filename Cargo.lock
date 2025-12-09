@@ -1656,6 +1656,7 @@ dependencies = [
  "log",
  "os_pipe",
  "portpicker",
+ "rand 0.9.2",
  "reqwest",
  "rustls",
  "serde",
