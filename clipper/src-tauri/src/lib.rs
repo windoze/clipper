@@ -10,6 +10,7 @@ mod tray_i18n;
 mod websocket;
 
 use log::{error, info, warn};
+use rand::Rng;
 use server::{ServerManager, get_server_data_dir};
 use settings::{MainWindowGeometry, SETTINGS_FILE_NAME, SettingsManager, get_app_config_dir};
 use state::AppState;
@@ -35,6 +36,18 @@ fn read_debug_logging_setting() -> bool {
         }
     }
     false // Default to false if setting not found
+}
+
+/// Generate a secure random 16-character token for bundled server authentication
+fn generate_secure_token() -> String {
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*-_=+";
+    let mut rng = rand::rng();
+    (0..16)
+        .map(|_| {
+            let idx = rng.random_range(0..CHARS.len());
+            CHARS[idx] as char
+        })
+        .collect()
 }
 
 /// Payload for single-instance events
@@ -327,8 +340,21 @@ pub fn run() {
             // Start the bundled server if enabled, or use external server URL
             let app_handle_for_server = app.handle().clone();
             let (server_url, token) = if use_bundled {
-                // Get token for bundled server - always use if set (server requires it when configured)
-                let bundled_token = settings_manager.get_bundled_server_token();
+                // Generate a token for bundled server if one doesn't exist
+                // This ensures authentication is always available for the bundled server
+                let bundled_token = match settings_manager.get_bundled_server_token() {
+                    Some(token) => token,
+                    None => {
+                        let token = generate_secure_token();
+                        info!("Generated new token for bundled server");
+                        tauri::async_runtime::block_on(async {
+                            if let Err(e) = settings_manager.set_bundled_server_token(token.clone()).await {
+                                error!("Failed to save generated token: {}", e);
+                            }
+                        });
+                        token
+                    }
+                };
 
                 let url = tauri::async_runtime::block_on(async {
                     match server_manager.start(&app_handle_for_server).await {
@@ -346,7 +372,7 @@ pub fn run() {
                         }
                     }
                 });
-                (url, bundled_token)
+                (url, Some(bundled_token))
             } else {
                 let external_url = settings_manager.get().server_address.clone();
                 let external_token = settings_manager.get_external_server_token();

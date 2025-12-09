@@ -306,6 +306,15 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     setError(null);
     try {
       const loadedSettings = await invoke<Settings>("get_settings");
+
+      // Generate a token for bundled server if one doesn't exist
+      // This ensures the server always has authentication available
+      if (!loadedSettings.bundledServerToken) {
+        const token = generateToken();
+        loadedSettings.bundledServerToken = token;
+        await invoke("save_settings", { settings: loadedSettings });
+      }
+
       setSettings(loadedSettings);
       // Store the original server address to detect changes on close
       setOriginalServerAddress(loadedSettings.serverAddress);
@@ -664,16 +673,6 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     setTogglingNetworkAccess(true);
     setError(null);
     try {
-      // If enabling network access and token is empty, generate one first
-      if (listenOnAll && !settings.bundledServerToken) {
-        const token = generateToken();
-        const newSettings = { ...settings, bundledServerToken: token };
-        setSettings(newSettings);
-        await saveSettings(newSettings);
-        // Show the token after generating
-        setShowBundledToken(true);
-      }
-
       const newUrl = await invoke<string>("toggle_listen_on_all_interfaces", {
         listenOnAll,
       });

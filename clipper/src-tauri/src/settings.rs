@@ -295,6 +295,14 @@ impl SettingsManager {
         self.settings.read().unwrap().bundled_server_token.clone()
     }
 
+    /// Set and save the bundled server token
+    pub async fn set_bundled_server_token(&self, token: String) -> Result<(), String> {
+        {
+            self.settings.write().unwrap().bundled_server_token = Some(token);
+        }
+        self.save().await
+    }
+
     /// Get the external server token
     pub fn get_external_server_token(&self) -> Option<String> {
         self.settings.read().unwrap().external_server_token.clone()
