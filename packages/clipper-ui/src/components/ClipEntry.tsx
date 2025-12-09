@@ -88,6 +88,14 @@ function truncateContent(content: string): string {
   return getFirstNLines(content, MAX_CONTENT_LINES) + "\n...";
 }
 
+// Truncate notes for tooltip display (max 4 lines)
+const MAX_TOOLTIP_LINES = 4;
+function truncateNotesForTooltip(notes: string): string {
+  const lines = notes.split("\n");
+  if (lines.length <= MAX_TOOLTIP_LINES) return notes;
+  return lines.slice(0, MAX_TOOLTIP_LINES).join("\n") + "\n...";
+}
+
 // Truncate highlighted content by lines while ensuring at least one highlight is visible
 // Returns truncated content with "..." prefix/suffix as needed
 function truncateHighlightedContent(highlightedContent: string, plainContent: string): string {
@@ -361,11 +369,18 @@ export function ClipEntry({
     if (button) {
       const rect = button.getBoundingClientRect();
       const popupHeight = 220; // Approximate height of popup
+      const viewportHeight = window.innerHeight;
       const spaceAbove = rect.top;
-      const showBelow = spaceAbove < popupHeight + 10; // Show below if not enough space above
+      const spaceBelow = viewportHeight - rect.bottom;
+      const gap = 8; // Gap between button and popup
+
+      // Show below if not enough space above, or if there's significantly more space below
+      const showBelow = spaceAbove < popupHeight + gap || spaceBelow > spaceAbove;
 
       setNotesPopupPosition({
-        top: showBelow ? rect.bottom + 8 : rect.top - 8,
+        // When showing below: position top of popup at bottom of button + gap
+        // When showing above: position bottom of popup at top of button - gap
+        top: showBelow ? rect.bottom + gap : rect.top - gap,
         left: rect.left + rect.width / 2,
         showBelow,
       });
@@ -654,7 +669,7 @@ export function ClipEntry({
               />
             )}
             {clip.additional_notes ? (
-              <Tooltip content={clip.additional_notes} position="top" maxWidth={450}>
+              <Tooltip content={truncateNotesForTooltip(clip.additional_notes)} position="top" maxWidth={450}>
                 <button
                   ref={notesButtonRef}
                   className="notes-indicator"
