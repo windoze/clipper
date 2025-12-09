@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.20.1]
+
+### Added
+
+- `clipper-cli create` and `clipper-cli upload` commands now add the host tag to created clips
+- Added `--host` option to clipper-cli for specifying custom hostname in output
+
+### Fixed
+
+- Keep scroll position after editing or deleting clips in UI
+- Cleaned up unnecessary log output
+
 ## [0.20.0]
 
 ### Added
