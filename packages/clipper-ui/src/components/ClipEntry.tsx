@@ -17,6 +17,8 @@ interface ClipEntryProps {
   onToggleFavorite: (clip: Clip) => void;
   onClipUpdated?: (updatedClip: Clip) => void;
   onClipDeleted?: (clipId: string) => void;
+  /** Called before any clip modification (update/delete) to allow caller to prepare (e.g., capture scroll anchor, register clip ID) */
+  onBeforeClipModified?: (clipId: string) => void;
   onTagClick?: (tag: string) => void;
   onSetStartDate?: (isoDate: string) => void;
   onSetEndDate?: (isoDate: string) => void;
@@ -162,6 +164,7 @@ export function ClipEntry({
   onToggleFavorite,
   onClipUpdated,
   onClipDeleted,
+  onBeforeClipModified,
   onTagClick,
   onSetStartDate,
   onSetEndDate,
@@ -320,12 +323,18 @@ export function ClipEntry({
   const handleDeleteConfirm = async () => {
     setDeleting(true);
     try {
+      // Call onBeforeClipModified BEFORE the API call so the handler can:
+      // 1. Capture scroll anchor
+      // 2. Register the clip ID to skip WebSocket refetch
+      // The API call will trigger a WebSocket event, so we need to be ready
+      onBeforeClipModified?.(clip.id);
+      onClipDeleted?.(clip.id);
       await api.deleteClip(clip.id);
       setShowDeleteConfirm(false);
-      onClipDeleted?.(clip.id);
       showToast(t("toast.clipDeleted"));
     } catch (err) {
       console.error("Failed to delete clip:", err);
+      // TODO: Could add rollback logic here if delete fails
     } finally {
       setDeleting(false);
     }
@@ -395,6 +404,8 @@ export function ClipEntry({
   const handleNotesSave = async () => {
     setSavingNotes(true);
     try {
+      // Call onBeforeClipModified BEFORE the API call to prepare for WebSocket event
+      onBeforeClipModified?.(clip.id);
       const trimmedNotes = notesValue.trim();
       // If existing note is cleared (trimmed to empty), send empty string to clear it
       // Otherwise send trimmed value, or undefined if no change needed
@@ -420,6 +431,8 @@ export function ClipEntry({
   const handleNotesClear = async () => {
     setSavingNotes(true);
     try {
+      // Call onBeforeClipModified BEFORE the API call to prepare for WebSocket event
+      onBeforeClipModified?.(clip.id);
       // Send empty string to clear notes (null means "don't change" in the API)
       const updatedClip = await api.updateClip(clip.id, clip.tags, "");
       setShowNotesPopup(false);
@@ -501,22 +514,15 @@ export function ClipEntry({
     return () => clearTimeout(timeoutId);
   }, [newTagValue, isAddingTag, onSearchTags, clip.tags]);
 
-  // Helper to get the scrollable container
-  const getScrollContainer = () => {
-    // The scrollable container is .app-main which has overflow-y: auto
-    return document.querySelector(".app-main") || document.scrollingElement || document.documentElement;
-  };
-
   const saveTag = async (tagText: string) => {
     const trimmedTag = tagText.trim();
     if (!trimmedTag || clip.tags.includes(trimmedTag)) {
       return false;
     }
     setSavingTag(true);
-    // Save scroll position before update
-    const scrollContainer = getScrollContainer();
-    const scrollTop = scrollContainer?.scrollTop || 0;
     try {
+      // Call onBeforeClipModified BEFORE the API call to prepare for WebSocket event
+      onBeforeClipModified?.(clip.id);
       const newTags = [...clip.tags, trimmedTag];
       const updatedClip = await api.updateClip(clip.id, newTags, clip.additional_notes || undefined);
       onClipUpdated?.(updatedClip);
@@ -525,12 +531,6 @@ export function ClipEntry({
       setNewTagValue("");
       setTagSuggestions([]);
       setShowTagSuggestions(false);
-      // Restore scroll position after state update
-      requestAnimationFrame(() => {
-        if (scrollContainer) {
-          scrollContainer.scrollTop = scrollTop;
-        }
-      });
       return true;
     } catch (err) {
       console.error("Failed to add tag:", err);
@@ -610,21 +610,14 @@ export function ClipEntry({
   const handleRemoveTagConfirm = async () => {
     if (!tagToRemove) return;
     setRemovingTag(true);
-    // Save scroll position before update
-    const scrollContainer = getScrollContainer();
-    const scrollTop = scrollContainer?.scrollTop || 0;
     try {
+      // Call onBeforeClipModified BEFORE the API call to prepare for WebSocket event
+      onBeforeClipModified?.(clip.id);
       const newTags = clip.tags.filter((t) => t !== tagToRemove);
       const updatedClip = await api.updateClip(clip.id, newTags, clip.additional_notes || undefined);
       onClipUpdated?.(updatedClip);
       showToast(t("toast.clipUpdated"));
       setTagToRemove(null);
-      // Restore scroll position after state update
-      requestAnimationFrame(() => {
-        if (scrollContainer) {
-          scrollContainer.scrollTop = scrollTop;
-        }
-      });
     } catch (err) {
       console.error("Failed to remove tag:", err);
       showToast(t("toast.updateFailed"), "error");
@@ -677,6 +670,7 @@ export function ClipEntry({
         className={clipEntryClassName}
         style={ageStyle}
         onClick={handleEntryClick}
+        data-clip-id={clip.id}
       >
         <div className="clip-header">
           <div className="clip-header-left">

@@ -25,8 +25,8 @@ interface UseClipsReturn extends UseClipsState {
   refetch: () => void;
   loadMore: () => void;
   toggleFavorite: (clip: Clip) => Promise<void>;
-  updateClipInList: (updatedClip: Clip) => void;
-  deleteClipFromList: (clipId: string) => void;
+  updateClipInList: (updatedClip: Clip, onUpdated?: () => void) => void;
+  deleteClipFromList: (clipId: string, onDeleted?: () => void) => void;
 }
 
 const PAGE_SIZE = 20;
@@ -155,21 +155,39 @@ export function useClips(): UseClipsReturn {
     [api]
   );
 
-  const updateClipInList = useCallback((updatedClip: Clip) => {
+  const updateClipInList = useCallback((updatedClip: Clip, onUpdated?: () => void) => {
     setState((prev) => ({
       ...prev,
       clips: prev.clips.map((c) =>
         c.id === updatedClip.id ? updatedClip : c
       ),
     }));
+    // Schedule callback after React has committed the update
+    // Use setTimeout(0) followed by RAF to ensure DOM is ready across all webview implementations
+    if (onUpdated) {
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          onUpdated();
+        });
+      }, 0);
+    }
   }, []);
 
-  const deleteClipFromList = useCallback((clipId: string) => {
+  const deleteClipFromList = useCallback((clipId: string, onDeleted?: () => void) => {
     setState((prev) => ({
       ...prev,
       clips: prev.clips.filter((c) => c.id !== clipId),
       total: prev.total - 1,
     }));
+    // Schedule callback after React has committed the update
+    // Use setTimeout(0) followed by RAF to ensure DOM is ready across all webview implementations
+    if (onDeleted) {
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          onDeleted();
+        });
+      }, 0);
+    }
   }, []);
 
   // Fetch clips when filters change (reset to page 1)

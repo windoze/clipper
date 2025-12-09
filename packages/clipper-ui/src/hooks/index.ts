@@ -1,4 +1,6 @@
 export { useClips } from "./useClips";
+export { useScrollAnchor } from "./useScrollAnchor";
+export type { ScrollAnchor } from "./useScrollAnchor";
 export { useTheme } from "./useTheme";
 export type { Theme, ResolvedTheme } from "./useTheme";
 export { useCleanupConfig, CleanupConfigProvider } from "./useCleanupConfig";

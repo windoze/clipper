@@ -3,6 +3,7 @@ import { Clip, Tag } from "../types";
 import { ClipEntry } from "./ClipEntry";
 import { ConnectionError } from "./ConnectionError";
 import { useI18n } from "../i18n";
+import { useScrollAnchor } from "../hooks/useScrollAnchor";
 
 interface ClipListProps {
   clips: Clip[];
@@ -12,8 +13,10 @@ interface ClipListProps {
   hasMore: boolean;
   onToggleFavorite: (clip: Clip) => void;
   onLoadMore: () => void;
-  onClipUpdated?: (updatedClip: Clip) => void;
-  onClipDeleted?: (clipId: string) => void;
+  onClipUpdated?: (updatedClip: Clip, onUpdated?: () => void) => void;
+  onClipDeleted?: (clipId: string, onDeleted?: () => void) => void;
+  /** Called before any clip modification to register the clip ID (for skipping WebSocket refetch) */
+  onBeforeClipModified?: (clipId: string) => void;
   onTagClick?: (tag: string) => void;
   onSetStartDate?: (isoDate: string) => void;
   onSetEndDate?: (isoDate: string) => void;
@@ -60,6 +63,7 @@ export function ClipList({
   onLoadMore,
   onClipUpdated,
   onClipDeleted,
+  onBeforeClipModified,
   onTagClick,
   onSetStartDate,
   onSetEndDate,
@@ -71,6 +75,55 @@ export function ClipList({
 }: ClipListProps) {
   const { t } = useI18n();
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Use scroll anchor hook for maintaining scroll position during delete/edit
+  const { captureAnchor, restoreScroll, pendingAnchorRef } = useScrollAnchor();
+
+  // Handle onBeforeClipModified: capture anchor AND call parent's onBeforeClipModified (to register clip ID)
+  const handleBeforeClipModified = useCallback((clipId: string) => {
+    console.log("[ClipList] handleBeforeClipModified called with clipId:", clipId);
+    // Capture anchor BEFORE any API call or state change
+    const anchor = captureAnchor(clips, clipId);
+    console.log("[ClipList] Captured anchor:", anchor);
+    // Store anchor for later use in delete/update handlers
+    pendingAnchorRef.current = anchor;
+    // Call parent's onBeforeClipModified to register the clip ID for WebSocket skip
+    onBeforeClipModified?.(clipId);
+  }, [clips, captureAnchor, pendingAnchorRef, onBeforeClipModified]);
+
+  // Wrap onClipDeleted to handle scroll anchoring
+  const handleClipDeleted = useCallback((clipId: string) => {
+    console.log("[ClipList] handleClipDeleted called with clipId:", clipId);
+    // Use the anchor captured in handleBeforeClipModified
+    const anchor = pendingAnchorRef.current;
+    pendingAnchorRef.current = null;
+    console.log("[ClipList] Using pending anchor:", anchor);
+
+    // Call the original delete callback with a restore callback
+    // The restore callback will be called after state update completes
+    console.log("[ClipList] Calling onClipDeleted, exists:", !!onClipDeleted);
+    onClipDeleted?.(clipId, anchor ? () => {
+      console.log("[ClipList] Restore callback invoked");
+      restoreScroll(anchor);
+    } : undefined);
+  }, [onClipDeleted, pendingAnchorRef, restoreScroll]);
+
+  // Wrap onClipUpdated to handle scroll anchoring
+  const handleClipUpdated = useCallback((updatedClip: Clip) => {
+    console.log("[ClipList] handleClipUpdated called with clipId:", updatedClip.id);
+    // Use the anchor captured in handleBeforeClipModified
+    const anchor = pendingAnchorRef.current;
+    pendingAnchorRef.current = null;
+    console.log("[ClipList] Using pending anchor:", anchor);
+
+    // Call the original update callback with a restore callback
+    // The restore callback will be called after state update completes
+    console.log("[ClipList] Calling onClipUpdated, exists:", !!onClipUpdated);
+    onClipUpdated?.(updatedClip, anchor ? () => {
+      console.log("[ClipList] Restore callback invoked");
+      restoreScroll(anchor);
+    } : undefined);
+  }, [onClipUpdated, pendingAnchorRef, restoreScroll]);
 
   // Use refs to track current values so the observer callback always has fresh values
   const hasMoreRef = useRef(hasMore);
@@ -167,8 +220,9 @@ export function ClipList({
           key={clip.id}
           clip={clip}
           onToggleFavorite={onToggleFavorite}
-          onClipUpdated={onClipUpdated}
-          onClipDeleted={onClipDeleted}
+          onClipUpdated={handleClipUpdated}
+          onClipDeleted={handleClipDeleted}
+          onBeforeClipModified={handleBeforeClipModified}
           onTagClick={onTagClick}
           onSetStartDate={onSetStartDate}
           onSetEndDate={onSetEndDate}
