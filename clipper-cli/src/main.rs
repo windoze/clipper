@@ -279,9 +279,14 @@ async fn main() -> Result<()> {
             tags,
             notes,
         } => {
-            let tags_vec = tags
+            let mut tags_vec: Vec<String> = tags
                 .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
                 .unwrap_or_default();
+
+            // Add host tag automatically
+            if let Ok(hostname) = hostname::get() {
+                tags_vec.push(format!("$host:{}", hostname.to_string_lossy()));
+            }
 
             let clip = client
                 .create_clip(content, tags_vec, notes)
@@ -461,9 +466,14 @@ async fn main() -> Result<()> {
             notes,
             content,
         } => {
-            let tags_vec = tags
+            let mut tags_vec: Vec<String> = tags
                 .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
                 .unwrap_or_default();
+
+            // Add host tag automatically
+            if let Ok(hostname) = hostname::get() {
+                tags_vec.push(format!("$host:{}", hostname.to_string_lossy()));
+            }
 
             // Use absolute path as content if not specified
             let file_path = std::fs::canonicalize(&file)
