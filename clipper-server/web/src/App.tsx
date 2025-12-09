@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, DragEvent } from "react";
+import type { Clip } from "@unwritten-codes/clipper-ui";
 import {
   useClips,
   useTheme,
@@ -61,17 +62,50 @@ function App({ authToken }: AppProps) {
   const [isUploading, setIsUploading] = useState(false);
   const dragCounter = useRef(0);
 
+  // Track recently modified clip IDs to skip WebSocket-triggered refetches
+  const recentlyModifiedClipIds = useRef<Set<string>>(new Set());
+
+  // Called BEFORE any clip modification API call to register the clip ID
+  // This ensures WebSocket event (which arrives before onClipUpdated/onClipDeleted) is skipped
+  const handleBeforeClipModified = useCallback((clipId: string) => {
+    recentlyModifiedClipIds.current.add(clipId);
+    // Auto-cleanup after 5 seconds in case WebSocket event doesn't arrive
+    setTimeout(() => {
+      recentlyModifiedClipIds.current.delete(clipId);
+    }, 5000);
+  }, []);
+
+  // Wrap updateClipInList to forward the scroll restore callback
+  const handleClipUpdated = useCallback((updatedClip: Clip, onUpdated?: () => void) => {
+    updateClipInList(updatedClip, onUpdated);
+  }, [updateClipInList]);
+
+  // Wrap deleteClipFromList to forward the scroll restore callback
+  const handleClipDeleted = useCallback((clipId: string, onDeleted?: () => void) => {
+    deleteClipFromList(clipId, onDeleted);
+  }, [deleteClipFromList]);
+
   // WebSocket for real-time updates (only enabled on HTTPS)
   const { isConnected, isSecure } = useWebSocket({
     onNewClip: useCallback((_id: string, _content: string, _tags: string[]) => {
       showToast(t("toast.newClip"), "info");
       refetch();
     }, [showToast, t, refetch]),
-    onUpdatedClip: useCallback((_id: string) => {
+    onUpdatedClip: useCallback((id: string) => {
+      // Skip refetch if we just updated this clip ourselves (already updated locally)
+      if (recentlyModifiedClipIds.current.has(id)) {
+        recentlyModifiedClipIds.current.delete(id);
+        return;
+      }
       showToast(t("toast.clipUpdated"), "info");
       refetch();
     }, [showToast, t, refetch]),
-    onDeletedClip: useCallback((_id: string) => {
+    onDeletedClip: useCallback((id: string) => {
+      // Skip refetch if we just deleted this clip ourselves (already removed locally)
+      if (recentlyModifiedClipIds.current.has(id)) {
+        recentlyModifiedClipIds.current.delete(id);
+        return;
+      }
       refetch();
     }, [refetch]),
     onClipsCleanedUp: useCallback((_ids: string[], count: number) => {
@@ -462,8 +496,9 @@ function App({ authToken }: AppProps) {
           hasMore={hasMore}
           onToggleFavorite={toggleFavorite}
           onLoadMore={loadMore}
-          onClipUpdated={updateClipInList}
-          onClipDeleted={deleteClipFromList}
+          onBeforeClipModified={handleBeforeClipModified}
+          onClipUpdated={handleClipUpdated}
+          onClipDeleted={handleClipDeleted}
           onTagClick={handleAddTagFilter}
           onSetStartDate={handleSetStartDate}
           onSetEndDate={handleSetEndDate}
