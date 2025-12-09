@@ -664,6 +664,16 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     setTogglingNetworkAccess(true);
     setError(null);
     try {
+      // If enabling network access and token is empty, generate one first
+      if (listenOnAll && !settings.bundledServerToken) {
+        const token = generateToken();
+        const newSettings = { ...settings, bundledServerToken: token };
+        setSettings(newSettings);
+        await saveSettings(newSettings);
+        // Show the token after generating
+        setShowBundledToken(true);
+      }
+
       const newUrl = await invoke<string>("toggle_listen_on_all_interfaces", {
         listenOnAll,
       });
