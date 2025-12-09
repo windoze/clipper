@@ -3,7 +3,7 @@
 A modern, cross-platform clipboard manager with full-text search, real-time sync, and a beautiful desktop interface.
 
 [![Homepage](https://img.shields.io/badge/homepage-clipper.unwritten.codes-blue)](https://clipper.unwritten.codes)
-![Version](https://img.shields.io/badge/version-0.19.4-blue)
+![Version](https://img.shields.io/badge/version-0.20.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
 

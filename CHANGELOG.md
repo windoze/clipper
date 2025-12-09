@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.19.4]
+## [0.20.0]
 
 ### Added
 
@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Fixed image authentication failure when bundled server token contains special characters
+  - Token query parameters are now properly URL-encoded on client side
+  - Server now properly URL-decodes token query parameters
 - Use consistent placeholder in search box
 
 ### Security
