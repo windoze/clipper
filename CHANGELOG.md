@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.19.3]
+
+### Added
+
+- Tag color adjustment in UI
+
+### Fixed
+
+- Note tooltip and popup positioning
+- Scroll in language list should not scroll entry list when reaching end
+
+### Security
+
+- Generate token when enabling bundled server network access
+
 ## [0.19.2]
 
 ### Changed
