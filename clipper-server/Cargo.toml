@@ -89,6 +89,9 @@ os_pipe = "1"
 # Temp file support for streaming large file uploads
 tempfile = "3"
 
+# URL encoding/decoding for query parameters
+urlencoding = "2"
+
 [[bin]]
 name = "clipper-server"
 path = "src/main.rs"

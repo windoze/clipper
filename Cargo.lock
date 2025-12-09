@@ -1675,6 +1675,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "tokio",
+ "urlencoding",
  "windows-sys 0.59.0",
  "winreg",
 ]
@@ -1766,6 +1767,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "urlencoding",
  "uuid",
  "x509-parser",
 ]

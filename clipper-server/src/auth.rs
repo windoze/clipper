@@ -12,6 +12,7 @@ use serde_json::json;
 use crate::state::AppState;
 
 /// Extract token from query string (e.g., ?token=xxx)
+/// The token value is URL-decoded since it may contain special characters
 fn extract_query_token(query: Option<&str>) -> Option<String> {
     query.and_then(|q| {
         q.split('&')
@@ -19,7 +20,8 @@ fn extract_query_token(query: Option<&str>) -> Option<String> {
                 let (key, value) = pair.split_once('=')?;
 
                 if key == "token" {
-                    Some(value.to_string())
+                    // URL-decode the token value since it may contain encoded special characters
+                    urlencoding::decode(value).ok().map(|s| s.into_owned())
                 } else {
                     None
                 }

@@ -55,6 +55,9 @@ rustls = { version = "0.23", default-features = false, features = ["std", "ring"
 # Cross-platform pipe support for server process monitoring
 os_pipe = "1"
 
+# URL encoding for query parameters
+urlencoding = "2"
+
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 

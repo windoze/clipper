@@ -199,9 +199,10 @@ pub async fn upload_file(
 /// If authentication is configured, the token is included as a query parameter
 #[tauri::command]
 pub fn get_file_url(state: State<'_, AppState>, clip_id: String) -> String {
+    use urlencoding::encode;
     let base_url = format!("{}/clips/{}/file", state.base_url(), clip_id);
     match state.token() {
-        Some(token) => format!("{}?token={}", base_url, token),
+        Some(token) => format!("{}?token={}", base_url, encode(&token)),
         None => base_url,
     }
 }
