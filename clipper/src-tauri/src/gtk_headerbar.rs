@@ -40,15 +40,19 @@ pub fn setup_gtk_headerbar(app: &AppHandle) -> Result<(), String> {
         .gtk_window()
         .map_err(|e| format!("Failed to get GTK window: {}", e))?;
 
-    // Ensure the window is resizable
-    gtk_window.set_resizable(true);
-
     // Create and configure the header bar
     let header_bar = create_headerbar(app);
 
     // Set the header bar as the window's titlebar
     // GTK HeaderBar with show_close_button(true) handles window dragging natively
     gtk_window.set_titlebar(Some(&header_bar));
+
+    // Ensure the window is resizable after setting the titlebar
+    gtk_window.set_resizable(true);
+
+    // Explicitly set decorated to true to ensure window manager decorations (like shadows/rounded corners) are applied
+    // This is important when `decorations: true` is set in tauri.conf.json
+    gtk_window.set_decorated(true);
 
     // Show all widgets
     header_bar.show_all();
