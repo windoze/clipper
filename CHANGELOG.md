@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.21.1]
+
+### Improved
+
+- Polish Linux appearance
+
+### Fixed
+
+- Fix arrow key navigating
+
 ## [0.21.0]
 
 ### Added
