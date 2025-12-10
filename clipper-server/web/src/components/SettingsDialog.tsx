@@ -90,9 +90,6 @@ export function SettingsDialog({
 }: SettingsDialogProps) {
   const { t, language, setLanguage } = useI18n();
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
-  const [localTheme, setLocalTheme] = useState<Theme>(theme);
-  const [localSyntaxTheme, setLocalSyntaxTheme] = useState<SyntaxTheme>(syntaxTheme);
-  const [localLanguage, setLocalLanguage] = useState<Language>(language);
 
   // About tab state
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
@@ -102,15 +99,12 @@ export function SettingsDialog({
   const [updateCheckFailed, setUpdateCheckFailed] = useState(false);
   const [loadingServerInfo, setLoadingServerInfo] = useState(false);
 
-  // Reset local state when dialog opens
+  // Reset to appearance tab when dialog opens
   useEffect(() => {
     if (isOpen) {
-      setLocalTheme(theme);
-      setLocalSyntaxTheme(syntaxTheme);
-      setLocalLanguage(language);
       setActiveTab("appearance");
     }
-  }, [isOpen, theme, syntaxTheme, language]);
+  }, [isOpen]);
 
   // Load server info when About tab is selected
   useEffect(() => {
@@ -195,13 +189,6 @@ export function SettingsDialog({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  const handleSave = useCallback(() => {
-    onThemeChange(localTheme);
-    onSyntaxThemeChange(localSyntaxTheme);
-    setLanguage(localLanguage);
-    onClose();
-  }, [localTheme, localSyntaxTheme, localLanguage, onThemeChange, onSyntaxThemeChange, setLanguage, onClose]);
-
   if (!isOpen) return null;
 
   const tabs: { id: SettingsTab; label: string }[] = [
@@ -218,22 +205,22 @@ export function SettingsDialog({
         <label>{t("settings.theme")}</label>
         <div className="theme-selector">
           <button
-            className={`theme-option ${localTheme === "light" ? "active" : ""}`}
-            onClick={() => setLocalTheme("light")}
+            className={`theme-option ${theme === "light" ? "active" : ""}`}
+            onClick={() => onThemeChange("light")}
           >
             <span className="theme-icon">☀️</span>
             <span>{t("settings.theme.light")}</span>
           </button>
           <button
-            className={`theme-option ${localTheme === "dark" ? "active" : ""}`}
-            onClick={() => setLocalTheme("dark")}
+            className={`theme-option ${theme === "dark" ? "active" : ""}`}
+            onClick={() => onThemeChange("dark")}
           >
             <span className="theme-icon">🌙</span>
             <span>{t("settings.theme.dark")}</span>
           </button>
           <button
-            className={`theme-option ${localTheme === "auto" ? "active" : ""}`}
-            onClick={() => setLocalTheme("auto")}
+            className={`theme-option ${theme === "auto" ? "active" : ""}`}
+            onClick={() => onThemeChange("auto")}
           >
             <span className="theme-icon">💻</span>
             <span>{t("settings.theme.auto")}</span>
@@ -247,8 +234,8 @@ export function SettingsDialog({
         <label>{t("settings.language")}</label>
         <select
           className="settings-select"
-          value={localLanguage}
-          onChange={(e) => setLocalLanguage(e.target.value as Language)}
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as Language)}
         >
           {supportedLanguages.map((lang) => (
             <option key={lang} value={lang}>
@@ -264,12 +251,12 @@ export function SettingsDialog({
         <label>{t("settings.syntaxTheme")}</label>
         <select
           className="settings-select"
-          value={localSyntaxTheme}
-          onChange={(e) => setLocalSyntaxTheme(e.target.value as SyntaxTheme)}
+          value={syntaxTheme}
+          onChange={(e) => onSyntaxThemeChange(e.target.value as SyntaxTheme)}
         >
-          {SYNTAX_THEMES.map((theme) => (
-            <option key={theme} value={theme}>
-              {t(`settings.syntaxTheme.${theme}` as const)}
+          {SYNTAX_THEMES.map((themeOption) => (
+            <option key={themeOption} value={themeOption}>
+              {t(`settings.syntaxTheme.${themeOption}` as const)}
             </option>
           ))}
         </select>
@@ -387,11 +374,8 @@ export function SettingsDialog({
         </div>
 
         <div className="settings-footer">
-          <button className="settings-btn secondary" onClick={onClose}>
-            {t("common.cancel")}
-          </button>
-          <button className="settings-btn primary" onClick={handleSave}>
-            {t("common.save")}
+          <button className="settings-btn primary" onClick={onClose}>
+            {t("common.close")}
           </button>
         </div>
       </div>
