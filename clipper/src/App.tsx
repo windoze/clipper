@@ -168,7 +168,7 @@ function App() {
     };
   }, []);
 
-  // In-app keyboard shortcut for settings (Cmd+, on macOS, Ctrl+, on Windows/Linux)
+  // In-app keyboard shortcuts (Cmd+, for settings, Cmd+R for refresh on macOS; Ctrl+, and Ctrl+R on Windows/Linux)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMac = os === "macos";
@@ -177,6 +177,9 @@ function App() {
       if (modifierPressed && e.key === ",") {
         e.preventDefault();
         openSettings();
+      } else if (modifierPressed && e.key === "r") {
+        e.preventDefault();
+        refetch();
       }
     };
 
@@ -184,7 +187,7 @@ function App() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [os, openSettings]);
+  }, [os, openSettings, refetch]);
 
   // Listen for certificate trust required events
   useEffect(() => {
