@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   useI18n,
   languageNames,
@@ -90,6 +90,9 @@ export function SettingsDialog({
 }: SettingsDialogProps) {
   const { t, language, setLanguage } = useI18n();
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
+  const [focusedTabIndex, setFocusedTabIndex] = useState(0);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // About tab state
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null);
@@ -103,8 +106,25 @@ export function SettingsDialog({
   useEffect(() => {
     if (isOpen) {
       setActiveTab("appearance");
+      setFocusedTabIndex(0);
     }
   }, [isOpen]);
+
+  // Handle tab keyboard navigation
+  const handleTabKeyDown = (e: React.KeyboardEvent) => {
+    const tabCount = 2; // appearance, about
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setFocusedTabIndex((prev) => (prev - 1 + tabCount) % tabCount);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setFocusedTabIndex((prev) => (prev + 1) % tabCount);
+    } else if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      const tabs: SettingsTab[] = ["appearance", "about"];
+      setActiveTab(tabs[focusedTabIndex]);
+    }
+  };
 
   // Load server info when About tab is selected
   useEffect(() => {
@@ -175,13 +195,47 @@ export function SettingsDialog({
     }
   };
 
-  // Handle ESC key
+  // Handle ESC key and Tab focus trapping
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
+        return;
+      }
+
+      // Handle Tab/Shift+Tab for focus cycling
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusableElements = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const focusableArray = Array.from(focusableElements);
+
+        if (focusableArray.length === 0) return;
+
+        const firstElement = focusableArray[0];
+        const lastElement = focusableArray[focusableArray.length - 1];
+        const activeElement = document.activeElement;
+        const currentIndex = focusableArray.indexOf(activeElement as HTMLElement);
+
+        e.preventDefault();
+
+        if (e.shiftKey) {
+          // Shift+Tab: go backwards
+          if (currentIndex <= 0 || !dialogRef.current.contains(activeElement)) {
+            lastElement.focus();
+          } else {
+            focusableArray[currentIndex - 1].focus();
+          }
+        } else {
+          // Tab: go forwards
+          if (currentIndex === -1 || currentIndex >= focusableArray.length - 1 || !dialogRef.current.contains(activeElement)) {
+            firstElement.focus();
+          } else {
+            focusableArray[currentIndex + 1].focus();
+          }
+        }
       }
     };
 
@@ -348,23 +402,34 @@ export function SettingsDialog({
 
   return (
     <div className="settings-backdrop" onClick={onClose}>
-      <div className="settings-dialog settings-dialog-tabbed" onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} className="settings-dialog settings-dialog-tabbed" onClick={(e) => e.stopPropagation()}>
         <div className="settings-header">
           <h2>{t("settings.title")}</h2>
-          <button className="settings-close" onClick={onClose}>
+          <div className="settings-close" onClick={onClose} role="button" aria-label="Close">
             &times;
-          </button>
+          </div>
         </div>
 
-        <div className="settings-tabs">
-          {tabs.map((tab) => (
-            <button
+        <div
+          ref={tabsRef}
+          className="settings-tabs"
+          role="tablist"
+          tabIndex={0}
+          onKeyDown={handleTabKeyDown}
+        >
+          {tabs.map((tab, index) => (
+            <div
               key={tab.id}
-              className={`settings-tab ${activeTab === tab.id ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.id)}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={`settings-tab ${activeTab === tab.id ? "active" : ""} ${focusedTabIndex === index ? "focused" : ""}`}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setFocusedTabIndex(index);
+              }}
             >
               {tab.label}
-            </button>
+            </div>
           ))}
         </div>
 

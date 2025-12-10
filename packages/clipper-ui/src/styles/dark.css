@@ -509,6 +509,10 @@
   border-bottom-color: #667eea;
 }
 
+:root[data-theme="dark"] .settings-tabs:focus .settings-tab.focused {
+  outline-color: #99aaf7;
+}
+
 /* Settings About Tab Grid - Dark Theme */
 :root[data-theme="dark"] .settings-about-label {
   color: #adb5bd;

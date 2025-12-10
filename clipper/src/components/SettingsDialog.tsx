@@ -97,6 +97,8 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
   const defaultShortcut = isMac ? "Command+Shift+V" : "Ctrl+Shift+V";
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
+  const [focusedTabIndex, setFocusedTabIndex] = useState(0);
+  const tabsRef = useRef<HTMLDivElement>(null);
   const [settings, setSettings] = useState<Settings>({
     serverAddress: "http://localhost:3000",
     defaultSaveLocation: null,
@@ -191,6 +193,10 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
       // Set initial tab if specified
       if (initialTab) {
         setActiveTab(initialTab);
+        const tabIds: SettingsTab[] = ["appearance", "startup", "server", "about"];
+        setFocusedTabIndex(tabIds.indexOf(initialTab));
+      } else {
+        setFocusedTabIndex(0);
       }
       // Auto-check for updates if requested
       if (autoCheckUpdates) {
@@ -213,7 +219,7 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
     }
   }, [isOpen, settings.settingsWindowGeometry]);
 
-  // Handle ESC key to close dialog
+  // Handle ESC key to close dialog and Tab focus trapping
   useEffect(() => {
     if (!isOpen) return;
 
@@ -221,6 +227,40 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
       if (e.key === "Escape" && !isRecordingShortcut) {
         e.preventDefault();
         handleClose();
+        return;
+      }
+
+      // Handle Tab/Shift+Tab for focus cycling
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusableElements = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const focusableArray = Array.from(focusableElements);
+
+        if (focusableArray.length === 0) return;
+
+        const firstElement = focusableArray[0];
+        const lastElement = focusableArray[focusableArray.length - 1];
+        const activeElement = document.activeElement;
+        const currentIndex = focusableArray.indexOf(activeElement as HTMLElement);
+
+        e.preventDefault();
+
+        if (e.shiftKey) {
+          // Shift+Tab: go backwards
+          if (currentIndex <= 0 || !dialogRef.current.contains(activeElement)) {
+            lastElement.focus();
+          } else {
+            focusableArray[currentIndex - 1].focus();
+          }
+        } else {
+          // Tab: go forwards
+          if (currentIndex === -1 || currentIndex >= focusableArray.length - 1 || !dialogRef.current.contains(activeElement)) {
+            firstElement.focus();
+          } else {
+            focusableArray[currentIndex + 1].focus();
+          }
+        }
       }
     };
 
@@ -229,6 +269,22 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, isRecordingShortcut]);
+
+  // Handle tab keyboard navigation
+  const handleTabKeyDown = (e: React.KeyboardEvent) => {
+    const tabIds: SettingsTab[] = ["appearance", "startup", "server", "about"];
+    const tabCount = tabIds.length;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setFocusedTabIndex((prev) => (prev - 1 + tabCount) % tabCount);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setFocusedTabIndex((prev) => (prev + 1) % tabCount);
+    } else if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      setActiveTab(tabIds[focusedTabIndex]);
+    }
+  };
 
   // Handle mouse up to end resizing
   useEffect(() => {
@@ -1685,20 +1741,31 @@ export function SettingsDialog({ isOpen, onClose, onThemeChange, onSyntaxThemeCh
 
         <div className="settings-header">
           <h2>{t("settings.title")}</h2>
-          <button className="settings-close" onClick={handleClose}>
+          <div className="settings-close" onClick={handleClose} role="button" aria-label="Close">
             &times;
-          </button>
+          </div>
         </div>
 
-        <div className="settings-tabs">
-          {tabs.map((tab) => (
-            <button
+        <div
+          ref={tabsRef}
+          className="settings-tabs"
+          role="tablist"
+          tabIndex={0}
+          onKeyDown={handleTabKeyDown}
+        >
+          {tabs.map((tab, index) => (
+            <div
               key={tab.id}
-              className={`settings-tab ${activeTab === tab.id ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.id)}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={`settings-tab ${activeTab === tab.id ? "active" : ""} ${focusedTabIndex === index ? "focused" : ""}`}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setFocusedTabIndex(index);
+              }}
             >
               {tab.label}
-            </button>
+            </div>
           ))}
         </div>
 

@@ -2253,6 +2253,10 @@
   color: #495057;
 }
 
+.settings-close:focus {
+  outline: none;
+}
+
 .settings-content {
   flex: 1;
   overflow-y: auto;
@@ -2449,6 +2453,15 @@
 .settings-tab.active {
   color: #667eea;
   border-bottom-color: #667eea;
+}
+
+.settings-tabs:focus {
+  outline: none;
+}
+
+.settings-tabs:focus .settings-tab.focused {
+  outline: 2px solid #667eea;
+  outline-offset: -2px;
 }
 
 /* Settings About Tab Grid */
