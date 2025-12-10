@@ -1650,6 +1650,7 @@ dependencies = [
  "clipper-security",
  "dirs",
  "gethostname",
+ "gtk",
  "image",
  "libc",
  "local-ip-address",

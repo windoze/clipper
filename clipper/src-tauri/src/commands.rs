@@ -1150,3 +1150,19 @@ pub async fn ensure_window_size(
 
     Ok(())
 }
+
+// ============ GTK Header Bar Commands (Linux only) ============
+
+/// Update the GTK header bar server indicator (Linux only)
+/// This is called from the frontend when server connection status changes
+#[tauri::command]
+pub fn update_gtk_server_indicator(connected: bool) {
+    #[cfg(target_os = "linux")]
+    crate::gtk_headerbar::update_server_indicator(connected);
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        // No-op on other platforms
+        let _ = connected;
+    }
+}

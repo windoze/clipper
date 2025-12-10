@@ -12,7 +12,7 @@ fn get_hostname_tag() -> String {
     format!("$host:{}", hostname)
 }
 
-/// Emit WebSocket connection status to frontend
+/// Emit WebSocket connection status to frontend and update GTK indicator on Linux
 fn emit_ws_status(app: &AppHandle, connected: bool) {
     let state = app.state::<AppState>();
     state.set_websocket_connected(connected);
@@ -20,6 +20,10 @@ fn emit_ws_status(app: &AppHandle, connected: bool) {
         "websocket-status",
         serde_json::json!({ "connected": connected }),
     );
+
+    // Update GTK header bar indicator on Linux
+    #[cfg(target_os = "linux")]
+    crate::gtk_headerbar::update_websocket_indicator(connected);
 }
 
 /// Check if the error message indicates a certificate verification failure

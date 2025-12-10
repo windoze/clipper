@@ -1,6 +1,8 @@
 mod autolaunch;
 mod clipboard;
 mod commands;
+#[cfg(target_os = "linux")]
+mod gtk_headerbar;
 mod migration;
 mod server;
 mod settings;
@@ -427,6 +429,12 @@ pub fn run() {
                 error!("Failed to setup tray: {}", e);
             }
 
+            // Setup GTK header bar on Linux for native CSD
+            #[cfg(target_os = "linux")]
+            if let Err(e) = gtk_headerbar::setup_gtk_headerbar(app.handle()) {
+                error!("Failed to setup GTK header bar: {}", e);
+            }
+
             // Start clipboard monitoring
             clipboard::start_clipboard_monitor(app.handle().clone());
 
@@ -702,6 +710,7 @@ pub fn run() {
             commands::ensure_window_size,
             commands::quit_app,
             commands::restart_app,
+            commands::update_gtk_server_indicator,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

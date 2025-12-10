@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 
 // Detect platform from user agent
 function detectPlatform(): "macos" | "windows" | "linux" {
@@ -9,7 +10,11 @@ function detectPlatform(): "macos" | "windows" | "linux" {
   return "linux";
 }
 
-export function TitleBar() {
+interface TitleBarProps {
+  onSettingsClick?: () => void;
+}
+
+export function TitleBar({ onSettingsClick }: TitleBarProps) {
   const [os] = useState(() => detectPlatform());
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -32,6 +37,45 @@ export function TitleBar() {
     };
   }, []);
 
+  // Listen for GTK header bar events on Linux
+  useEffect(() => {
+    if (os !== "linux") return;
+
+    const unlisteners: Promise<() => void>[] = [];
+
+    // GTK Settings button clicked
+    unlisteners.push(
+      listen("gtk-settings-clicked", () => {
+        onSettingsClick?.();
+      })
+    );
+
+    // GTK Minimize button clicked
+    unlisteners.push(
+      listen("gtk-minimize-clicked", () => {
+        getCurrentWindow().minimize();
+      })
+    );
+
+    // GTK Maximize button clicked
+    unlisteners.push(
+      listen("gtk-maximize-clicked", () => {
+        getCurrentWindow().toggleMaximize();
+      })
+    );
+
+    // GTK Close button clicked
+    unlisteners.push(
+      listen("gtk-close-clicked", () => {
+        getCurrentWindow().close();
+      })
+    );
+
+    return () => {
+      unlisteners.forEach((p) => p.then((fn) => fn()));
+    };
+  }, [os, onSettingsClick]);
+
   const handleMinimize = () => {
     getCurrentWindow().minimize();
   };
@@ -50,7 +94,13 @@ export function TitleBar() {
     return <div className="titlebar titlebar-macos" data-tauri-drag-region />;
   }
 
-  // On Windows and Linux, render custom title bar with window controls
+  // On Linux, we use native GTK header bar - no custom title bar needed
+  // The GTK header bar is set up in Rust code
+  if (os === "linux") {
+    return null;
+  }
+
+  // On Windows, render custom title bar with window controls
   return (
     <div className="titlebar titlebar-windows" data-tauri-drag-region>
       <div className="titlebar-content" data-tauri-drag-region>
