@@ -14,6 +14,10 @@ interface SearchBoxProps {
   onSearchTags?: (query: string) => Promise<Tag[]>;
   /** Function to list all tags (when "#" is typed with no query) */
   onListTags?: () => Promise<Tag[]>;
+  /** Ref to the search input element for keyboard navigation */
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  /** Reference to the favorite toggle for Shift+Tab cycling */
+  shiftTabCycleRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 // Input mode type: regular tags (#) or host tags (@)
@@ -38,6 +42,8 @@ export function SearchBox({
   label,
   onSearchTags,
   onListTags,
+  inputRef,
+  shiftTabCycleRef,
 }: SearchBoxProps) {
   const { t } = useI18n();
   // Search text (without tag query)
@@ -50,7 +56,9 @@ export function SearchBox({
   const [tagSuggestions, setTagSuggestions] = useState<Tag[]>([]);
   const [selectedTagIndex, setSelectedTagIndex] = useState(-1);
   const [isLoadingTags, setIsLoadingTags] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const internalSearchInputRef = useRef<HTMLInputElement>(null);
+  // Use external ref if provided, otherwise use internal ref
+  const searchInputRef = inputRef || internalSearchInputRef;
   const tagInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -217,7 +225,16 @@ export function SearchBox({
   const handleSearchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       e.preventDefault();
-      handleClearAll();
+      // If there's text or filter tags, clear them first
+      if (searchText || filterTags.length > 0) {
+        handleClearAll();
+      }
+      // Always blur the input on Escape
+      searchInputRef.current?.blur();
+    } else if (e.key === "Tab" && e.shiftKey && shiftTabCycleRef?.current) {
+      // Shift+Tab cycles back to favorite toggle
+      e.preventDefault();
+      shiftTabCycleRef.current.focus();
     } else if (e.key === "Backspace") {
       // Remove last filter tag when backspace is pressed at the beginning of input
       const input = e.currentTarget;
@@ -240,8 +257,8 @@ export function SearchBox({
       setShowTagDropdown(false);
       setTagInputMode(null);
       setTagQuery("");
-      // Focus search input after React re-renders
-      setTimeout(() => searchInputRef.current?.focus(), 0);
+      // Blur the tag input (consistent with Escape blurring search bar controls)
+      tagInputRef.current?.blur();
       return;
     }
 

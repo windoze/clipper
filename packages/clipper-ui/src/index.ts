@@ -41,7 +41,7 @@ export {
   Tooltip,
   useToast,
 } from "./components";
-export type { ToastType } from "./components";
+export type { ToastType, DateFilterHandle, FavoriteToggleHandle } from "./components";
 
 // Hooks
 export {

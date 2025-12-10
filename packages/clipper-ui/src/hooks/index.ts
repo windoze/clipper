@@ -12,3 +12,11 @@ export {
   SYNTAX_THEMES,
 } from "./useSyntaxTheme";
 export type { SyntaxTheme } from "./useSyntaxTheme";
+export { useKeyboardNavigation } from "./useKeyboardNavigation";
+export type {
+  KeyboardNavigationState,
+  KeyboardNavigationActions,
+  UseKeyboardNavigationOptions,
+  UseKeyboardNavigationReturn,
+  ClipButtonAction,
+} from "./useKeyboardNavigation";

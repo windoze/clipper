@@ -1,9 +1,10 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { Clip, Tag } from "../types";
 import { ClipEntry } from "./ClipEntry";
 import { ConnectionError } from "./ConnectionError";
 import { useI18n } from "../i18n";
 import { useScrollAnchor } from "../hooks/useScrollAnchor";
+import { useKeyboardNavigation, ClipButtonAction } from "../hooks/useKeyboardNavigation";
 
 interface ClipListProps {
   clips: Clip[];
@@ -26,6 +27,10 @@ interface ClipListProps {
   onOpenUrl?: (url: string) => void;
   /** Function to search tags for autocomplete in edit dialog */
   onSearchTags?: (query: string) => Promise<Tag[]>;
+  /** Reference to the search input for keyboard navigation focus */
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
+  /** Whether keyboard navigation is enabled (default: true) */
+  keyboardNavigationEnabled?: boolean;
 }
 
 // Helper to detect connection errors vs other errors
@@ -53,6 +58,11 @@ function isConnectionError(error: string): boolean {
   return connectionErrorPatterns.some((pattern) => pattern.test(error));
 }
 
+// Button actions in order: copy, share, favorite, notes, expand, delete
+// Note: share may not always be available, and expand only appears for long content
+const BUTTON_ACTIONS: ClipButtonAction[] = ["copy", "share", "favorite", "notes", "expand", "delete"];
+const BUTTON_COUNT = BUTTON_ACTIONS.length;
+
 export function ClipList({
   clips,
   loading,
@@ -72,12 +82,86 @@ export function ClipList({
   showBundledServerReason = false,
   onOpenUrl,
   onSearchTags,
+  searchInputRef,
+  keyboardNavigationEnabled = true,
 }: ClipListProps) {
   const { t } = useI18n();
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Track which clip is expanded (for keyboard expand toggle)
+  const [expandedClipIds, setExpandedClipIds] = useState<Set<string>>(new Set());
 
   // Use scroll anchor hook for maintaining scroll position during delete/edit
   const { captureAnchor, restoreScroll, pendingAnchorRef } = useScrollAnchor();
+
+  // Callbacks for keyboard navigation
+  const handleExpandToggle = useCallback((clipId: string) => {
+    setExpandedClipIds(prev => {
+      const next = new Set(prev);
+      if (next.has(clipId)) {
+        next.delete(clipId);
+      } else {
+        next.add(clipId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleDeleteRequest = useCallback((clipId: string) => {
+    // We'll trigger a delete confirmation in the ClipEntry component
+    // by setting a state that the entry can read
+    const clipEntry = document.querySelector(`[data-clip-id="${clipId}"]`);
+    if (clipEntry) {
+      // Dispatch a custom event that ClipEntry can listen for
+      clipEntry.dispatchEvent(new CustomEvent("keyboard-delete-request", { bubbles: false }));
+    }
+  }, []);
+
+  const handleButtonActivate = useCallback((clipId: string, buttonIndex: number) => {
+    const action = BUTTON_ACTIONS[buttonIndex];
+    const clipEntry = document.querySelector(`[data-clip-id="${clipId}"]`);
+    if (clipEntry) {
+      // Dispatch a custom event with the action
+      clipEntry.dispatchEvent(new CustomEvent("keyboard-button-activate", {
+        bubbles: false,
+        detail: { action, buttonIndex },
+      }));
+    }
+  }, []);
+
+  // Keyboard navigation hook
+  const {
+    focusedClipId,
+    focusedButtonIndex,
+    handleKeyDown,
+  } = useKeyboardNavigation({
+    clips,
+    buttonCount: BUTTON_COUNT,
+    onExpandToggle: handleExpandToggle,
+    onDelete: handleDeleteRequest,
+    onButtonActivate: handleButtonActivate,
+    searchInputRef,
+    enabled: keyboardNavigationEnabled,
+    hasMore,
+    onLoadMore,
+    containerRef,
+  });
+
+  // Global keyboard listener for navigation
+  // Use capture phase to intercept Tab/Arrow keys before browser default behavior
+  useEffect(() => {
+    if (!keyboardNavigationEnabled) return;
+
+    const handler = (e: KeyboardEvent) => {
+      handleKeyDown(e);
+    };
+
+    // Use capture phase (third argument = true) to intercept events before they reach the target
+    // This allows us to preventDefault on Tab before the browser moves focus
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+  }, [keyboardNavigationEnabled, handleKeyDown]);
 
   // Handle onBeforeClipModified: capture anchor AND call parent's onBeforeClipModified (to register clip ID)
   const handleBeforeClipModified = useCallback((clipId: string) => {
@@ -200,7 +284,7 @@ export function ClipList({
   }
 
   return (
-    <div className="clip-list">
+    <div className="clip-list" ref={containerRef}>
       {clips.map((clip) => (
         <ClipEntry
           key={clip.id}
@@ -213,6 +297,20 @@ export function ClipList({
           onSetStartDate={onSetStartDate}
           onSetEndDate={onSetEndDate}
           onSearchTags={onSearchTags}
+          isFocused={focusedClipId === clip.id}
+          focusedButtonIndex={focusedClipId === clip.id ? focusedButtonIndex : -1}
+          isExpandedByKeyboard={expandedClipIds.has(clip.id)}
+          onKeyboardExpandChange={(expanded) => {
+            setExpandedClipIds(prev => {
+              const next = new Set(prev);
+              if (expanded) {
+                next.add(clip.id);
+              } else {
+                next.delete(clip.id);
+              }
+              return next;
+            });
+          }}
         />
       ))}
 

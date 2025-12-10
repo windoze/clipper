@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import hljs from "highlight.js";
 import { Clip, Tag, isFavorite, calculateAgeRatio } from "../types";
 import { ImagePopup } from "./ImagePopup";
@@ -24,7 +24,18 @@ interface ClipEntryProps {
   onSetEndDate?: (isoDate: string) => void;
   /** Function to search tags for autocomplete in edit dialog */
   onSearchTags?: (query: string) => Promise<Tag[]>;
+  /** Whether this clip entry is focused via keyboard navigation */
+  isFocused?: boolean;
+  /** Index of the focused button (-1 if no button focused) */
+  focusedButtonIndex?: number;
+  /** Whether the clip is expanded via keyboard navigation */
+  isExpandedByKeyboard?: boolean;
+  /** Callback when keyboard expansion state changes */
+  onKeyboardExpandChange?: (expanded: boolean) => void;
 }
+
+// Button action types for keyboard navigation
+type ClipButtonAction = "copy" | "share" | "favorite" | "notes" | "expand" | "delete";
 
 // Image file extensions
 const IMAGE_EXTENSIONS = [
@@ -169,6 +180,10 @@ export function ClipEntry({
   onSetStartDate,
   onSetEndDate,
   onSearchTags,
+  isFocused = false,
+  focusedButtonIndex = -1,
+  isExpandedByKeyboard,
+  onKeyboardExpandChange,
 }: ClipEntryProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
@@ -176,6 +191,7 @@ export function ClipEntry({
   const cleanupConfig = useCleanupConfig();
   const serverConfig = useServerConfig();
   const favorite = isFavorite(clip);
+  const entryRef = useRef<HTMLDivElement>(null);
 
   // Calculate age-based opacity for visual aging effect
   const ageStyle = useMemo(() => {
@@ -206,7 +222,16 @@ export function ClipEntry({
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  // Local expanded state, but keyboard can override it
+  const [isExpandedLocal, setIsExpandedLocal] = useState(false);
+  // Use keyboard-controlled expansion if provided, otherwise use local state
+  const isExpanded = isExpandedByKeyboard !== undefined ? isExpandedByKeyboard : isExpandedLocal;
+  const setIsExpanded = (expanded: boolean) => {
+    if (onKeyboardExpandChange) {
+      onKeyboardExpandChange(expanded);
+    }
+    setIsExpandedLocal(expanded);
+  };
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(() => detectLanguage(clip.content));
   const [showNotesPopup, setShowNotesPopup] = useState(false);
   const [notesValue, setNotesValue] = useState(clip.additional_notes || "");
@@ -288,6 +313,87 @@ export function ClipEntry({
       }
     }
   }, [clip.id, isImage, api]);
+
+  // Handler for keyboard-triggered button activation
+  const handleKeyboardButtonActivate = useCallback((action: ClipButtonAction) => {
+    switch (action) {
+      case "copy":
+        // Simulate copy click
+        if (isImage && api.copyImageToClipboard) {
+          api.copyImageToClipboard(clip.id).then(() => {
+            showToast(t("toast.imageCopied"));
+          }).catch(() => {
+            showToast(t("toast.copyFailed"), "error");
+          });
+        } else {
+          api.copyToClipboard(clip.content).then(() => {
+            showToast(t("toast.clipCopied"));
+          }).catch(() => {
+            showToast(t("toast.copyFailed"), "error");
+          });
+        }
+        break;
+      case "share":
+        if (serverConfig?.shortUrlEnabled) {
+          setShowShareDialog(true);
+        }
+        break;
+      case "favorite":
+        onToggleFavorite(clip);
+        break;
+      case "notes":
+        setNotesValue(clip.additional_notes || "");
+        // Calculate position for notes popup
+        const button = notesButtonRef.current;
+        if (button) {
+          const rect = button.getBoundingClientRect();
+          const popupHeight = 220;
+          const viewportHeight = window.innerHeight;
+          const spaceAbove = rect.top;
+          const spaceBelow = viewportHeight - rect.bottom;
+          const gap = 8;
+          const showBelow = spaceAbove < popupHeight + gap || spaceBelow > spaceAbove;
+          setNotesPopupPosition({
+            top: showBelow ? rect.bottom + gap : rect.top - gap,
+            left: rect.left + rect.width / 2,
+            showBelow,
+          });
+        }
+        setShowNotesPopup(true);
+        break;
+      case "expand":
+        if (isLongContent && !isImage) {
+          setIsExpanded(!isExpanded);
+        }
+        break;
+      case "delete":
+        setShowDeleteConfirm(true);
+        break;
+    }
+  }, [clip, isImage, isLongContent, isExpanded, api, serverConfig, onToggleFavorite, showToast, t]);
+
+  // Listen for keyboard events from ClipList
+  useEffect(() => {
+    const entry = entryRef.current;
+    if (!entry) return;
+
+    const handleDeleteRequest = () => {
+      setShowDeleteConfirm(true);
+    };
+
+    const handleButtonActivate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ action: ClipButtonAction; buttonIndex: number }>;
+      handleKeyboardButtonActivate(customEvent.detail.action);
+    };
+
+    entry.addEventListener("keyboard-delete-request", handleDeleteRequest);
+    entry.addEventListener("keyboard-button-activate", handleButtonActivate);
+
+    return () => {
+      entry.removeEventListener("keyboard-delete-request", handleDeleteRequest);
+      entry.removeEventListener("keyboard-button-activate", handleButtonActivate);
+    };
+  }, [handleKeyboardButtonActivate]);
 
   const handleCopyClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -649,6 +755,24 @@ export function ClipEntry({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [tagToRemove, removingTag]);
 
+  // Handle keyboard events for delete confirmation dialog
+  useEffect(() => {
+    if (!showDeleteConfirm) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowDeleteConfirm(false);
+      } else if (e.key === "Enter" && !deleting) {
+        e.preventDefault();
+        handleDeleteConfirm();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showDeleteConfirm, deleting]);
+
   // Handle click on the clip entry itself - toggle expand/collapse for long content
   const handleEntryClick = () => {
     // Only toggle if content is long (not for images)
@@ -662,15 +786,24 @@ export function ClipEntry({
     "clip-entry",
     isImage ? "clip-entry-image" : "",
     ageStyle ? "clip-entry-aging" : "",
+    isFocused ? "clip-entry-focused" : "",
   ].filter(Boolean).join(" ");
+
+  // Determine which button is focused for visual highlighting
+  const getButtonFocusClass = (buttonAction: ClipButtonAction) => {
+    const actionIndex = ["copy", "share", "favorite", "notes", "expand", "delete"].indexOf(buttonAction);
+    return focusedButtonIndex === actionIndex ? "button-focused" : "";
+  };
 
   return (
     <>
       <div
+        ref={entryRef}
         className={clipEntryClassName}
         style={ageStyle}
         onClick={handleEntryClick}
         data-clip-id={clip.id}
+        tabIndex={isFocused ? 0 : -1}
       >
         <div className="clip-header">
           <div className="clip-header-left">
@@ -690,7 +823,7 @@ export function ClipEntry({
               <Tooltip content={truncateNotesForTooltip(clip.additional_notes!)} position="top" maxWidth={450}>
                 <button
                   ref={notesButtonRef}
-                  className="notes-indicator"
+                  className={`notes-indicator ${getButtonFocusClass("notes")}`}
                   onClick={handleNotesClick}
                   title={t("tooltip.viewNotes")}
                 >
@@ -715,7 +848,7 @@ export function ClipEntry({
             ) : (
               <button
                 ref={notesButtonRef}
-                className="notes-indicator notes-indicator-empty"
+                className={`notes-indicator notes-indicator-empty ${getButtonFocusClass("notes")}`}
                 onClick={handleNotesClick}
                 title={t("tooltip.addNotes")}
               >
@@ -740,7 +873,7 @@ export function ClipEntry({
           <div className="clip-actions">
             {(!isImage || canCopyImage) && (
               <button
-                className="copy-button"
+                className={`copy-button ${getButtonFocusClass("copy")}`}
                 onClick={handleCopyClick}
                 title={isImage ? t("tooltip.copyImage") : t("tooltip.copy")}
               >
@@ -763,7 +896,7 @@ export function ClipEntry({
               <>
                 <span className="clip-action-separator">|</span>
                 <button
-                  className="share-button"
+                  className={`share-button ${getButtonFocusClass("share")}`}
                   onClick={handleShareClick}
                   title={t("clip.share")}
                 >
@@ -788,7 +921,7 @@ export function ClipEntry({
             )}
             <span className="clip-action-separator">|</span>
             <button
-              className={`favorite-button ${favorite ? "active" : ""}`}
+              className={`favorite-button ${favorite ? "active" : ""} ${getButtonFocusClass("favorite")}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleFavorite(clip);
@@ -821,7 +954,7 @@ export function ClipEntry({
             />
             {isLongContent && (
               <button
-                className="expand-button"
+                className={`expand-button ${getButtonFocusClass("expand")}`}
                 onClick={handleExpandToggle}
                 title={isExpanded ? t("clip.collapse") : t("clip.expand")}
               >
@@ -959,7 +1092,7 @@ export function ClipEntry({
         )}
 
         <button
-          className="delete-button"
+          className={`delete-button ${getButtonFocusClass("delete")}`}
           onClick={handleDeleteClick}
           title={t("clip.delete")}
         >

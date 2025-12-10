@@ -13,7 +13,9 @@ import {
   useServerConfig,
   SearchBox,
   DateFilter,
+  DateFilterHandle,
   FavoriteToggle,
+  FavoriteToggleHandle,
   ClipList,
   Tag,
 } from "@unwritten-codes/clipper-ui";
@@ -76,6 +78,21 @@ function App() {
   // Track recently deleted/updated clip IDs to avoid refetching on WebSocket events
   // that we triggered ourselves (which would reset the list and lose scroll position)
   const recentlyModifiedClipIds = useRef<Set<string>>(new Set());
+
+  // Refs for keyboard navigation tab cycling
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const dateFilterRef = useRef<DateFilterHandle>(null);
+  const favoriteToggleRef = useRef<FavoriteToggleHandle>(null);
+
+  // Create a ref object that calls the handle's focus method (for SearchBox's shiftTabCycleRef)
+  const favoriteToggleFocusRef = useRef<HTMLInputElement>({
+    focus: () => favoriteToggleRef.current?.focus(),
+  } as HTMLInputElement);
+
+  // Create a ref object that calls the handle's focusEndDate method (for FavoriteToggle's shiftTabCycleRef)
+  const dateFilterEndDateFocusRef = useRef<HTMLInputElement>({
+    focus: () => dateFilterRef.current?.focusEndDate(),
+  } as HTMLInputElement);
 
   // Tag search requires index version >= 2
   const tagSearchSupported = (serverConfig?.indexVersion ?? 0) >= 2;
@@ -522,9 +539,11 @@ function App() {
                 onAddTag={handleAddTagFilter}
                 onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
                 onListTags={tagSearchSupported ? handleListTags : undefined}
+                inputRef={searchInputRef}
+                shiftTabCycleRef={favoriteToggleFocusRef}
               />
-              <DateFilter filters={filters} onChange={setFilters} />
-              <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
+              <DateFilter ref={dateFilterRef} filters={filters} onChange={setFilters} shiftTabCycleRef={searchInputRef} />
+              <FavoriteToggle ref={favoriteToggleRef} value={favoritesOnly} onChange={setFavoritesOnly} tabCycleRef={searchInputRef} shiftTabCycleRef={dateFilterEndDateFocusRef} />
             </div>
           </>
         ) : (
@@ -664,9 +683,11 @@ function App() {
                 onAddTag={handleAddTagFilter}
                 onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
                 onListTags={tagSearchSupported ? handleListTags : undefined}
+                inputRef={searchInputRef}
+                shiftTabCycleRef={favoriteToggleFocusRef}
               />
-              <DateFilter filters={filters} onChange={setFilters} />
-              <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
+              <DateFilter ref={dateFilterRef} filters={filters} onChange={setFilters} shiftTabCycleRef={searchInputRef} />
+              <FavoriteToggle ref={favoriteToggleRef} value={favoritesOnly} onChange={setFavoritesOnly} tabCycleRef={searchInputRef} shiftTabCycleRef={dateFilterEndDateFocusRef} />
             </div>
           </>
         )}
@@ -691,6 +712,7 @@ function App() {
             showBundledServerReason={useBundledServer}
             onOpenUrl={openUrl}
             onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
+            searchInputRef={searchInputRef}
           />
         </main>
 

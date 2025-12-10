@@ -1,9 +1,18 @@
+import { useRef, useImperativeHandle, forwardRef } from "react";
 import { SearchFilters } from "../types";
 import { useI18n } from "../i18n";
+
+/** Handle to access DateFilter's internal refs */
+export interface DateFilterHandle {
+  /** Focus the end-date input */
+  focusEndDate: () => void;
+}
 
 interface DateFilterProps {
   filters: SearchFilters;
   onChange: (filters: SearchFilters) => void;
+  /** Reference to the search input for Shift+Tab cycling from start-date */
+  shiftTabCycleRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 /**
@@ -30,8 +39,18 @@ function formatLocalDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function DateFilter({ filters, onChange }: DateFilterProps) {
+export const DateFilter = forwardRef<DateFilterHandle, DateFilterProps>(function DateFilter(
+  { filters, onChange, shiftTabCycleRef },
+  ref
+) {
   const { t } = useI18n();
+  const startDateRef = useRef<HTMLInputElement>(null);
+  const endDateRef = useRef<HTMLInputElement>(null);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    focusEndDate: () => endDateRef.current?.focus(),
+  }));
 
   /**
    * Handle start date change from the date picker.
@@ -101,21 +120,48 @@ export function DateFilter({ filters, onChange }: DateFilterProps) {
     return formatLocalDate(date);
   };
 
+  // Handle keyboard navigation for start-date input
+  const handleStartDateKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.currentTarget.blur();
+    } else if (e.key === "Tab" && e.shiftKey && shiftTabCycleRef?.current) {
+      // Shift+Tab cycles back to search input
+      e.preventDefault();
+      shiftTabCycleRef.current.focus();
+    }
+  };
+
+  // Handle keyboard navigation for end-date input
+  const handleEndDateKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.currentTarget.blur();
+    } else if (e.key === "Tab" && e.shiftKey) {
+      // Shift+Tab goes to start-date input
+      e.preventDefault();
+      startDateRef.current?.focus();
+    }
+  };
+
   return (
     <div className="date-filter">
       <div className={`date-input-group${filters.start_date ? " date-input-group-active" : ""}`}>
         <label htmlFor="start-date">{t("filter.from")}</label>
         <input
+          ref={startDateRef}
           type="date"
           id="start-date"
           value={formatDateForInput(filters.start_date, false)}
           onChange={(e) => handleStartDateChange(e.target.value)}
+          onKeyDown={handleStartDateKeyDown}
           className="date-input"
         />
         {filters.start_date && (
           <button
             className="clear-button small"
             onClick={() => handleStartDateChange("")}
+            tabIndex={-1}
           >
             ×
           </button>
@@ -124,16 +170,19 @@ export function DateFilter({ filters, onChange }: DateFilterProps) {
       <div className={`date-input-group${filters.end_date ? " date-input-group-active" : ""}`}>
         <label htmlFor="end-date">{t("filter.to")}</label>
         <input
+          ref={endDateRef}
           type="date"
           id="end-date"
           value={formatDateForInput(filters.end_date, true)}
           onChange={(e) => handleEndDateChange(e.target.value)}
+          onKeyDown={handleEndDateKeyDown}
           className="date-input"
         />
         {filters.end_date && (
           <button
             className="clear-button small"
             onClick={() => handleEndDateChange("")}
+            tabIndex={-1}
           >
             ×
           </button>
@@ -141,4 +190,4 @@ export function DateFilter({ filters, onChange }: DateFilterProps) {
       </div>
     </div>
   );
-}
+});

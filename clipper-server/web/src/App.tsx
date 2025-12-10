@@ -10,7 +10,9 @@ import {
   useServerConfig,
   SearchBox,
   DateFilter,
+  DateFilterHandle,
   FavoriteToggle,
+  FavoriteToggleHandle,
   ClipList,
   Tag,
 } from "@unwritten-codes/clipper-ui";
@@ -56,6 +58,21 @@ function App({ authToken }: AppProps) {
 
   // Track if we've shown the connected toast (only show once per session)
   const hasShownConnectedToast = useRef(false);
+
+  // Refs for keyboard navigation tab cycling
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const dateFilterRef = useRef<DateFilterHandle>(null);
+  const favoriteToggleRef = useRef<FavoriteToggleHandle>(null);
+
+  // Create a ref object that calls the handle's focus method (for SearchBox's shiftTabCycleRef)
+  const favoriteToggleFocusRef = useRef<HTMLInputElement>({
+    focus: () => favoriteToggleRef.current?.focus(),
+  } as HTMLInputElement);
+
+  // Create a ref object that calls the handle's focusEndDate method (for FavoriteToggle's shiftTabCycleRef)
+  const dateFilterEndDateFocusRef = useRef<HTMLInputElement>({
+    focus: () => dateFilterRef.current?.focusEndDate(),
+  } as HTMLInputElement);
 
   // File drop state
   const [isDragging, setIsDragging] = useState(false);
@@ -482,9 +499,11 @@ function App({ authToken }: AppProps) {
           onAddTag={handleAddTagFilter}
           onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
           onListTags={tagSearchSupported ? handleListTags : undefined}
+          inputRef={searchInputRef}
+          shiftTabCycleRef={favoriteToggleFocusRef}
         />
-        <DateFilter filters={filters} onChange={setFilters} />
-        <FavoriteToggle value={favoritesOnly} onChange={setFavoritesOnly} />
+        <DateFilter ref={dateFilterRef} filters={filters} onChange={setFilters} shiftTabCycleRef={searchInputRef} />
+        <FavoriteToggle ref={favoriteToggleRef} value={favoritesOnly} onChange={setFavoritesOnly} tabCycleRef={searchInputRef} shiftTabCycleRef={dateFilterEndDateFocusRef} />
       </div>
 
       <main className="app-main">
@@ -504,6 +523,7 @@ function App({ authToken }: AppProps) {
           onSetEndDate={handleSetEndDate}
           onOpenUrl={(url) => window.open(url, "_blank", "noopener,noreferrer")}
           onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
+          searchInputRef={searchInputRef}
         />
       </main>
 

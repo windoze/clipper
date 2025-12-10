@@ -131,6 +131,18 @@
   border-color: #667eea;
 }
 
+/* Keyboard navigation focused state - dark mode */
+:root[data-theme="dark"] .clip-entry.clip-entry-focused {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4);
+}
+
+/* Button focused state via keyboard navigation - dark mode */
+:root[data-theme="dark"] .clip-entry .button-focused {
+  outline: 2px solid #8b9cf7;
+  outline-offset: 2px;
+}
+
 /* Aging effect works the same in dark mode - just uses CSS variable */
 :root[data-theme="dark"] .clip-entry.clip-entry-aging:hover {
   opacity: 1;
@@ -185,6 +197,10 @@
 :root[data-theme="dark"] .date-tag-arrow:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
+}
+
+:root[data-theme="dark"] .date-tag-arrow:focus {
+  background: rgba(59, 130, 246, 0.2);
 }
 
 :root[data-theme="dark"] .language-selector-dropdown {
@@ -832,6 +848,18 @@
 
   :root:not([data-theme="light"]) .clip-entry:hover {
     border-color: #667eea;
+  }
+
+  /* Keyboard navigation focused state - dark mode auto */
+  :root:not([data-theme="light"]) .clip-entry.clip-entry-focused {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4);
+  }
+
+  /* Button focused state via keyboard navigation - dark mode auto */
+  :root:not([data-theme="light"]) .clip-entry .button-focused {
+    outline: 2px solid #8b9cf7;
+    outline-offset: 2px;
   }
 
   :root:not([data-theme="light"]) .clip-content {

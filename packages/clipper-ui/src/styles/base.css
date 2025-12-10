@@ -493,6 +493,7 @@
 }
 
 .toggle-label {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -501,7 +502,19 @@
 }
 
 .toggle-input {
-  display: none;
+  /* Use opacity/position instead of display:none to keep it focusable for keyboard navigation */
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Show focus ring on the toggle switch when the hidden input is focused */
+.toggle-input:focus-visible + .toggle-switch {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
 }
 
 .toggle-switch {
@@ -711,6 +724,35 @@
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
 }
 
+/* Keyboard navigation focused state */
+.clip-entry.clip-entry-focused {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+  outline: none;
+}
+
+.clip-entry.clip-entry-focused:focus {
+  outline: none;
+}
+
+/* Button focused state via keyboard navigation */
+.clip-entry .button-focused {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Specific button focus overrides */
+.clip-entry .copy-button.button-focused,
+.clip-entry .share-button.button-focused,
+.clip-entry .favorite-button.button-focused,
+.clip-entry .notes-indicator.button-focused,
+.clip-entry .expand-button.button-focused,
+.clip-entry .delete-button.button-focused {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
 /* Aging effect for clips approaching auto-cleanup */
 .clip-entry.clip-entry-aging {
   opacity: var(--clip-age-opacity, 1);
@@ -795,6 +837,13 @@
   opacity: 1;
   background: rgba(0, 0, 0, 0.1);
   color: #212529;
+}
+
+.date-tag-arrow:focus {
+  opacity: 1;
+  outline: 2px solid var(--accent-color, #007bff);
+  outline-offset: 1px;
+  background: rgba(0, 123, 255, 0.1);
 }
 
 .date-tag-arrow-left {
