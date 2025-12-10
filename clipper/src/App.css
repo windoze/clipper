@@ -225,29 +225,66 @@ body {
   user-select: none;
 }
 
-/* Linux: Transparent background for rounded corners */
+/* Linux: Transparent background for rounded corners and drop shadow */
 :root[data-platform="linux"],
 :root[data-platform="linux"] body {
   background: transparent !important;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Linux: Add padding to root container to show shadow */
+:root[data-platform="linux"] #root {
+  padding: 12px;
+  box-sizing: border-box;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 
 /* Linux: Custom rounded corners and shadow for non-decorated window */
 .app.linux {
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  /* Layered shadow for smooth fade-out like native WM shadows */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 0 2px rgba(0, 0, 0, 0.10),
+    0 0 4px rgba(0, 0, 0, 0.09),
+    0 0 8px rgba(0, 0, 0, 0.07),
+    0 0 16px rgba(0, 0, 0, 0.05),
+    0 0 24px rgba(0, 0, 0, 0.03),
+    0 0 32px rgba(0, 0, 0, 0.01);
   background: #ffffff;
+  /* Override the 100vh from base.css - use 100% to fit within padded #root */
+  height: 100%;
+  width: 100%;
 }
 
 :root[data-theme="dark"] .app.linux {
   background: #1a1a1a;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.15),
+    0 0 2px rgba(0, 0, 0, 0.18),
+    0 0 4px rgba(0, 0, 0, 0.15),
+    0 0 8px rgba(0, 0, 0, 0.12),
+    0 0 16px rgba(0, 0, 0, 0.08),
+    0 0 24px rgba(0, 0, 0, 0.05),
+    0 0 32px rgba(0, 0, 0, 0.02);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .app.linux {
     background: #1a1a1a;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.15),
+      0 0 2px rgba(0, 0, 0, 0.18),
+      0 0 4px rgba(0, 0, 0, 0.15),
+      0 0 8px rgba(0, 0, 0, 0.12),
+      0 0 16px rgba(0, 0, 0, 0.08),
+      0 0 24px rgba(0, 0, 0, 0.05),
+      0 0 32px rgba(0, 0, 0, 0.02);
   }
 }
 
@@ -787,6 +824,12 @@ body {
 .drop-zone {
   position: relative;
   height: 100vh;
+}
+
+/* Linux: Override drop-zone height to fit within padded container */
+.linux .drop-zone,
+:root[data-platform="linux"] .drop-zone {
+  height: 100%;
 }
 
 /* ============================================
