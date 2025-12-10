@@ -7,7 +7,7 @@
 use gtk::gdk;
 use gtk::glib;
 use gtk::prelude::*;
-use gtk::{Box as GtkBox, Button, DrawingArea, EventBox, HeaderBar, Image, Label, Orientation};
+use gtk::{Box as GtkBox, Button, DrawingArea, HeaderBar, Image, Label, Orientation};
 use log::info;
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -41,11 +41,55 @@ pub fn setup_gtk_headerbar(app: &AppHandle) -> Result<(), String> {
         .map_err(|e| format!("Failed to get GTK window: {}", e))?;
 
     // Ensure the window is decorated and resizable
+    // Note: set_decorated(true) is important for CSD to work properly
     gtk_window.set_decorated(true);
     gtk_window.set_resizable(true);
 
+    // Set the type hint to normal window to ensure proper window management
+    gtk_window.set_type_hint(gdk::WindowTypeHint::Normal);
+
     // Create and configure the header bar
     let header_bar = create_headerbar(app, &gtk_window);
+
+    // Connect button press event on the header bar itself for dragging empty areas
+    let window_for_headerbar_drag = gtk_window.clone();
+    header_bar.connect_button_press_event(move |_widget, event| {
+        if event.button() == 1 {
+            // Left mouse button - initiate window drag
+            let (x, y) = event.root();
+            window_for_headerbar_drag.begin_move_drag(
+                event.button() as i32,
+                x as i32,
+                y as i32,
+                event.time(),
+            );
+            glib::Propagation::Stop
+        } else if event.button() == 3 {
+            // Right mouse button could show window menu (optional)
+            glib::Propagation::Proceed
+        } else {
+            glib::Propagation::Proceed
+        }
+    });
+
+    // Handle double-click on header bar to toggle maximize
+    let window_for_double_click = gtk_window.clone();
+    header_bar.connect_event(move |_widget, event| {
+        if event.event_type() == gdk::EventType::DoubleButtonPress {
+            if let Some(button_event) = event.downcast_ref::<gdk::EventButton>() {
+                if button_event.button() == 1 {
+                    // Toggle maximize on double-click
+                    if window_for_double_click.is_maximized() {
+                        window_for_double_click.unmaximize();
+                    } else {
+                        window_for_double_click.maximize();
+                    }
+                    return glib::Propagation::Stop;
+                }
+            }
+        }
+        glib::Propagation::Proceed
+    });
 
     // Set the header bar as the window's titlebar
     gtk_window.set_titlebar(Some(&header_bar));
@@ -66,38 +110,9 @@ fn create_headerbar(app: &AppHandle, gtk_window: &gtk::ApplicationWindow) -> Hea
     header_bar.set_show_close_button(true);
     header_bar.set_decoration_layout(Some(":minimize,maximize,close"));
 
-    // Don't use the built-in title - we'll create a custom draggable one
-    header_bar.set_title(None);
+    // Set the title using the built-in title (simpler approach)
+    header_bar.set_title(Some("Clipper"));
     header_bar.set_has_subtitle(false);
-
-    // Create a custom title widget that supports dragging
-    let title_event_box = EventBox::new();
-    title_event_box.set_visible_window(false); // Transparent event box
-    title_event_box.set_above_child(false);
-
-    let title_label = Label::new(Some("Clipper"));
-    title_label.style_context().add_class("title");
-    title_event_box.add(&title_label);
-
-    // Handle button press on title to initiate window drag
-    let window_for_drag = gtk_window.clone();
-    title_event_box.connect_button_press_event(move |_widget, event| {
-        if event.button() == 1 {
-            // Left mouse button
-            let (x, y) = event.root();
-            window_for_drag.begin_move_drag(
-                event.button() as i32,
-                x as i32,
-                y as i32,
-                event.time(),
-            );
-            glib::Propagation::Stop
-        } else {
-            glib::Propagation::Proceed
-        }
-    });
-
-    header_bar.set_custom_title(Some(&title_event_box));
 
     // === Right side controls (pack_end adds from right to left) ===
 
