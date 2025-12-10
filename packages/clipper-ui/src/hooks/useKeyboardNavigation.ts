@@ -484,6 +484,34 @@ export function useKeyboardNavigation({
 
     if (key === "ArrowUp") {
       e.preventDefault();
+      // Check if we're at the first clip - if so, focus search and scroll to top
+      if (focusedClipId && clips.length > 0) {
+        const currentIndex = clips.findIndex(clip => clip.id === focusedClipId);
+        if (currentIndex === 0) {
+          // At the first clip - focus search input and scroll to top
+          clearFocus();
+          if (searchInputRef?.current) {
+            searchInputRef.current.focus();
+            setSearchFocused(true);
+          }
+          // Scroll to top
+          const clipListElement = containerRef?.current;
+          if (clipListElement) {
+            let scrollableParent: HTMLElement | null = clipListElement.parentElement;
+            while (scrollableParent) {
+              const style = window.getComputedStyle(scrollableParent);
+              const overflowY = style.overflowY;
+              if (overflowY === "auto" || overflowY === "scroll") {
+                break;
+              }
+              scrollableParent = scrollableParent.parentElement;
+            }
+            const scrollContainer = scrollableParent || clipListElement;
+            scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+          }
+          return;
+        }
+      }
       focusPreviousClip();
       return;
     }

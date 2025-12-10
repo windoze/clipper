@@ -134,6 +134,8 @@ export function ClipList({
   const {
     focusedClipId,
     focusedButtonIndex,
+    setFocusedClipId,
+    setFocusedButtonIndex,
     handleKeyDown,
   } = useKeyboardNavigation({
     clips,
@@ -147,6 +149,12 @@ export function ClipList({
     onLoadMore,
     containerRef,
   });
+
+  // Handle click activation of a clip (without scrolling)
+  const handleClipActivate = useCallback((clipId: string) => {
+    setFocusedClipId(clipId);
+    setFocusedButtonIndex(-1);
+  }, [setFocusedClipId, setFocusedButtonIndex]);
 
   // Global keyboard listener for navigation
   // Use capture phase to intercept Tab/Arrow keys before browser default behavior
@@ -311,6 +319,7 @@ export function ClipList({
               return next;
             });
           }}
+          onActivate={handleClipActivate}
         />
       ))}
 

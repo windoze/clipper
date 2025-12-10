@@ -32,6 +32,8 @@ interface ClipEntryProps {
   isExpandedByKeyboard?: boolean;
   /** Callback when keyboard expansion state changes */
   onKeyboardExpandChange?: (expanded: boolean) => void;
+  /** Callback when the clip entry is clicked to activate it */
+  onActivate?: (clipId: string) => void;
 }
 
 // Button action types for keyboard navigation
@@ -184,6 +186,7 @@ export function ClipEntry({
   focusedButtonIndex = -1,
   isExpandedByKeyboard,
   onKeyboardExpandChange,
+  onActivate,
 }: ClipEntryProps) {
   const { t } = useI18n();
   const { showToast } = useToast();
@@ -773,8 +776,10 @@ export function ClipEntry({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showDeleteConfirm, deleting]);
 
-  // Handle click on the clip entry itself - toggle expand/collapse for long content
+  // Handle click on the clip entry itself - activate it and toggle expand/collapse for long content
   const handleEntryClick = () => {
+    // Always activate on click
+    onActivate?.(clip.id);
     // Only toggle if content is long (not for images)
     if (isLongContent && !isImage) {
       setIsExpanded(!isExpanded);
