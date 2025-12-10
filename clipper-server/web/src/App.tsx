@@ -24,6 +24,9 @@ interface AppProps {
   authToken?: string;
 }
 
+// Detect platform for keyboard shortcut display
+const isMac = typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+
 function App({ authToken }: AppProps) {
   const { t } = useI18n();
   const {
@@ -309,6 +312,24 @@ function App({ authToken }: AppProps) {
     }
   }, [api, showToast, t, refetch]);
 
+  // Keyboard shortcuts (Cmd/Ctrl+U for upload, Cmd/Ctrl+, for settings)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const modifierPressed = isMac ? e.metaKey : e.ctrlKey;
+
+      if (modifierPressed && e.key === "u") {
+        e.preventDefault();
+        handleSendClipboard();
+      } else if (modifierPressed && e.key === ",") {
+        e.preventDefault();
+        openSettings();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSendClipboard, openSettings]);
+
   return (
     <div
       className={`app ${isDragging ? "dragging" : ""}`}
@@ -436,6 +457,7 @@ function App({ authToken }: AppProps) {
               rel="noopener noreferrer"
               className="header-link"
               title="Clipper Homepage"
+              tabIndex={-1}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.707 1.5ZM13 7.207V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V7.207l5-5 5 5Z"/>
@@ -447,6 +469,7 @@ function App({ authToken }: AppProps) {
               rel="noopener noreferrer"
               className="header-link"
               title="GitHub Repository"
+              tabIndex={-1}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
@@ -468,7 +491,8 @@ function App({ authToken }: AppProps) {
             <button
               className="header-button-group-item"
               onClick={handleSendClipboard}
-              title={t("tooltip.sendClipboard")}
+              title={`${t("tooltip.sendClipboard")} (${isMac ? "⌘" : "Ctrl+"}U)`}
+              tabIndex={-1}
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
@@ -478,7 +502,8 @@ function App({ authToken }: AppProps) {
             <button
               className="header-button-group-item"
               onClick={openSettings}
-              title={t("tooltip.settings")}
+              title={`${t("tooltip.settings")} (${isMac ? "⌘" : "Ctrl+"},)`}
+              tabIndex={-1}
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z" />
