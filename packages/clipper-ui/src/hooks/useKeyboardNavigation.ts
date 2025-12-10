@@ -592,47 +592,47 @@ export function useKeyboardNavigation({
         }
       }
 
-      // Left/Right arrow keys - when focus is on an element within the clip,
-      // move to adjacent focusable elements; otherwise cycle through button indices
+      // Left/Right arrow keys - behave like Tab/Shift+Tab for navigating focusable elements
       if (key === "ArrowRight" || key === "ArrowLeft") {
         const clipElement = document.querySelector(`[data-clip-id="${focusedClipId}"]`);
         if (clipElement) {
-          const activeElement = document.activeElement as HTMLElement;
-          // Check if focus is on an element within the clip
-          if (clipElement.contains(activeElement) && activeElement !== clipElement) {
-            // Focus is on a specific element within the clip - move to adjacent element
-            const focusableSelectors = [
-              "button:not([disabled])",
-              "input:not([disabled])",
-              "select:not([disabled])",
-              "[tabindex]:not([tabindex='-1'])",
-            ].join(", ");
-            const focusableElements = Array.from(
-              clipElement.querySelectorAll(focusableSelectors)
-            ) as HTMLElement[];
+          // Get all focusable elements within the clip
+          const focusableSelectors = [
+            "button:not([disabled])",
+            "input:not([disabled])",
+            "select:not([disabled])",
+            "[tabindex]:not([tabindex='-1'])",
+          ].join(", ");
+          const focusableElements = Array.from(
+            clipElement.querySelectorAll(focusableSelectors)
+          ) as HTMLElement[];
 
+          if (focusableElements.length > 0) {
+            e.preventDefault();
+            const activeElement = document.activeElement as HTMLElement;
             const currentIndex = focusableElements.indexOf(activeElement);
-            if (currentIndex !== -1) {
-              e.preventDefault();
-              if (key === "ArrowRight") {
-                // Move to next element, wrap to first
-                const nextIndex = currentIndex >= focusableElements.length - 1 ? 0 : currentIndex + 1;
-                focusableElements[nextIndex].focus();
+
+            if (key === "ArrowRight") {
+              if (currentIndex === -1) {
+                // Not focused on any element, focus the first one
+                focusableElements[0].focus();
+              } else if (currentIndex >= focusableElements.length - 1) {
+                // At the last element, wrap to first
+                focusableElements[0].focus();
               } else {
-                // Move to previous element, wrap to last
-                const prevIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
-                focusableElements[prevIndex].focus();
+                focusableElements[currentIndex + 1].focus();
               }
-              return;
+            } else {
+              // ArrowLeft - go backwards
+              if (currentIndex <= 0) {
+                // At the first element or not focused on any element, wrap to last
+                focusableElements[focusableElements.length - 1].focus();
+              } else {
+                focusableElements[currentIndex - 1].focus();
+              }
             }
+            return;
           }
-        }
-        // Fall back to cycling through button indices (visual highlight mode)
-        e.preventDefault();
-        if (key === "ArrowRight") {
-          focusNextButton();
-        } else {
-          focusPreviousButton();
         }
         return;
       }
