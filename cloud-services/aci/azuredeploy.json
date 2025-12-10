@@ -138,13 +138,129 @@
             }
         },
         {
+            "condition": "[not(parameters('enableLogging'))]",
             "type": "Microsoft.ContainerInstance/containerGroups",
             "apiVersion": "2023-05-01",
             "name": "[parameters('containerGroupName')]",
             "location": "[parameters('location')]",
-            "dependsOn": "[concat(array(resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', parameters('fileShareName'))), if(parameters('enableLogging'), array(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))), createArray()))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', parameters('fileShareName'))]"
+            ],
             "properties": {
-                "diagnostics": "[if(parameters('enableLogging'), createObject('logAnalytics', createObject('workspaceId', reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2015-11-01-preview').customerId, 'workspaceKey', listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2015-11-01-preview').primarySharedKey, 'logType', 'ContainerInsights')), null())]",
+                "containers": [
+                    {
+                        "name": "[parameters('containerGroupName')]",
+                        "properties": {
+                            "image": "[concat('windoze/clipper-server:', parameters('imageTag'))]",
+                            "resources": {
+                                "requests": {
+                                    "cpu": "[json(parameters('cpuCores'))]",
+                                    "memoryInGB": "[json(parameters('memoryInGb'))]"
+                                }
+                            },
+                            "ports": [
+                                {
+                                    "port": 80,
+                                    "protocol": "TCP"
+                                },
+                                {
+                                    "port": 443,
+                                    "protocol": "TCP"
+                                }
+                            ],
+                            "environmentVariables": [
+                                {
+                                    "name": "PORT",
+                                    "value": "80"
+                                },
+                                {
+                                    "name": "CLIPPER_TLS_PORT",
+                                    "value": "443"
+                                },
+                                {
+                                    "name": "CLIPPER_BEARER_TOKEN",
+                                    "secureValue": "[parameters('bearerToken')]"
+                                },
+                                {
+                                    "name": "CLIPPER_ACME_ENABLED",
+                                    "value": "true"
+                                },
+                                {
+                                    "name": "CLIPPER_ACME_DOMAIN",
+                                    "value": "[variables('containerFqdn')]"
+                                },
+                                {
+                                    "name": "CLIPPER_ACME_EMAIL",
+                                    "value": "[parameters('acmeEmail')]"
+                                },
+                                {
+                                    "name": "CLIPPER_SHORT_URL_BASE",
+                                    "value": "[concat('https://', variables('containerFqdn'))]"
+                                },
+                                {
+                                    "name": "CLIPPER_DB_PATH",
+                                    "value": "/data/db"
+                                },
+                                {
+                                    "name": "CLIPPER_STORAGE_PATH",
+                                    "value": "/data/storage"
+                                }
+                            ],
+                            "volumeMounts": [
+                                {
+                                    "name": "clipper-data",
+                                    "mountPath": "/data"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "osType": "Linux",
+                "restartPolicy": "Always",
+                "ipAddress": {
+                    "type": "Public",
+                    "ports": [
+                        {
+                            "port": 80,
+                            "protocol": "TCP"
+                        },
+                        {
+                            "port": 443,
+                            "protocol": "TCP"
+                        }
+                    ],
+                    "dnsNameLabel": "[parameters('dnsNameLabel')]"
+                },
+                "volumes": [
+                    {
+                        "name": "clipper-data",
+                        "azureFile": {
+                            "shareName": "[parameters('fileShareName')]",
+                            "storageAccountName": "[parameters('storageAccountName')]",
+                            "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2023-01-01').keys[0].value]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "condition": "[parameters('enableLogging')]",
+            "type": "Microsoft.ContainerInstance/containerGroups",
+            "apiVersion": "2023-05-01",
+            "name": "[parameters('containerGroupName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', parameters('fileShareName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
+            ],
+            "properties": {
+                "diagnostics": {
+                    "logAnalytics": {
+                        "workspaceId": "[if(parameters('enableLogging'), reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2015-11-01-preview').customerId, '')]",
+                        "workspaceKey": "[if(parameters('enableLogging'), listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2015-11-01-preview').primarySharedKey, '')]",
+                        "logType": "ContainerInsights"
+                    }
+                },
                 "containers": [
                     {
                         "name": "[parameters('containerGroupName')]",
