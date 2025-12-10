@@ -226,6 +226,14 @@
   background: #5a6fd6;
 }
 
+:root[data-theme="dark"] .language-selector-option.highlighted {
+  background: #363636;
+}
+
+:root[data-theme="dark"] .language-selector-option.selected.highlighted {
+  background: #5a6fd6;
+}
+
 :root[data-theme="dark"] .clip-date,
 :root[data-theme="dark"] .status-bar,
 :root[data-theme="dark"] .header-status,
@@ -903,6 +911,14 @@
   :root:not([data-theme="light"]) .language-selector-option.selected {
     background: #667eea;
     color: white;
+  }
+
+  :root:not([data-theme="light"]) .language-selector-option.highlighted {
+    background: #363636;
+  }
+
+  :root:not([data-theme="light"]) .language-selector-option.selected.highlighted {
+    background: #5a6fd6;
   }
 
   :root:not([data-theme="light"]) .clip-date,

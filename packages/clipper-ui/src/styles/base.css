@@ -1007,6 +1007,14 @@
   background: #5a6fd6;
 }
 
+.language-selector-option.highlighted {
+  background: #e9ecef;
+}
+
+.language-selector-option.selected.highlighted {
+  background: #5a6fd6;
+}
+
 /* ============================================
    Syntax Highlighting (highlight.js)
    Theme-aware syntax highlighting using data-syntax-theme attribute

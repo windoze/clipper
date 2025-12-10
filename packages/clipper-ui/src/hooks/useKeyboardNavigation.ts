@@ -91,6 +91,7 @@ export function useKeyboardNavigation({
       ".settings-dialog",
       ".image-popup-backdrop",
       ".image-popup-container",
+      ".language-selector-dropdown",
     ];
     return popupSelectors.some(selector => document.querySelector(selector) !== null);
   }, []);
