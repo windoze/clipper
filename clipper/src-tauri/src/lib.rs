@@ -711,6 +711,7 @@ pub fn run() {
             commands::quit_app,
             commands::restart_app,
             commands::update_gtk_server_indicator,
+            commands::update_gtk_clip_count,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

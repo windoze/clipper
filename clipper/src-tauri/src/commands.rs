@@ -1166,3 +1166,17 @@ pub fn update_gtk_server_indicator(connected: bool) {
         let _ = connected;
     }
 }
+
+/// Update the GTK header bar clip count (Linux only)
+/// This is called from the frontend when the clip count changes
+#[tauri::command]
+pub fn update_gtk_clip_count(count: u64) {
+    #[cfg(target_os = "linux")]
+    crate::gtk_headerbar::update_clip_count(count);
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        // No-op on other platforms
+        let _ = count;
+    }
+}

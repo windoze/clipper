@@ -189,6 +189,32 @@ function App() {
     };
   }, [os, openSettings, refetch]);
 
+  // Linux GTK header bar event listeners
+  useEffect(() => {
+    if (os !== "linux") return;
+
+    // GTK Settings button clicked
+    const unlistenSettings = listen("gtk-settings-clicked", () => {
+      openSettings();
+    });
+
+    // GTK Refresh button clicked
+    const unlistenRefresh = listen("gtk-refresh-clicked", () => {
+      refetch();
+    });
+
+    return () => {
+      unlistenSettings.then((fn) => fn());
+      unlistenRefresh.then((fn) => fn());
+    };
+  }, [os, openSettings, refetch]);
+
+  // Update GTK header bar clip count on Linux when total changes
+  useEffect(() => {
+    if (os !== "linux") return;
+    invoke("update_gtk_clip_count", { count: total }).catch(() => {});
+  }, [os, total]);
+
   // Listen for certificate trust required events
   useEffect(() => {
     const unlistenCertTrust = listen<CertificateInfo>("certificate-trust-required", (event) => {
@@ -441,11 +467,28 @@ function App() {
     <DropZone>
       <div className={`app ${os}`}>
         {/* Only render TitleBar on macOS, for Windows we integrate controls into header */}
-        {/* Linux uses native decorations, so no TitleBar needed */}
+        {/* Linux uses native GTK header bar, so no TitleBar or header needed */}
         {os === "macos" && <TitleBar />}
-        {/* macOS and Linux: Simplified title bar with status and buttons on the right */}
-        {/* Linux uses native window decorations, so no traffic light padding needed */}
-        {os === "macos" || os === "linux" ? (
+        {/* Linux: Only render filters bar, GTK header bar handles title/buttons */}
+        {os === "linux" ? (
+          <div className="filters-bar linux">
+            <SearchBox
+              value={searchQuery}
+              onChange={setSearchQuery}
+              filterTags={filterTags}
+              onRemoveTag={handleRemoveTagFilter}
+              onClearAllTags={handleClearAllTags}
+              onAddTag={handleAddTagFilter}
+              onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
+              onListTags={tagSearchSupported ? handleListTags : undefined}
+              inputRef={searchInputRef}
+              shiftTabCycleRef={favoriteToggleFocusRef}
+            />
+            <DateFilter ref={dateFilterRef} filters={filters} onChange={setFilters} shiftTabCycleRef={searchInputRef} />
+            <FavoriteToggle ref={favoriteToggleRef} value={favoritesOnly} onChange={setFavoritesOnly} tabCycleRef={searchInputRef} shiftTabCycleRef={dateFilterEndDateFocusRef} />
+          </div>
+        ) : os === "macos" ? (
+          /* macOS: Header with status and buttons on the right */
           <>
             <header className="app-header-unified" data-tauri-drag-region>
               {/* Left section: Icon and title */}
