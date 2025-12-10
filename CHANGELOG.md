@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.21.0]
+
+### Added
+
+- Keyboard navigation support
+
+### Improved
+
+- Server web UI improvements
+
+### Fixed
+
+- Fix various focus issues in server web UI
+
 ## [0.20.2]
 
 ### Fixed
