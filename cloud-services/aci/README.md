@@ -9,7 +9,6 @@ This directory contains ARM templates to deploy `windoze/clipper-server:latest` 
 - **Storage Account**: Standard LRS storage with File Share enabled
 - **File Share**: For persistent data storage (mounted to `/data`)
 - **Container Instance**: Running clipper-server with public IP and DNS label
-- **Log Analytics Workspace** (optional): For container logging when `enableLogging` is set to true
 
 ## Prerequisites
 
@@ -47,8 +46,6 @@ az deployment group create \
    - `acmeEmail`: Email for Let's Encrypt certificate notifications (required)
    - `location`: Azure region (leave empty to use resource group location)
    - `dnsNameLabel`: DNS label for the public URL (leave empty to use container name)
-   - `enableLogging`: Set to true to enable Log Analytics logging (default: false)
-   - `logAnalyticsWorkspaceName`: Leave empty for auto-generated name, or specify your own
 
 2. Deploy:
 
@@ -74,7 +71,6 @@ After deployment, the template outputs:
 - `containerUrl`: The HTTPS URL to access the server (e.g., `https://clipper-server.eastus.azurecontainer.io`)
 - `containerIpAddress`: The public IP address of the container
 - `storageAccountName`: The name of the created storage account
-- `logAnalyticsWorkspaceName`: The name of the Log Analytics workspace (only if logging is enabled)
 
 ## Configuration
 
@@ -116,7 +112,6 @@ Since ACI doesn't provide built-in HTTPS, here are some options:
 |---------|--------------------------|---------------------|
 | Built-in HTTPS | No (manual setup) | Yes (automatic) |
 | Scaling | No auto-scale | Auto-scale supported |
-| Logging | Optional (Log Analytics) | Log Analytics included |
 | Custom domains | DNS setup required | Easy configuration |
 | Cost model | Pay per second running | Pay per usage |
 | Complexity | Simple | More features |
