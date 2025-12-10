@@ -117,9 +117,9 @@ function App() {
     deleteClipFromList(clipId, onDeleted);
   }, [deleteClipFromList]);
 
-  // Track window maximized state for Windows and Linux
+  // Track window maximized state for Windows (Linux now uses native decorations)
   useEffect(() => {
-    if (os !== "windows" && os !== "linux") return;
+    if (os !== "windows") return;
 
     const checkMaximized = async () => {
       const maximized = await getCurrentWindow().isMaximized();
@@ -440,10 +440,12 @@ function App() {
   return (
     <DropZone>
       <div className={`app ${os}`}>
-        {/* Only render TitleBar on macOS, for Windows and Linux we integrate controls into header */}
+        {/* Only render TitleBar on macOS, for Windows we integrate controls into header */}
+        {/* Linux uses native decorations, so no TitleBar needed */}
         {os === "macos" && <TitleBar />}
-        {/* macOS: Simplified title bar with status and buttons on the right */}
-        {os === "macos" ? (
+        {/* macOS and Linux: Simplified title bar with status and buttons on the right */}
+        {/* Linux uses native window decorations, so no traffic light padding needed */}
+        {os === "macos" || os === "linux" ? (
           <>
             <header className="app-header-unified" data-tauri-drag-region>
               {/* Left section: Icon and title */}
@@ -532,7 +534,7 @@ function App() {
             </header>
 
             {/* Filters bar below title bar */}
-            <div className="filters-bar macos">
+            <div className={`filters-bar ${os}`}>
               <SearchBox
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -550,6 +552,7 @@ function App() {
             </div>
           </>
         ) : (
+          /* Windows only: Header with integrated window controls */
           <>
             <header className="app-header" data-tauri-drag-region>
               <div className="app-title-group" data-tauri-drag-region>
@@ -605,7 +608,7 @@ function App() {
                 </svg>
                 <h1 className="app-title" data-tauri-drag-region>{t("app.title")}</h1>
               </div>
-              {/* Window controls for Windows and Linux */}
+              {/* Window controls for Windows */}
               <div className="window-controls">
                 <span className="header-clip-count">
                   <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">

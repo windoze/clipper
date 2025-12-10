@@ -225,29 +225,18 @@ body {
   user-select: none;
 }
 
-/* Linux: Transparent background for rounded corners */
-:root[data-platform="linux"],
-:root[data-platform="linux"] body {
-  background: transparent !important;
-}
-
-/* Linux: Custom rounded corners and shadow for non-decorated window */
+/* Linux: Standard background (uses native window decorations) */
 .app.linux {
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   background: #ffffff;
 }
 
 :root[data-theme="dark"] .app.linux {
   background: #1a1a1a;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .app.linux {
     background: #1a1a1a;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -352,6 +341,11 @@ body {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   -webkit-app-region: drag;
   flex-shrink: 0;
+}
+
+/* Linux: No traffic light padding needed */
+.app.linux .app-header-unified {
+  padding-left: 12px;
 }
 
 /* Left section: Icon and title */
@@ -649,38 +643,11 @@ body {
 }
 
 /* ============================================
-   Tauri-Specific: Linux Header
+   Tauri-Specific: Linux Header (uses unified header)
    ============================================ */
 
-.app.linux .app-header {
-  padding: 0 0 0 8px;
-  height: 28px;
-  min-height: 28px;
-  -webkit-app-region: drag;
-  gap: 6px;
-}
-
-.app.linux .app-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.app.linux .app-title {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.app.linux .app-title-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.app.linux .app-header button,
-.app.linux .app-header a,
-.app.linux .app-header input {
-  -webkit-app-region: no-drag;
-}
+/* Linux uses the unified header style like macOS but without traffic light padding */
+/* The padding adjustment is already in .app.linux .app-header-unified above */
 
 /* ============================================
    Tauri-Specific: Window Controls
@@ -763,22 +730,7 @@ body {
   color: white;
 }
 
-/* Linux: Smaller window control buttons */
-.app.linux .window-controls {
-  gap: 0;
-}
-
-.app.linux .window-control-button {
-  width: 28px;
-  height: 28px;
-  font-size: 13px;
-  border-radius: 4px;
-}
-
-.app.linux .window-control-button svg {
-  width: 8px;
-  height: 8px;
-}
+/* Note: Linux no longer uses custom window controls (uses native decorations) */
 
 /* ============================================
    Tauri-Specific: Drop Zone Override

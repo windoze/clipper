@@ -2,8 +2,7 @@
   "app": {
     "windows": [
       {
-        "decorations": false,
-        "transparent": true,
+        "decorations": true,
         "minWidth": 360,
         "minHeight": 400
       }
