@@ -40,58 +40,14 @@ pub fn setup_gtk_headerbar(app: &AppHandle) -> Result<(), String> {
         .gtk_window()
         .map_err(|e| format!("Failed to get GTK window: {}", e))?;
 
-    // Ensure the window is decorated and resizable
-    // Note: set_decorated(true) is important for CSD to work properly
-    gtk_window.set_decorated(true);
+    // Ensure the window is resizable
     gtk_window.set_resizable(true);
 
-    // Set the type hint to normal window to ensure proper window management
-    gtk_window.set_type_hint(gdk::WindowTypeHint::Normal);
-
     // Create and configure the header bar
-    let header_bar = create_headerbar(app, &gtk_window);
-
-    // Connect button press event on the header bar itself for dragging empty areas
-    let window_for_headerbar_drag = gtk_window.clone();
-    header_bar.connect_button_press_event(move |_widget, event| {
-        if event.button() == 1 {
-            // Left mouse button - initiate window drag
-            let (x, y) = event.root();
-            window_for_headerbar_drag.begin_move_drag(
-                event.button() as i32,
-                x as i32,
-                y as i32,
-                event.time(),
-            );
-            glib::Propagation::Stop
-        } else if event.button() == 3 {
-            // Right mouse button could show window menu (optional)
-            glib::Propagation::Proceed
-        } else {
-            glib::Propagation::Proceed
-        }
-    });
-
-    // Handle double-click on header bar to toggle maximize
-    let window_for_double_click = gtk_window.clone();
-    header_bar.connect_event(move |_widget, event| {
-        if event.event_type() == gdk::EventType::DoubleButtonPress {
-            if let Some(button_event) = event.downcast_ref::<gdk::EventButton>() {
-                if button_event.button() == 1 {
-                    // Toggle maximize on double-click
-                    if window_for_double_click.is_maximized() {
-                        window_for_double_click.unmaximize();
-                    } else {
-                        window_for_double_click.maximize();
-                    }
-                    return glib::Propagation::Stop;
-                }
-            }
-        }
-        glib::Propagation::Proceed
-    });
+    let header_bar = create_headerbar(app);
 
     // Set the header bar as the window's titlebar
+    // GTK HeaderBar with show_close_button(true) handles window dragging natively
     gtk_window.set_titlebar(Some(&header_bar));
 
     // Show all widgets
@@ -103,14 +59,15 @@ pub fn setup_gtk_headerbar(app: &AppHandle) -> Result<(), String> {
 }
 
 /// Create the HeaderBar widget with all controls
-fn create_headerbar(app: &AppHandle, gtk_window: &gtk::ApplicationWindow) -> HeaderBar {
+fn create_headerbar(app: &AppHandle) -> HeaderBar {
     let header_bar = HeaderBar::new();
 
     // Enable showing window controls (minimize, maximize, close)
+    // This also enables native window dragging behavior
     header_bar.set_show_close_button(true);
     header_bar.set_decoration_layout(Some(":minimize,maximize,close"));
 
-    // Set the title using the built-in title (simpler approach)
+    // Set the title
     header_bar.set_title(Some("Clipper"));
     header_bar.set_has_subtitle(false);
 
@@ -121,7 +78,7 @@ fn create_headerbar(app: &AppHandle, gtk_window: &gtk::ApplicationWindow) -> Hea
         Button::from_icon_name(Some("view-refresh-symbolic"), gtk::IconSize::SmallToolbar);
     refresh_button.set_tooltip_text(Some("Refresh (Ctrl+R)"));
     refresh_button.style_context().add_class("flat");
-    refresh_button.set_can_focus(false); // Non-focusable
+    refresh_button.set_can_focus(false);
 
     let app_for_refresh = app.clone();
     refresh_button.connect_clicked(move |_| {
@@ -135,7 +92,7 @@ fn create_headerbar(app: &AppHandle, gtk_window: &gtk::ApplicationWindow) -> Hea
         Button::from_icon_name(Some("emblem-system-symbolic"), gtk::IconSize::SmallToolbar);
     settings_button.set_tooltip_text(Some("Settings (Ctrl+,)"));
     settings_button.style_context().add_class("flat");
-    settings_button.set_can_focus(false); // Non-focusable
+    settings_button.set_can_focus(false);
 
     let app_for_settings = app.clone();
     settings_button.connect_clicked(move |_| {
