@@ -719,6 +719,11 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+/* Elevate clip entry when language selector dropdown is open */
+.clip-entry:has(.language-selector.open) {
+  z-index: 9998;
+}
+
 .clip-entry:hover {
   border-color: #667eea;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
@@ -923,11 +928,10 @@
    ============================================ */
 .language-selector {
   position: relative;
-  z-index: 10;
 }
 
 .language-selector.open {
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .language-selector-button {
@@ -978,7 +982,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   min-width: 140px;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .language-selector-option {
