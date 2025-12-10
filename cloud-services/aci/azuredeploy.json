@@ -142,10 +142,7 @@
             "apiVersion": "2023-05-01",
             "name": "[parameters('containerGroupName')]",
             "location": "[parameters('location')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', parameters('fileShareName'))]",
-                "[if(parameters('enableLogging'), resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '')]"
-            ],
+            "dependsOn": "[concat(array(resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', parameters('fileShareName'))), if(parameters('enableLogging'), array(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))), createArray()))]",
             "properties": {
                 "diagnostics": "[if(parameters('enableLogging'), createObject('logAnalytics', createObject('workspaceId', reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2015-11-01-preview').customerId, 'workspaceKey', listKeys(resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName')), '2015-11-01-preview').primarySharedKey, 'logType', 'ContainerInsights')), null())]",
                 "containers": [
