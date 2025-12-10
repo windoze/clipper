@@ -131,6 +131,12 @@
   border-color: #667eea;
 }
 
+/* Suppress hover styles when keyboard navigation is active - dark mode */
+:root[data-theme="dark"] .clip-list.keyboard-navigating .clip-entry:hover:not(.clip-entry-focused) {
+  border-color: #404040;
+  box-shadow: none;
+}
+
 /* Keyboard navigation focused state - dark mode */
 :root[data-theme="dark"] .clip-entry.clip-entry-focused {
   border-color: #667eea;
@@ -856,6 +862,12 @@
 
   :root:not([data-theme="light"]) .clip-entry:hover {
     border-color: #667eea;
+  }
+
+  /* Suppress hover styles when keyboard navigation is active - dark mode auto */
+  :root:not([data-theme="light"]) .clip-list.keyboard-navigating .clip-entry:hover:not(.clip-entry-focused) {
+    border-color: #404040;
+    box-shadow: none;
   }
 
   /* Keyboard navigation focused state - dark mode auto */

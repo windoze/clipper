@@ -729,6 +729,12 @@
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
 }
 
+/* Suppress hover styles when keyboard navigation is active */
+.clip-list.keyboard-navigating .clip-entry:hover:not(.clip-entry-focused) {
+  border-color: #e0e0e0;
+  box-shadow: none;
+}
+
 /* Keyboard navigation focused state */
 .clip-entry.clip-entry-focused {
   border-color: #667eea;

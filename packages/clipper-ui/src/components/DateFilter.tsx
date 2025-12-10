@@ -129,6 +129,13 @@ export const DateFilter = forwardRef<DateFilterHandle, DateFilterProps>(function
       // Shift+Tab cycles back to search input
       e.preventDefault();
       shiftTabCycleRef.current.focus();
+    } else if ((e.key === "ArrowUp" || e.key === "ArrowDown") && !e.currentTarget.value) {
+      // When empty and pressing up/down, set to today's date first
+      e.preventDefault();
+      const today = formatLocalDate(new Date());
+      e.currentTarget.value = today;
+      // Trigger the change handler
+      handleStartDateChange(today);
     }
   };
 
@@ -141,6 +148,13 @@ export const DateFilter = forwardRef<DateFilterHandle, DateFilterProps>(function
       // Shift+Tab goes to start-date input
       e.preventDefault();
       startDateRef.current?.focus();
+    } else if ((e.key === "ArrowUp" || e.key === "ArrowDown") && !e.currentTarget.value) {
+      // When empty and pressing up/down, set to today's date first
+      e.preventDefault();
+      const today = formatLocalDate(new Date());
+      e.currentTarget.value = today;
+      // Trigger the change handler
+      handleEndDateChange(today);
     }
   };
 

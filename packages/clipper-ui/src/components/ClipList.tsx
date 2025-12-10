@@ -134,6 +134,7 @@ export function ClipList({
   const {
     focusedClipId,
     focusedButtonIndex,
+    keyboardNavigating,
     setFocusedClipId,
     setFocusedButtonIndex,
     handleKeyDown,
@@ -292,7 +293,7 @@ export function ClipList({
   }
 
   return (
-    <div className="clip-list" ref={containerRef}>
+    <div className={`clip-list${keyboardNavigating ? " keyboard-navigating" : ""}`} ref={containerRef}>
       {clips.map((clip) => (
         <ClipEntry
           key={clip.id}

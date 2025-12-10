@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Clip } from "../types";
 
 export interface KeyboardNavigationState {
@@ -8,6 +8,8 @@ export interface KeyboardNavigationState {
   focusedButtonIndex: number;
   /** Whether the search input should be focused */
   searchFocused: boolean;
+  /** Whether keyboard navigation is currently active (suppresses hover styles) */
+  keyboardNavigating: boolean;
 }
 
 export interface KeyboardNavigationActions {
@@ -78,6 +80,31 @@ export function useKeyboardNavigation({
   const [focusedClipId, setFocusedClipId] = useState<string | null>(null);
   const [focusedButtonIndex, setFocusedButtonIndex] = useState(-1);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [keyboardNavigating, setKeyboardNavigating] = useState(false);
+
+  // Track last mouse position to detect actual mouse movement vs scroll-induced events
+  const lastMousePosition = useRef<{ x: number; y: number } | null>(null);
+
+  // Reset keyboard navigating state on actual mouse movement (not scroll-induced)
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // Check if mouse actually moved (not just a scroll-induced event)
+      const currentPos = { x: e.clientX, y: e.clientY };
+      const lastPos = lastMousePosition.current;
+
+      if (lastPos && (currentPos.x !== lastPos.x || currentPos.y !== lastPos.y)) {
+        // Mouse actually moved
+        if (keyboardNavigating) {
+          setKeyboardNavigating(false);
+        }
+      }
+
+      lastMousePosition.current = currentPos;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [keyboardNavigating]);
 
   // Check if any popup/dialog is currently open
   const isPopupOpen = useCallback(() => {
@@ -179,6 +206,7 @@ export function useKeyboardNavigation({
     blurElementsOutsideClip(targetClipId);
     setFocusedClipId(targetClipId);
     setFocusedButtonIndex(-1);
+    setKeyboardNavigating(true);
   }, [clips, focusedClipId, hasMore, onLoadMore, blurElementsOutsideClip]);
 
   const focusPreviousClip = useCallback(() => {
@@ -203,6 +231,7 @@ export function useKeyboardNavigation({
     blurElementsOutsideClip(targetClipId);
     setFocusedClipId(targetClipId);
     setFocusedButtonIndex(-1);
+    setKeyboardNavigating(true);
   }, [clips, focusedClipId, blurElementsOutsideClip]);
 
   const focusNextButton = useCallback(() => {
@@ -664,6 +693,7 @@ export function useKeyboardNavigation({
     focusedClipId,
     focusedButtonIndex,
     searchFocused,
+    keyboardNavigating,
     setFocusedClipId,
     setFocusedButtonIndex,
     setSearchFocused,
