@@ -4,11 +4,13 @@
 //! It accesses Tauri's underlying GTK window and installs a custom HeaderBar with
 //! status indicators and window controls that integrate with Tauri via events.
 
+use gtk::gdk;
 use gtk::glib;
 use gtk::prelude::*;
-use gtk::{Box as GtkBox, Button, HeaderBar, Image, Label, Orientation};
+use gtk::{Box as GtkBox, Button, DrawingArea, EventBox, HeaderBar, Image, Label, Orientation};
 use log::info;
 use std::cell::RefCell;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager};
 
 /// Global reference to the header bar components for status updates
@@ -16,8 +18,11 @@ thread_local! {
     static HEADER_COMPONENTS: RefCell<Option<HeaderComponents>> = const { RefCell::new(None) };
 }
 
+/// Shared state for the connection indicator
+static WS_CONNECTED: AtomicBool = AtomicBool::new(false);
+
 struct HeaderComponents {
-    ws_indicator: Image,
+    ws_indicator: DrawingArea,
     clip_count_label: Label,
 }
 
@@ -35,8 +40,12 @@ pub fn setup_gtk_headerbar(app: &AppHandle) -> Result<(), String> {
         .gtk_window()
         .map_err(|e| format!("Failed to get GTK window: {}", e))?;
 
+    // Ensure the window is decorated and resizable
+    gtk_window.set_decorated(true);
+    gtk_window.set_resizable(true);
+
     // Create and configure the header bar
-    let header_bar = create_headerbar(app);
+    let header_bar = create_headerbar(app, &gtk_window);
 
     // Set the header bar as the window's titlebar
     gtk_window.set_titlebar(Some(&header_bar));
@@ -50,16 +59,45 @@ pub fn setup_gtk_headerbar(app: &AppHandle) -> Result<(), String> {
 }
 
 /// Create the HeaderBar widget with all controls
-fn create_headerbar(app: &AppHandle) -> HeaderBar {
+fn create_headerbar(app: &AppHandle, gtk_window: &gtk::ApplicationWindow) -> HeaderBar {
     let header_bar = HeaderBar::new();
 
     // Enable showing window controls (minimize, maximize, close)
     header_bar.set_show_close_button(true);
     header_bar.set_decoration_layout(Some(":minimize,maximize,close"));
 
-    // Set title only (no subtitle to save space)
-    header_bar.set_title(Some("Clipper"));
+    // Don't use the built-in title - we'll create a custom draggable one
+    header_bar.set_title(None);
     header_bar.set_has_subtitle(false);
+
+    // Create a custom title widget that supports dragging
+    let title_event_box = EventBox::new();
+    title_event_box.set_visible_window(false); // Transparent event box
+    title_event_box.set_above_child(false);
+
+    let title_label = Label::new(Some("Clipper"));
+    title_label.style_context().add_class("title");
+    title_event_box.add(&title_label);
+
+    // Handle button press on title to initiate window drag
+    let window_for_drag = gtk_window.clone();
+    title_event_box.connect_button_press_event(move |_widget, event| {
+        if event.button() == 1 {
+            // Left mouse button
+            let (x, y) = event.root();
+            window_for_drag.begin_move_drag(
+                event.button() as i32,
+                x as i32,
+                y as i32,
+                event.time(),
+            );
+            glib::Propagation::Stop
+        } else {
+            glib::Propagation::Proceed
+        }
+    });
+
+    header_bar.set_custom_title(Some(&title_event_box));
 
     // === Right side controls (pack_end adds from right to left) ===
 
@@ -68,6 +106,7 @@ fn create_headerbar(app: &AppHandle) -> HeaderBar {
         Button::from_icon_name(Some("view-refresh-symbolic"), gtk::IconSize::SmallToolbar);
     refresh_button.set_tooltip_text(Some("Refresh (Ctrl+R)"));
     refresh_button.style_context().add_class("flat");
+    refresh_button.set_can_focus(false); // Non-focusable
 
     let app_for_refresh = app.clone();
     refresh_button.connect_clicked(move |_| {
@@ -81,6 +120,7 @@ fn create_headerbar(app: &AppHandle) -> HeaderBar {
         Button::from_icon_name(Some("emblem-system-symbolic"), gtk::IconSize::SmallToolbar);
     settings_button.set_tooltip_text(Some("Settings (Ctrl+,)"));
     settings_button.style_context().add_class("flat");
+    settings_button.set_can_focus(false); // Non-focusable
 
     let app_for_settings = app.clone();
     settings_button.connect_clicked(move |_| {
@@ -93,13 +133,31 @@ fn create_headerbar(app: &AppHandle) -> HeaderBar {
     let status_box = GtkBox::new(Orientation::Horizontal, 6);
     status_box.set_margin_end(8);
 
-    // WebSocket/connection indicator (single indicator for simplicity)
-    let ws_indicator = Image::from_icon_name(
-        Some("network-transmit-receive-symbolic"),
-        gtk::IconSize::SmallToolbar,
-    );
-    ws_indicator.set_opacity(0.3);
+    // Connection indicator - green/red dot using DrawingArea
+    let ws_indicator = DrawingArea::new();
+    ws_indicator.set_size_request(8, 8);
+    ws_indicator.set_valign(gtk::Align::Center);
     ws_indicator.set_tooltip_text(Some("Disconnected"));
+
+    // Draw the colored dot
+    ws_indicator.connect_draw(|_widget, cr| {
+        let connected = WS_CONNECTED.load(Ordering::Relaxed);
+
+        // Draw a filled circle
+        cr.arc(4.0, 4.0, 4.0, 0.0, 2.0 * std::f64::consts::PI);
+
+        if connected {
+            // Green when connected
+            cr.set_source_rgb(0.063, 0.725, 0.506); // #10B981
+        } else {
+            // Red when disconnected
+            cr.set_source_rgb(0.937, 0.267, 0.267); // #EF4444
+        }
+
+        let _ = cr.fill();
+        glib::Propagation::Stop
+    });
+
     status_box.pack_start(&ws_indicator, false, false, 0);
 
     // Clip count label
@@ -129,21 +187,16 @@ fn create_headerbar(app: &AppHandle) -> HeaderBar {
 
 /// Update the WebSocket connection status indicator
 pub fn update_websocket_indicator(connected: bool) {
+    // Update the atomic state
+    WS_CONNECTED.store(connected, Ordering::Relaxed);
+
     glib::idle_add_local_once(move || {
         HEADER_COMPONENTS.with(|components| {
             if let Some(ref comp) = *components.borrow() {
-                comp.ws_indicator.set_opacity(if connected { 1.0 } else { 0.3 });
                 comp.ws_indicator
                     .set_tooltip_text(Some(if connected { "Connected" } else { "Disconnected" }));
-
-                let ctx = comp.ws_indicator.style_context();
-                if connected {
-                    ctx.add_class("success");
-                    ctx.remove_class("dim-label");
-                } else {
-                    ctx.remove_class("success");
-                    ctx.add_class("dim-label");
-                }
+                // Queue a redraw to update the dot color
+                comp.ws_indicator.queue_draw();
             }
         });
     });
