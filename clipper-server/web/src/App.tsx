@@ -158,9 +158,14 @@ function App({ authToken }: AppProps) {
       const currentTags = prev.tags || [];
       // Don't add if already in filter
       if (currentTags.includes(tag)) return prev;
+      // If adding a host tag, remove any existing host tag first
+      const isHostTag = tag.startsWith("$host:");
+      const filteredTags = isHostTag
+        ? currentTags.filter((t) => !t.startsWith("$host:"))
+        : currentTags;
       return {
         ...prev,
-        tags: [...currentTags, tag],
+        tags: [...filteredTags, tag],
       };
     });
   }, [setFilters]);
