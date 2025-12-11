@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.21.2]
+
+### Added
+
+- Host tag for clips created via Web UI
+- Host tag for dropped files
+
+### Fixed
+
+- Auto theme may show incorrect color scheme on start
+
 ## [0.21.1]
 
 ### Improved

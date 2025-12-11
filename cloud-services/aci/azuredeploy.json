@@ -171,7 +171,7 @@
                                 },
                                 {
                                     "name": "CLIPPER_DB_PATH",
-                                    "value": "/data/db"
+                                    "value": "/tmp/db"
                                 },
                                 {
                                     "name": "CLIPPER_STORAGE_PATH",

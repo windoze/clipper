@@ -7,7 +7,7 @@ This directory contains ARM templates to deploy `windoze/clipper-server:latest` 
 ## Resources Created
 
 - **Storage Account**: Standard LRS storage with File Share enabled
-- **File Share**: For persistent data storage (mounted to `/data`)
+- **File Share**: For persistent attachment storage (mounted to `/data`)
 - **Container Instance**: Running clipper-server with public IP and DNS label
 
 ## Prerequisites
@@ -85,14 +85,14 @@ The container is configured with:
 | CLIPPER_ACME_DOMAIN | {dnsNameLabel}.{region}.azurecontainer.io |
 | CLIPPER_ACME_EMAIL | (from parameter) |
 | CLIPPER_SHORT_URL_BASE | https://{dnsNameLabel}.{region}.azurecontainer.io |
-| CLIPPER_DB_PATH | /data/db |
-| CLIPPER_STORAGE_PATH | /data/storage |
+| CLIPPER_DB_PATH | /tmp/db (ephemeral) |
+| CLIPPER_STORAGE_PATH | /data/storage (persistent) |
 
 ## Notes
 
 - **No built-in HTTPS**: ACI does not provide automatic TLS. For HTTPS, use a reverse proxy (e.g., Azure Application Gateway, Cloudflare) or consider Azure Container Apps instead
 - **Public IP with DNS**: The container gets a public IP with a DNS label (`<name>.<region>.azurecontainer.io`)
-- **Data persistence**: Data is persisted to Azure File Share and survives container restarts
+- **Database is ephemeral**: The database is stored on local container storage (`/tmp/db`) and will be lost on container restart. This is because RocksDB (used by SurrealDB) has compatibility issues with Azure File Share (SMB doesn't support hard links required by RocksDB). Only file attachments are persisted to Azure Files.
 - **Storage**: The storage account uses Standard LRS with 5GB quota by default
 - **Simple deployment**: Best for development, testing, or simple single-instance deployments
 - **Cost model**: Pay per second of running time (billed by CPU and memory)

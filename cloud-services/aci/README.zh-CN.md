@@ -7,7 +7,7 @@
 ## 创建的资源
 
 - **存储账户**：启用文件共享的标准 LRS 存储
-- **文件共享**：用于持久化数据存储（挂载到 `/data`）
+- **文件共享**：用于持久化附件存储（挂载到 `/data`）
 - **容器实例**：运行带公网 IP 和 DNS 标签的 clipper-server
 
 ## 前提条件
@@ -85,14 +85,14 @@ az deployment group create \
 | CLIPPER_ACME_DOMAIN | {dnsNameLabel}.{region}.azurecontainer.io |
 | CLIPPER_ACME_EMAIL | （来自参数） |
 | CLIPPER_SHORT_URL_BASE | https://{dnsNameLabel}.{region}.azurecontainer.io |
-| CLIPPER_DB_PATH | /data/db |
-| CLIPPER_STORAGE_PATH | /data/storage |
+| CLIPPER_DB_PATH | /tmp/db（临时存储） |
+| CLIPPER_STORAGE_PATH | /data/storage（持久化） |
 
 ## 注意事项
 
 - **无内置 HTTPS**：ACI 不提供自动 TLS。如需 HTTPS，请使用反向代理（如 Azure Application Gateway、Cloudflare）或考虑使用 Azure 容器应用
 - **带 DNS 的公网 IP**：容器获得带 DNS 标签的公网 IP（`<name>.<region>.azurecontainer.io`）
-- **数据持久化**：数据持久化到 Azure 文件共享，容器重启后仍然保留
+- **数据库为临时存储**：数据库存储在容器本地存储（`/tmp/db`），容器重启后会丢失。这是因为 RocksDB（SurrealDB 使用）与 Azure 文件共享存在兼容性问题（SMB 不支持 RocksDB 所需的硬链接）。只有文件附件会持久化到 Azure 文件共享。
 - **存储**：存储账户默认使用标准 LRS，配额 5GB
 - **简单部署**：最适合开发、测试或简单的单实例部署
 - **计费模式**：按运行秒数付费（按 CPU 和内存计费）
