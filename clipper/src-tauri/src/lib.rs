@@ -9,6 +9,7 @@ mod tray;
 mod tray_i18n;
 mod websocket;
 
+use gethostname::gethostname;
 use log::{error, info, warn};
 use rand::Rng;
 use server::{ServerManager, get_server_data_dir};
@@ -18,6 +19,12 @@ use state::AppState;
 use tauri::ActivationPolicy;
 use tauri::{DragDropEvent, Emitter, Manager, RunEvent};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+
+/// Get the hostname tag in the format `$host:<hostname>`
+fn get_hostname_tag() -> String {
+    let hostname = gethostname().to_string_lossy().to_string();
+    format!("$host:{}", hostname)
+}
 
 /// Read the debug_logging setting from the settings file before the app is fully initialized.
 /// This is needed because the log plugin must be configured before the settings manager is available.
@@ -620,11 +627,12 @@ pub fn run() {
                                     // Use full path as content
                                     let full_path = path.to_string_lossy().to_string();
 
+                                    let hostname_tag = get_hostname_tag();
                                     match client
                                         .upload_file_bytes_with_content(
                                             bytes,
                                             filename,
-                                            vec!["$file".to_string()],
+                                            vec!["$file".to_string(), hostname_tag],
                                             None,
                                             Some(full_path),
                                         )
