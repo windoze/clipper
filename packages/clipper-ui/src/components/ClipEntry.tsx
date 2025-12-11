@@ -984,6 +984,15 @@ export const ClipEntry = memo(function ClipEntry({
                   e.stopPropagation();
                   onTagClick?.(tag);
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Delete" || e.key === "Backspace") {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (!isHostTag(tag)) {
+                      setTagToRemove(tag);
+                    }
+                  }
+                }}
                 title={t("filter.clickToFilter")}
               >
                 {isHostTag(tag) && (
@@ -1026,6 +1035,7 @@ export const ClipEntry = memo(function ClipEntry({
               {!isHostTag(tag) && (
                 <button
                   className="tag-remove-btn"
+                  tabIndex={-1}
                   onClick={(e) => handleRemoveTagClick(e, tag)}
                   title={t("clip.removeTag")}
                 >
@@ -1087,6 +1097,12 @@ export const ClipEntry = memo(function ClipEntry({
             <button
               className="tag tag-add"
               onClick={handleAddTagClick}
+              onKeyDown={(e) => {
+                if (e.key === "Delete" || e.key === "Backspace") {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }
+              }}
               title={t("clip.addTag")}
             >
               +

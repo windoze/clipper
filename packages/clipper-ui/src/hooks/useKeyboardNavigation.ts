@@ -553,9 +553,9 @@ export function useKeyboardNavigation({
         if (clipElement) {
           // Get all focusable elements within the clip
           const focusableSelectors = [
-            "button:not([disabled])",
-            "input:not([disabled])",
-            "select:not([disabled])",
+            "button:not([disabled]):not([tabindex='-1'])",
+            "input:not([disabled]):not([tabindex='-1'])",
+            "select:not([disabled]):not([tabindex='-1'])",
             "[tabindex]:not([tabindex='-1'])",
           ].join(", ");
           const focusableElements = Array.from(
@@ -598,9 +598,9 @@ export function useKeyboardNavigation({
         if (clipElement) {
           // Get all focusable elements within the clip
           const focusableSelectors = [
-            "button:not([disabled])",
-            "input:not([disabled])",
-            "select:not([disabled])",
+            "button:not([disabled]):not([tabindex='-1'])",
+            "input:not([disabled]):not([tabindex='-1'])",
+            "select:not([disabled]):not([tabindex='-1'])",
             "[tabindex]:not([tabindex='-1'])",
           ].join(", ");
           const focusableElements = Array.from(
@@ -659,10 +659,12 @@ export function useKeyboardNavigation({
         return;
       }
 
-      // Delete/Backspace deletes the clip
+      // Delete/Backspace deletes the clip (only if no button is focused)
       if (key === "Delete" || key === "Backspace") {
-        e.preventDefault();
-        onDelete?.(focusedClipId);
+        if (!hasActiveControlInSelectedItem()) {
+          e.preventDefault();
+          onDelete?.(focusedClipId);
+        }
         return;
       }
     }

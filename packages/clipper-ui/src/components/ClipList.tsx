@@ -141,12 +141,30 @@ export function ClipList({
     });
   }, []);
 
+  // Track which clip to focus after deletion
+  const nextFocusAfterDeleteRef = useRef<string | null>(null);
+
   const handleDeleteRequest = useCallback((clipId: string) => {
+    // Determine which clip to focus after deletion: next clip, or previous if at end
+    const currentIndex = clips.findIndex(c => c.id === clipId);
+    if (currentIndex !== -1) {
+      if (currentIndex < clips.length - 1) {
+        // Focus the next clip (which will move up to current position after deletion)
+        nextFocusAfterDeleteRef.current = clips[currentIndex + 1].id;
+      } else if (currentIndex > 0) {
+        // At the end, focus the previous clip
+        nextFocusAfterDeleteRef.current = clips[currentIndex - 1].id;
+      } else {
+        // Only one clip, nothing to focus
+        nextFocusAfterDeleteRef.current = null;
+      }
+    }
+
     const clipEntry = document.querySelector(`[data-clip-id="${clipId}"]`);
     if (clipEntry) {
       clipEntry.dispatchEvent(new CustomEvent("keyboard-delete-request", { bubbles: false }));
     }
-  }, []);
+  }, [clips]);
 
   const handleButtonActivate = useCallback((clipId: string, buttonIndex: number) => {
     const action = BUTTON_ACTIONS[buttonIndex];
@@ -205,8 +223,17 @@ export function ClipList({
   const handleClipDeleted = useCallback((clipId: string) => {
     const anchor = pendingAnchorRef.current;
     pendingAnchorRef.current = null;
+
+    // Focus the next clip after deletion
+    const nextFocusId = nextFocusAfterDeleteRef.current;
+    nextFocusAfterDeleteRef.current = null;
+    if (nextFocusId) {
+      setFocusedClipId(nextFocusId);
+      setFocusedButtonIndex(-1);
+    }
+
     onClipDeleted?.(clipId, anchor ? () => restoreScroll(anchor) : undefined);
-  }, [onClipDeleted, pendingAnchorRef, restoreScroll]);
+  }, [onClipDeleted, pendingAnchorRef, restoreScroll, setFocusedClipId, setFocusedButtonIndex]);
 
   // Wrap onClipUpdated
   const handleClipUpdated = useCallback((updatedClip: Clip) => {
