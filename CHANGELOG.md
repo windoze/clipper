@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.21.3]
+
+### Improved
+
+- Improve performance of clip list scrolling and rendering
+- Added background prefetching to load all clips automatically
+- Skeleton placeholders now shown for unloaded items instead of blank space
+
 ## [0.21.2]
 
 ### Added
