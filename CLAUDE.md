@@ -39,6 +39,7 @@ The version info is in following files:
 - `clipper/src-tauri/tauri.conf.json`
 - `packages/clipper-ui/package.json`
 - `Dockerfile`
+- `Dockerfile.backup`
 - `README.md` and `README.zh-CN.md`
 
 All above files should be updated to keep consistent version.

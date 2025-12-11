@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.21.5]
+
+### Fixed
+
+- Server upload size limit cannot exceed 10MB due to default Axum limit
+- Various UI fixes and improvements
+
 ## [0.21.3]
 
 ### Improved
