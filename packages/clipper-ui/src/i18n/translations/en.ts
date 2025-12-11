@@ -197,6 +197,15 @@ export const en = {
   "connectionError.openSettings": "Open Settings",
   "connectionError.hint": "If the problem persists, check if the server is running and verify your network connection.",
 
+  // Auth Error (for connection error page)
+  "authError.title": "Authentication Failed",
+  "authError.description": "Unable to authenticate with the Clipper server. This could be due to:",
+  "authError.reason.invalidToken": "The access token is invalid or incorrect",
+  "authError.reason.tokenNotConfigured": "No access token configured in settings",
+  "authError.reason.tokenExpired": "The access token has expired",
+  "authError.openServerSettings": "Server Settings",
+  "authError.hint": "Go to Server Settings to check or update your server URL and access token.",
+
   // Authentication
   "auth.title": "Authentication Required",
   "auth.description": "This server requires authentication. Please enter your access token.",

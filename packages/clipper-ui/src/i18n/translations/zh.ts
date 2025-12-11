@@ -196,6 +196,15 @@ export const zh = {
   "connectionError.openSettings": "打开设置",
   "connectionError.hint": "如果问题持续存在，请检查服务器是否正在运行并验证您的网络连接。",
 
+  // Auth Error (for connection error page)
+  "authError.title": "身份验证失败",
+  "authError.description": "无法通过 Clipper 服务器的身份验证。可能的原因：",
+  "authError.reason.invalidToken": "访问令牌无效或不正确",
+  "authError.reason.tokenNotConfigured": "设置中未配置访问令牌",
+  "authError.reason.tokenExpired": "访问令牌已过期",
+  "authError.openServerSettings": "服务器设置",
+  "authError.hint": "前往服务器设置检查或更新您的服务器地址和访问令牌。",
+
   // Authentication
   "auth.title": "需要身份验证",
   "auth.description": "此服务器需要身份验证。请输入您的访问令牌。",

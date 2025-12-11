@@ -1852,6 +1852,12 @@ export function useSettingsDialog() {
     setIsOpen(true);
   }, []);
 
+  const openWithTab = useCallback((tab: SettingsTab) => {
+    setInitialTab(tab);
+    setAutoCheckUpdates(false);
+    setIsOpen(true);
+  }, []);
+
   const close = useCallback(() => {
     setIsOpen(false);
     // Reset state after close
@@ -1859,5 +1865,5 @@ export function useSettingsDialog() {
     setAutoCheckUpdates(false);
   }, []);
 
-  return { isOpen, open, close, initialTab, autoCheckUpdates };
+  return { isOpen, open, openWithTab, close, initialTab, autoCheckUpdates };
 }

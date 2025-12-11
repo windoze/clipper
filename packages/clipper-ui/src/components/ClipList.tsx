@@ -64,6 +64,22 @@ function isConnectionError(error: string): boolean {
   return connectionErrorPatterns.some((pattern) => pattern.test(error));
 }
 
+// Helper to detect authentication errors (401/403)
+function isAuthError(error: string): boolean {
+  const authErrorPatterns = [
+    /401/i,
+    /403/i,
+    /unauthorized/i,
+    /forbidden/i,
+    /authentication failed/i,
+    /auth.*failed/i,
+    /invalid.*token/i,
+    /token.*invalid/i,
+    /access denied/i,
+  ];
+  return authErrorPatterns.some((pattern) => pattern.test(error));
+}
+
 // Button actions in order: copy, share, favorite, notes, expand, delete
 const BUTTON_ACTIONS: ClipButtonAction[] = ["copy", "share", "favorite", "notes", "expand", "delete"];
 const BUTTON_COUNT = BUTTON_ACTIONS.length;
@@ -317,13 +333,16 @@ export function ClipList({
   }
 
   if (error) {
-    if (isConnectionError(error) && onRetry) {
+    // Show ConnectionError for both connection errors and auth errors
+    const authError = isAuthError(error);
+    if ((isConnectionError(error) || authError) && onRetry) {
       return (
         <ConnectionError
           error={error}
           onRetry={onRetry}
           onOpenSettings={onOpenSettings}
           showBundledServerReason={showBundledServerReason}
+          isAuthError={authError}
         />
       );
     }

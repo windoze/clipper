@@ -68,7 +68,8 @@ function App() {
     deleteClipFromList,
   } = useClips();
 
-  const { isOpen: isSettingsOpen, open: openSettings, close: closeSettings, initialTab: settingsInitialTab, autoCheckUpdates: settingsAutoCheckUpdates } = useSettingsDialog();
+  const { isOpen: isSettingsOpen, open: openSettings, openWithTab: openSettingsWithTab, close: closeSettings, initialTab: settingsInitialTab, autoCheckUpdates: settingsAutoCheckUpdates } = useSettingsDialog();
+  const openServerSettings = useCallback(() => openSettingsWithTab("server"), [openSettingsWithTab]);
   const { updateTheme } = useTheme();
   const { setSyntaxTheme } = useSyntaxTheme();
   const { showToast } = useToast();
@@ -720,7 +721,7 @@ function App() {
             onSetStartDate={handleSetStartDate}
             onSetEndDate={handleSetEndDate}
             onRetry={refetch}
-            onOpenSettings={openSettings}
+            onOpenSettings={openServerSettings}
             showBundledServerReason={useBundledServer}
             onOpenUrl={openUrl}
             onSearchTags={tagSearchSupported ? handleSearchTags : undefined}
