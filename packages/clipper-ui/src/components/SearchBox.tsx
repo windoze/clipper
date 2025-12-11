@@ -26,11 +26,17 @@ type TagInputMode = "tag" | "host";
 // Helper to check if a tag is a host tag
 const isHostTag = (tag: string) => tag.startsWith("$host:");
 
+// Helper to check if a host tag is a web host ($host:$web)
+const isWebHost = (tag: string) => tag === "$host:$web";
+
 // Helper to check if a tag is a system tag (starts with $)
 const isSystemTag = (tag: string) => tag.startsWith("$");
 
-// Get the display name for a host tag (remove the $host: prefix)
-const getHostTagDisplay = (tag: string) => tag.replace("$host:", "");
+// Get the display name for a host tag (remove the $host: prefix, and $web becomes "web")
+const getHostTagDisplay = (tag: string) => {
+  const hostName = tag.replace("$host:", "");
+  return hostName === "$web" ? "web" : hostName;
+};
 
 export function SearchBox({
   value,
@@ -311,21 +317,39 @@ export function SearchBox({
             {filterTags.map((tag) => (
               <span key={tag} className={`search-filter-tag ${isHostTag(tag) ? "search-filter-tag-host" : ""}`}>
                 {isHostTag(tag) && (
-                  <svg
-                    className="search-filter-tag-host-icon"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                  </svg>
+                  isWebHost(tag) ? (
+                    <svg
+                      className="search-filter-tag-host-icon"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="2" y1="12" x2="22" y2="12"></line>
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                  ) : (
+                    <svg
+                      className="search-filter-tag-host-icon"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                      <line x1="8" y1="21" x2="16" y2="21"></line>
+                      <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                  )
                 )}
                 {isHostTag(tag) ? getHostTagDisplay(tag) : tag}
                 <button
@@ -416,21 +440,39 @@ export function SearchBox({
                   onMouseEnter={() => setSelectedTagIndex(index)}
                 >
                   {isHostInputMode ? (
-                    <svg
-                      className="search-tag-dropdown-item-host-icon"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                      <line x1="8" y1="21" x2="16" y2="21"></line>
-                      <line x1="12" y1="17" x2="12" y2="21"></line>
-                    </svg>
+                    isWebHost(tag.text) ? (
+                      <svg
+                        className="search-tag-dropdown-item-host-icon"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                      </svg>
+                    ) : (
+                      <svg
+                        className="search-tag-dropdown-item-host-icon"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                      </svg>
+                    )
                   ) : (
                     <span className="search-tag-dropdown-item-hash">#</span>
                   )}

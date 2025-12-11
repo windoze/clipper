@@ -258,9 +258,11 @@ export function createRestApiClient(
       tags: string[] = [],
       additionalNotes?: string
     ): Promise<Clip> {
+      // Add $host:$web tag for clips created from the web UI
+      const allTags = tags.includes("$host:$web") ? tags : [...tags, "$host:$web"];
       const body: Record<string, unknown> = {
         content,
-        tags,
+        tags: allTags,
       };
       if (additionalNotes) {
         body.additional_notes = additionalNotes;
@@ -279,11 +281,11 @@ export function createRestApiClient(
       tags: string[] = [],
       additionalNotes?: string
     ): Promise<Clip> {
+      // Add $host:$web tag for files uploaded from the web UI
+      const allTags = tags.includes("$host:$web") ? tags : [...tags, "$host:$web"];
       const formData = new FormData();
       formData.append("file", file);
-      if (tags.length > 0) {
-        formData.append("tags", tags.join(","));
-      }
+      formData.append("tags", allTags.join(","));
       if (additionalNotes) {
         formData.append("additional_notes", additionalNotes);
       }
