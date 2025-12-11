@@ -50,11 +50,18 @@
                 "description": "Memory in GB for the container"
             }
         },
+        "imageName": {
+            "type": "string",
+            "defaultValue": "windoze/clipper-server",
+            "metadata": {
+                "description": "Docker image name for the clipper-server container (e.g., your-registry/clipper-server)"
+            }
+        },
         "imageTag": {
             "type": "string",
-            "defaultValue": "latest",
+            "defaultValue": "backup",
             "metadata": {
-                "description": "Docker image tag for the clipper-server container"
+                "description": "Docker image tag (use 'backup' for ACI with database persistence)"
             }
         },
         "dnsNameLabel": {
@@ -68,6 +75,20 @@
             "type": "string",
             "metadata": {
                 "description": "Contact email for Let's Encrypt certificate notifications (required)"
+            }
+        },
+        "enableBackup": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable automatic backup on shutdown and restore on startup"
+            }
+        },
+        "includeFilesInBackup": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Include file attachments in backup (increases backup size)"
             }
         }
     },
@@ -123,7 +144,7 @@
                     {
                         "name": "[parameters('containerGroupName')]",
                         "properties": {
-                            "image": "[concat('windoze/clipper-server:', parameters('imageTag'))]",
+                            "image": "[concat(parameters('imageName'), ':', parameters('imageTag'))]",
                             "resources": {
                                 "requests": {
                                     "cpu": "[json(parameters('cpuCores'))]",
@@ -176,6 +197,22 @@
                                 {
                                     "name": "CLIPPER_STORAGE_PATH",
                                     "value": "/data/storage"
+                                },
+                                {
+                                    "name": "CLIPPER_BACKUP_ON_EXIT",
+                                    "value": "[string(parameters('enableBackup'))]"
+                                },
+                                {
+                                    "name": "CLIPPER_RESTORE_ON_START",
+                                    "value": "[string(parameters('enableBackup'))]"
+                                },
+                                {
+                                    "name": "CLIPPER_BACKUP_PATH",
+                                    "value": "/data/backup.tar.gz"
+                                },
+                                {
+                                    "name": "CLIPPER_INCLUDE_FILES",
+                                    "value": "[string(parameters('includeFilesInBackup'))]"
                                 }
                             ],
                             "volumeMounts": [

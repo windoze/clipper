@@ -23,14 +23,23 @@
         "memoryInGb": {
             "value": "1.5"
         },
+        "imageName": {
+            "value": ""
+        },
         "imageTag": {
-            "value": "latest"
+            "value": "backup"
         },
         "dnsNameLabel": {
             "value": ""
         },
         "acmeEmail": {
             "value": ""
+        },
+        "enableBackup": {
+            "value": true
+        },
+        "includeFilesInBackup": {
+            "value": false
         }
     }
 }
