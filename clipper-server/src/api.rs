@@ -1,6 +1,6 @@
 use axum::{
     body::Body,
-    extract::{Multipart, Path, Query, State},
+    extract::{DefaultBodyLimit, Multipart, Path, Query, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Json, Response},
     routing::{delete, get, post, put},
@@ -14,12 +14,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::{error::Result, state::AppState};
 
-pub fn routes() -> Router<AppState> {
+pub fn routes(max_upload_size_bytes: u64) -> Router<AppState> {
     Router::new()
         .route("/auth/check", get(check_auth))
         .route("/version", get(get_version))
         .route("/clips", post(create_clip))
-        .route("/clips/upload", post(upload_clip_file))
+        .route(
+            "/clips/upload",
+            post(upload_clip_file).layer(DefaultBodyLimit::max(max_upload_size_bytes as usize)),
+        )
         .route("/clips", get(list_clips))
         .route("/clips/search", get(search_clips))
         .route("/clips/{id}", get(get_clip))
@@ -38,7 +41,10 @@ pub fn routes() -> Router<AppState> {
         .route("/shared-assets/{filename}", get(serve_asset))
         // Export/Import endpoints
         .route("/export", get(export_clips))
-        .route("/import", post(import_clips))
+        .route(
+            "/import",
+            post(import_clips).layer(DefaultBodyLimit::disable()),
+        )
 }
 
 /// Version information response

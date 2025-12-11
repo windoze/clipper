@@ -21,8 +21,10 @@ async fn create_test_app() -> (Router, TempDir) {
         .expect("Failed to create indexer");
 
     let config = ServerConfig::default();
-    let state = AppState::new(indexer, config);
-    let app = Router::new().merge(api::routes()).with_state(state);
+    let state = AppState::new(indexer, config.clone());
+    let app = Router::new()
+        .merge(api::routes(config.upload.max_size_bytes))
+        .with_state(state);
 
     (app, temp_dir)
 }
@@ -41,8 +43,10 @@ async fn create_test_app_with_short_url() -> (Router, TempDir) {
     config.short_url.base_url = Some("https://clip.example.com".to_string());
     config.short_url.default_expiration_hours = 24;
 
-    let state = AppState::new(indexer, config);
-    let app = Router::new().merge(api::routes()).with_state(state);
+    let state = AppState::new(indexer, config.clone());
+    let app = Router::new()
+        .merge(api::routes(config.upload.max_size_bytes))
+        .with_state(state);
 
     (app, temp_dir)
 }

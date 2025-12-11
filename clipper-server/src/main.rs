@@ -175,7 +175,7 @@ async fn main() {
     #[allow(unused_mut)]
     let mut api_routes = Router::new()
         .route("/health", get(health_check))
-        .merge(api::routes())
+        .merge(api::routes(config.upload.max_size_bytes))
         .merge(websocket::routes())
         .layer(middleware::from_fn_with_state(
             state.clone(),
