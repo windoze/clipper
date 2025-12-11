@@ -132,9 +132,42 @@
 }
 
 /* Suppress hover styles when keyboard navigation is active - dark mode */
-:root[data-theme="dark"] .clip-list.keyboard-navigating .clip-entry:hover:not(.clip-entry-focused) {
+:root[data-theme="dark"] .clip-list-container.keyboard-navigating .clip-entry:hover:not(.clip-entry-focused) {
   border-color: #404040;
   box-shadow: none;
+}
+
+/* Scroll container - dark mode */
+:root[data-theme="dark"] .clip-list-container::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+:root[data-theme="dark"] .clip-list-container::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+}
+
+:root[data-theme="dark"] .clip-list-container::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}
+
+/* Skeleton placeholder - dark mode */
+:root[data-theme="dark"] .clip-entry-placeholder {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+:root[data-theme="dark"] .skeleton-avatar,
+:root[data-theme="dark"] .skeleton-line {
+  background: #404040;
+}
+
+:root[data-theme="dark"] .placeholder-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
 }
 
 /* Keyboard navigation focused state - dark mode */
@@ -869,9 +902,42 @@
   }
 
   /* Suppress hover styles when keyboard navigation is active - dark mode auto */
-  :root:not([data-theme="light"]) .clip-list.keyboard-navigating .clip-entry:hover:not(.clip-entry-focused) {
+  :root:not([data-theme="light"]) .clip-list-container.keyboard-navigating .clip-entry:hover:not(.clip-entry-focused) {
     border-color: #404040;
     box-shadow: none;
+  }
+
+  /* Scroll container - dark mode auto */
+  :root:not([data-theme="light"]) .clip-list-container::-webkit-scrollbar-track {
+    background: #2d2d2d;
+  }
+
+  :root:not([data-theme="light"]) .clip-list-container::-webkit-scrollbar-thumb {
+    background: #4a4a4a;
+  }
+
+  :root:not([data-theme="light"]) .clip-list-container::-webkit-scrollbar-thumb:hover {
+    background: #5a5a5a;
+  }
+
+  /* Skeleton placeholder - dark mode auto */
+  :root:not([data-theme="light"]) .clip-entry-placeholder {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  :root:not([data-theme="light"]) .skeleton-avatar,
+  :root:not([data-theme="light"]) .skeleton-line {
+    background: #404040;
+  }
+
+  :root:not([data-theme="light"]) .placeholder-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 100%
+    );
   }
 
   /* Keyboard navigation focused state - dark mode auto */

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
 import hljs from "highlight.js";
 import { Clip, Tag, isFavorite, calculateAgeRatio } from "../types";
 import { ImagePopup } from "./ImagePopup";
@@ -172,7 +172,7 @@ function escapeHtmlPreserveMark(text: string): string {
   }).join("");
 }
 
-export function ClipEntry({
+export const ClipEntry = memo(function ClipEntry({
   clip,
   onToggleFavorite,
   onClipUpdated,
@@ -1266,4 +1266,4 @@ export function ClipEntry({
       )}
     </>
   );
-}
+});

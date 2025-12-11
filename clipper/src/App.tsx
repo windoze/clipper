@@ -705,6 +705,7 @@ function App() {
             loadingMore={loadingMore}
             error={error}
             hasMore={hasMore}
+            total={total}
             onToggleFavorite={toggleFavorite}
             onLoadMore={loadMore}
             onClipUpdated={handleClipUpdated}

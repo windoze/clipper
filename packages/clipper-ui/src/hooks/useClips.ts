@@ -29,7 +29,7 @@ interface UseClipsReturn extends UseClipsState {
   deleteClipFromList: (clipId: string, onDeleted?: () => void) => void;
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 export function useClips(): UseClipsReturn {
   const api = useApi();
