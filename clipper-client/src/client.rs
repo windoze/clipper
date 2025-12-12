@@ -208,6 +208,32 @@ impl ClipperClient {
     where
         R: AsyncRead + Send + Sync + 'static,
     {
+        self.upload_file_with_content(reader, original_filename, tags, additional_notes, None)
+            .await
+    }
+
+    /// Upload a file from an async reader with optional content override
+    ///
+    /// This method streams the file content directly from the reader without loading
+    /// the entire file into memory, making it suitable for large files.
+    ///
+    /// # Arguments
+    /// * `reader` - An async reader that provides the file content
+    /// * `original_filename` - The filename to use
+    /// * `tags` - List of tags for the clip
+    /// * `additional_notes` - Optional additional notes
+    /// * `content` - Optional content override (e.g., full file path instead of filename)
+    pub async fn upload_file_with_content<R>(
+        &self,
+        reader: R,
+        original_filename: String,
+        tags: Vec<String>,
+        additional_notes: Option<String>,
+        content: Option<String>,
+    ) -> Result<Clip>
+    where
+        R: AsyncRead + Send + Sync + 'static,
+    {
         let url = format!("{}/clips/upload", self.base_url);
 
         // Convert AsyncRead to a stream of bytes
@@ -224,6 +250,10 @@ impl ClipperClient {
 
         if let Some(notes) = additional_notes {
             form = form.text("additional_notes", notes);
+        }
+
+        if let Some(content_value) = content {
+            form = form.text("content", content_value);
         }
 
         let response = self
