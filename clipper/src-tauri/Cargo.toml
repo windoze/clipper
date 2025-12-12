@@ -50,7 +50,10 @@ reqwest = { version = "0.12", default-features = false, features = [
 ] }
 local-ip-address = "0.6"
 gethostname = "1"
-rustls = { version = "0.23", default-features = false, features = ["std", "ring"] }
+rustls = { version = "0.23", default-features = false, features = [
+    "std",
+    "ring",
+] }
 
 # Cross-platform pipe support for server process monitoring
 os_pipe = "1"
@@ -69,4 +72,4 @@ tauri-plugin-single-instance = "2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
-windows-sys = { version = "0.59", features = ["Win32_Foundation"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation"] }
