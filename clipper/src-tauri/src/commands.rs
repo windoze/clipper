@@ -158,6 +158,7 @@ pub async fn copy_image_to_clipboard(state: State<'_, AppState>, clip_id: String
 }
 
 /// Upload a file to create a clip entry
+/// Uses streaming to avoid loading the entire file into memory
 #[tauri::command]
 pub async fn upload_file(
     state: State<'_, AppState>,
@@ -165,14 +166,19 @@ pub async fn upload_file(
     tags: Vec<String>,
     additional_notes: Option<String>,
 ) -> Result<Clip, String> {
-    // Read file bytes
-    let bytes = fs::read(&path).await.map_err(|e| e.to_string())?;
+    use tokio::fs::File;
+
+    // Get file metadata to check size without reading the file
+    let metadata = fs::metadata(&path)
+        .await
+        .map_err(|e| format!("Failed to read file metadata: {}", e))?;
 
     // Check file size limit
+    let file_size = metadata.len();
     let max_size = state.get_max_upload_size_bytes();
-    if bytes.len() as u64 > max_size {
+    if file_size > max_size {
         let max_size_mb = max_size as f64 / (1024.0 * 1024.0);
-        let file_size_mb = bytes.len() as f64 / (1024.0 * 1024.0);
+        let file_size_mb = file_size as f64 / (1024.0 * 1024.0);
         return Err(format!(
             "File size ({:.2} MB) exceeds maximum allowed size ({:.2} MB)",
             file_size_mb, max_size_mb
@@ -186,11 +192,18 @@ pub async fn upload_file(
         .unwrap_or("unknown")
         .to_string();
 
+    // Open file for streaming upload
+    let file = File::open(&path)
+        .await
+        .map_err(|e| format!("Failed to open file: {}", e))?;
+
     let client = state.client();
     let mut tags_with_host = tags;
     tags_with_host.push(get_hostname_tag());
+
+    // Stream the file directly to the server
     client
-        .upload_file_bytes(bytes, filename, tags_with_host, additional_notes)
+        .upload_file(file, filename, tags_with_host, additional_notes)
         .await
         .map_err(|e| e.to_string())
 }
@@ -258,6 +271,7 @@ fn get_mime_type_from_filename(filename: &str) -> &'static str {
 }
 
 /// Download a clip's file attachment and save it to a user-selected location
+/// Uses streaming to avoid loading the entire file into memory
 #[tauri::command]
 pub async fn download_file(
     app: tauri::AppHandle,
@@ -266,6 +280,7 @@ pub async fn download_file(
     filename: String,
 ) -> Result<String, String> {
     use tauri_plugin_dialog::DialogExt;
+    use tokio::fs::File;
 
     // Show save dialog (blocking is safe in async command context)
     let file_path = app
@@ -279,16 +294,17 @@ pub async fn download_file(
         None => return Err("Save cancelled".to_string()),
     };
 
-    // Download the file
-    let client = state.client();
-    let bytes = client
-        .download_file(&clip_id)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    // Write to file
     let path_str = save_path.to_string();
-    fs::write(&path_str, bytes)
+
+    // Create the target file
+    let mut file = File::create(&path_str)
+        .await
+        .map_err(|e| format!("Failed to create file: {}", e))?;
+
+    // Stream the download directly to the file
+    let client = state.client();
+    client
+        .download_file_to_writer(&clip_id, &mut file)
         .await
         .map_err(|e| e.to_string())?;
 

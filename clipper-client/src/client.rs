@@ -480,6 +480,58 @@ impl ClipperClient {
         }
     }
 
+    /// Download a clip's file attachment and stream it directly to a writer
+    ///
+    /// This method streams the file content directly to the writer without loading
+    /// the entire file into memory, making it suitable for large files.
+    ///
+    /// # Arguments
+    /// * `id` - The clip ID
+    /// * `writer` - An async writer to stream the content to
+    pub async fn download_file_to_writer<W>(&self, id: &str, writer: &mut W) -> Result<u64>
+    where
+        W: AsyncWrite + Unpin,
+    {
+        let url = format!("{}/clips/{}/file", self.base_url, id);
+        let response = self.apply_auth(self.client.get(&url)).send().await?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let mut stream = response.bytes_stream();
+                let mut total_bytes: u64 = 0;
+
+                while let Some(chunk_result) = stream.next().await {
+                    let chunk = chunk_result?;
+                    writer.write_all(&chunk).await.map_err(|e| {
+                        ClientError::ServerError {
+                            status: 0,
+                            message: format!("Failed to write to file: {}", e),
+                        }
+                    })?;
+                    total_bytes += chunk.len() as u64;
+                }
+
+                writer.flush().await.map_err(|e| ClientError::ServerError {
+                    status: 0,
+                    message: format!("Failed to flush file: {}", e),
+                })?;
+
+                Ok(total_bytes)
+            }
+            StatusCode::NOT_FOUND => Err(ClientError::NotFound(format!(
+                "File not found for clip {}",
+                id
+            ))),
+            status => {
+                let error_text = response.text().await.unwrap_or_default();
+                Err(ClientError::ServerError {
+                    status: status.as_u16(),
+                    message: error_text,
+                })
+            }
+        }
+    }
+
     /// Delete a clip by ID
     ///
     /// # Arguments
