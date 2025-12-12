@@ -681,6 +681,7 @@ pub fn run() {
             commands::copy_image_to_clipboard,
             commands::upload_file,
             commands::get_file_url,
+            commands::get_file_data_url,
             commands::download_file,
             commands::get_settings,
             commands::save_settings,

@@ -77,8 +77,11 @@ export interface ClipperApi {
   /** Get the URL for a clip's file attachment (sync version, returns URL or empty string) */
   getFileUrl(clipId: string): string;
 
-  /** Get the URL for a clip's file attachment (async version for platforms like Tauri) */
-  getFileUrlAsync?: (clipId: string) => Promise<string>;
+  /** Get the URL for a clip's file attachment (async version for platforms like Tauri)
+   * @param clipId - The clip ID
+   * @param filename - Optional filename for MIME type detection (needed for data URL generation)
+   */
+  getFileUrlAsync?: (clipId: string, filename?: string) => Promise<string>;
 
   /** Copy content to clipboard */
   copyToClipboard(content: string): Promise<void>;

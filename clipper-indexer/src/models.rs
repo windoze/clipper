@@ -146,7 +146,7 @@ impl PagingParams {
     pub fn new(page: usize, page_size: usize) -> Self {
         Self {
             page: page.max(1),
-            page_size: page_size.clamp(1, 100),
+            page_size: page_size.clamp(1, 500),
         }
     }
 

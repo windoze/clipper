@@ -207,6 +207,56 @@ pub fn get_file_url(state: State<'_, AppState>, clip_id: String) -> String {
     }
 }
 
+/// Fetch a clip's file attachment as a data URL
+/// This is used for displaying images in the WebView when the server uses a self-signed certificate,
+/// since the WebView won't trust the certificate but the Rust client will.
+#[tauri::command]
+pub async fn get_file_data_url(
+    state: State<'_, AppState>,
+    clip_id: String,
+    filename: String,
+) -> Result<String, String> {
+    use base64::{Engine as _, engine::general_purpose::STANDARD};
+
+    // Download the file using the Rust client (which trusts self-signed certs)
+    let client = state.client();
+    let bytes = client
+        .download_file(&clip_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Determine MIME type from filename extension
+    let mime_type = get_mime_type_from_filename(&filename);
+
+    // Encode as base64 data URL
+    let base64_data = STANDARD.encode(&bytes);
+    Ok(format!("data:{};base64,{}", mime_type, base64_data))
+}
+
+/// Get MIME type from filename extension
+fn get_mime_type_from_filename(filename: &str) -> &'static str {
+    let lower = filename.to_lowercase();
+    if lower.ends_with(".png") {
+        "image/png"
+    } else if lower.ends_with(".jpg") || lower.ends_with(".jpeg") {
+        "image/jpeg"
+    } else if lower.ends_with(".gif") {
+        "image/gif"
+    } else if lower.ends_with(".webp") {
+        "image/webp"
+    } else if lower.ends_with(".svg") {
+        "image/svg+xml"
+    } else if lower.ends_with(".bmp") {
+        "image/bmp"
+    } else if lower.ends_with(".ico") {
+        "image/x-icon"
+    } else if lower.ends_with(".tiff") || lower.ends_with(".tif") {
+        "image/tiff"
+    } else {
+        "application/octet-stream"
+    }
+}
+
 /// Download a clip's file attachment and save it to a user-selected location
 #[tauri::command]
 pub async fn download_file(

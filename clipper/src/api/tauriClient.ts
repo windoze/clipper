@@ -81,7 +81,14 @@ export function createTauriApiClient(): ClipperApi {
       return "";
     },
 
-    async getFileUrlAsync(clipId: string): Promise<string> {
+    async getFileUrlAsync(clipId: string, filename?: string): Promise<string> {
+      // If filename is provided, fetch the image data through Rust and return as data URL
+      // This allows loading images even when the server uses a self-signed certificate
+      // that the WebView doesn't trust (but the Rust client does)
+      if (filename) {
+        return invoke<string>("get_file_data_url", { clipId, filename });
+      }
+      // Fallback to direct URL (may fail with self-signed certs)
       return invoke<string>("get_file_url", { clipId });
     },
 

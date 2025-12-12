@@ -1645,6 +1645,7 @@ name = "clipper"
 version = "0.21.5"
 dependencies = [
  "arboard",
+ "base64 0.22.1",
  "chrono",
  "clipper-client",
  "clipper-security",

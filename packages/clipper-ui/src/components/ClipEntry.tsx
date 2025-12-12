@@ -316,12 +316,12 @@ export const ClipEntry = memo(function ClipEntry({
     if (isImage) {
       // Use async version if available (for Tauri), otherwise use sync version
       if (api.getFileUrlAsync) {
-        api.getFileUrlAsync(clip.id).then(setImageUrl);
+        api.getFileUrlAsync(clip.id, clip.file_attachment || undefined).then(setImageUrl);
       } else {
         setImageUrl(api.getFileUrl(clip.id));
       }
     }
-  }, [clip.id, isImage, api]);
+  }, [clip.id, clip.file_attachment, isImage, api]);
 
   // Handler for keyboard-triggered button activation
   const handleKeyboardButtonActivate = useCallback((action: ClipButtonAction) => {
