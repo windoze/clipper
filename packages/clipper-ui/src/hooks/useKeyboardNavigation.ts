@@ -483,7 +483,8 @@ export function useKeyboardNavigation({
 
     // Alphabetic keys, '#', and '@' focus the search input (unless there's an active control in selected item)
     // Note: We do NOT prevent default here so the character will be typed into the search input
-    if (key.length === 1 && /[a-zA-Z#@]/.test(key)) {
+    // Skip if Ctrl/Cmd is pressed (these are shortcuts like Ctrl-C, Ctrl-V, etc.)
+    if (key.length === 1 && /[a-zA-Z#@]/.test(key) && !e.ctrlKey && !e.metaKey) {
       if (!hasActiveControlInSelectedItem()) {
         if (searchInputRef?.current) {
           searchInputRef.current.focus();
@@ -664,6 +665,15 @@ export function useKeyboardNavigation({
         if (!hasActiveControlInSelectedItem()) {
           e.preventDefault();
           onDelete?.(focusedClipId);
+        }
+        return;
+      }
+
+      // Ctrl-C/Cmd-C copies the clip (triggers copy button at index 0)
+      if ((key === "c" || key === "C") && (e.ctrlKey || e.metaKey)) {
+        if (!hasActiveControlInSelectedItem()) {
+          e.preventDefault();
+          onButtonActivate?.(focusedClipId, 0); // 0 is the copy button index
         }
         return;
       }
