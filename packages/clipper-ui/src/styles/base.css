@@ -2743,6 +2743,16 @@
   text-align: center;
 }
 
+.delete-confirm-dialog p.delete-confirm-note {
+  margin: -10px 0 16px 0;
+  font-size: 13px;
+  color: #dc3545;
+  background: #fff5f5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #f5c2c7;
+}
+
 .delete-confirm-actions {
   display: flex;
   gap: 12px;

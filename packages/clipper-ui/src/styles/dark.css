@@ -607,6 +607,12 @@
   background: #4a4a4a;
 }
 
+:root[data-theme="dark"] .delete-confirm-dialog p.delete-confirm-note {
+  color: #f5c2c7;
+  background: #3d2020;
+  border-color: #5c3030;
+}
+
 /* ============================================
    Share Dialog - Dark Theme
    ============================================ */
@@ -1261,6 +1267,12 @@
 
   :root:not([data-theme="light"]) .delete-confirm-btn.cancel:hover:not(:disabled) {
     background: #4a4a4a;
+  }
+
+  :root:not([data-theme="light"]) .delete-confirm-dialog p.delete-confirm-note {
+    color: #f5c2c7;
+    background: #3d2020;
+    border-color: #5c3030;
   }
 
   /* Share dialog dark mode fallback */

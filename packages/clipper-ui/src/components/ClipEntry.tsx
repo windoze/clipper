@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
 import hljs from "highlight.js";
-import { Clip, Tag, isFavorite, calculateAgeRatio } from "../types";
+import { Clip, Tag, isFavorite, calculateAgeRatio, FAVORITE_TAG } from "../types";
 import { ImagePopup } from "./ImagePopup";
 import { ShareDialog } from "./ShareDialog";
 import { LanguageSelector, LanguageId, LANGUAGES } from "./LanguageSelector";
@@ -1174,32 +1174,61 @@ export const ClipEntry = memo(function ClipEntry({
         onClose={() => setShowShareDialog(false)}
       />
 
-      {showDeleteConfirm && (
-        <div className="delete-confirm-backdrop" onClick={handleDeleteCancel}>
-          <div
-            className="delete-confirm-dialog"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p>{t("clip.delete_confirm")}</p>
-            <div className="delete-confirm-actions">
-              <button
-                className="delete-confirm-btn cancel"
-                onClick={handleDeleteCancel}
-                disabled={deleting}
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                className="delete-confirm-btn confirm"
-                onClick={handleDeleteConfirm}
-                disabled={deleting}
-              >
-                {deleting ? t("common.deleting") : t("common.delete")}
-              </button>
+      {showDeleteConfirm && (() => {
+        // Calculate user-added tags (exclude system tags like $favorite and $host:*)
+        const userAddedTags = clip.tags.filter(
+          (tag) => tag !== FAVORITE_TAG && !tag.startsWith("$host:")
+        );
+        const isBlocked = favorite || userAddedTags.length > 0;
+        return (
+          <div className="delete-confirm-backdrop" onClick={handleDeleteCancel}>
+            <div
+              className="delete-confirm-dialog"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {isBlocked ? (
+                <>
+                  <p>{t("clip.delete_blocked")}</p>
+                  {favorite && (
+                    <p className="delete-confirm-note">{t("clip.delete_blocked_favorite")}</p>
+                  )}
+                  {userAddedTags.length > 0 && (
+                    <p className="delete-confirm-note">{t("clip.delete_blocked_tags", { tags: userAddedTags.join(", ") })}</p>
+                  )}
+                  <div className="delete-confirm-actions">
+                    <button
+                      className="delete-confirm-btn cancel"
+                      onClick={handleDeleteCancel}
+                    >
+                      {t("common.close")}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p>{t("clip.delete_confirm")}</p>
+                  <div className="delete-confirm-actions">
+                    <button
+                      className="delete-confirm-btn cancel"
+                      onClick={handleDeleteCancel}
+                      disabled={deleting}
+                    >
+                      {t("common.cancel")}
+                    </button>
+                    <button
+                      className="delete-confirm-btn confirm"
+                      onClick={handleDeleteConfirm}
+                      disabled={deleting}
+                    >
+                      {deleting ? t("common.deleting") : t("common.delete")}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {showNotesPopup && notesPopupPosition && (
         <div className="notes-popup-backdrop" onClick={handleNotesCancel}>
