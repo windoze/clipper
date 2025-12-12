@@ -127,10 +127,46 @@ pub struct Settings {
     /// When true, DEBUG logs are also written to the log file
     #[serde(default)]
     pub debug_logging: bool,
+    /// SurrealDB memory threshold in MB (bundled server only)
+    /// When exceeded, the server rejects new requests to prevent OOM
+    /// Default: 256 MB
+    #[serde(default = "default_memory_threshold_mb")]
+    pub memory_threshold_mb: u64,
+    /// RocksDB block cache size in MB (bundled server only)
+    /// Controls the read cache for database queries
+    /// Default: 64 MB
+    #[serde(default = "default_rocksdb_block_cache_mb")]
+    pub rocksdb_block_cache_mb: u64,
+    /// RocksDB write buffer size in MB (bundled server only)
+    /// Size of each memtable write buffer
+    /// Default: 16 MB
+    #[serde(default = "default_rocksdb_write_buffer_mb")]
+    pub rocksdb_write_buffer_mb: u64,
+    /// RocksDB max write buffer number (bundled server only)
+    /// Maximum concurrent write buffers in memory
+    /// Default: 2
+    #[serde(default = "default_rocksdb_max_write_buffer_number")]
+    pub rocksdb_max_write_buffer_number: u32,
 }
 
 fn default_cleanup_retention_days() -> u32 {
     30
+}
+
+fn default_memory_threshold_mb() -> u64 {
+    256
+}
+
+fn default_rocksdb_block_cache_mb() -> u64 {
+    64
+}
+
+fn default_rocksdb_write_buffer_mb() -> u64 {
+    16
+}
+
+fn default_rocksdb_max_write_buffer_number() -> u32 {
+    2
 }
 
 fn default_max_upload_size_mb() -> u64 {
@@ -180,6 +216,10 @@ impl Default for Settings {
             main_window_geometry: MainWindowGeometry::default(),
             trusted_certificates: std::collections::HashMap::new(),
             debug_logging: false,
+            memory_threshold_mb: default_memory_threshold_mb(),
+            rocksdb_block_cache_mb: default_rocksdb_block_cache_mb(),
+            rocksdb_write_buffer_mb: default_rocksdb_write_buffer_mb(),
+            rocksdb_max_write_buffer_number: default_rocksdb_max_write_buffer_number(),
         }
     }
 }
@@ -316,6 +356,26 @@ impl SettingsManager {
     /// Get whether debug logging to file is enabled
     pub fn get_debug_logging(&self) -> bool {
         self.settings.read().unwrap().debug_logging
+    }
+
+    /// Get the SurrealDB memory threshold in MB
+    pub fn get_memory_threshold_mb(&self) -> u64 {
+        self.settings.read().unwrap().memory_threshold_mb
+    }
+
+    /// Get the RocksDB block cache size in MB
+    pub fn get_rocksdb_block_cache_mb(&self) -> u64 {
+        self.settings.read().unwrap().rocksdb_block_cache_mb
+    }
+
+    /// Get the RocksDB write buffer size in MB
+    pub fn get_rocksdb_write_buffer_mb(&self) -> u64 {
+        self.settings.read().unwrap().rocksdb_write_buffer_mb
+    }
+
+    /// Get the RocksDB max write buffer number
+    pub fn get_rocksdb_max_write_buffer_number(&self) -> u32 {
+        self.settings.read().unwrap().rocksdb_max_write_buffer_number
     }
 
     /// Get all trusted certificate fingerprints

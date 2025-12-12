@@ -258,6 +258,12 @@ impl ServerManager {
         // Get max upload size setting
         let max_upload_size_mb = settings_manager.get_max_upload_size_mb();
 
+        // Get memory configuration settings
+        let memory_threshold_mb = settings_manager.get_memory_threshold_mb();
+        let rocksdb_block_cache_mb = settings_manager.get_rocksdb_block_cache_mb();
+        let rocksdb_write_buffer_mb = settings_manager.get_rocksdb_write_buffer_mb();
+        let rocksdb_max_write_buffer_number = settings_manager.get_rocksdb_max_write_buffer_number();
+
         // Log all parameters
         log::debug!(
             "[clipper-server] Starting bundled server with parameters:\n  \
@@ -268,7 +274,11 @@ impl ServerManager {
              cleanup_enabled: {}\n  \
              cleanup_retention_days: {}\n  \
              auth_enabled: {}\n  \
-             max_upload_size_mb: {}",
+             max_upload_size_mb: {}\n  \
+             memory_threshold_mb: {}\n  \
+             rocksdb_block_cache_mb: {}\n  \
+             rocksdb_write_buffer_mb: {}\n  \
+             rocksdb_max_write_buffer_number: {}",
             db_path_str,
             storage_path_str,
             listen_addr,
@@ -276,7 +286,11 @@ impl ServerManager {
             cleanup_enabled,
             cleanup_retention_days,
             bundled_server_token.is_some(),
-            max_upload_size_mb
+            max_upload_size_mb,
+            memory_threshold_mb,
+            rocksdb_block_cache_mb,
+            rocksdb_write_buffer_mb,
+            rocksdb_max_write_buffer_number
         );
 
         // Build environment variables for server configuration
@@ -297,6 +311,26 @@ impl ServerManager {
             (
                 "CLIPPER_MAX_UPLOAD_SIZE_MB".to_string(),
                 max_upload_size_mb.to_string(),
+            ),
+            // SurrealDB memory threshold (format: "256mb")
+            (
+                "SURREAL_MEMORY_THRESHOLD".to_string(),
+                format!("{}mb", memory_threshold_mb),
+            ),
+            // RocksDB block cache size in bytes
+            (
+                "SURREAL_ROCKSDB_BLOCK_CACHE_SIZE".to_string(),
+                (rocksdb_block_cache_mb * 1024 * 1024).to_string(),
+            ),
+            // RocksDB write buffer size in bytes
+            (
+                "SURREAL_ROCKSDB_WRITE_BUFFER_SIZE".to_string(),
+                (rocksdb_write_buffer_mb * 1024 * 1024).to_string(),
+            ),
+            // RocksDB max write buffer number
+            (
+                "SURREAL_ROCKSDB_MAX_WRITE_BUFFER_NUMBER".to_string(),
+                rocksdb_max_write_buffer_number.to_string(),
             ),
         ];
 
