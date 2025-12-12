@@ -156,18 +156,24 @@ When connecting to a server with a self-signed certificate, the Clipper app will
 ## REST API Endpoints
 
 - `GET /health` - Health check
+- `GET /auth/check` - Check authentication status
 - `GET /version` - Server version and status (version, uptime, active connections, config)
 - `POST /clips` - Create clip from text
-- `POST /clips/upload` - Upload file as clip
+- `POST /clips/upload` - Upload file as clip (streaming, multipart)
 - `GET /clips` - List clips with pagination (query params: start_date, end_date, tags, page, page_size)
-- `GET /clips/search` - Search clips with pagination (query params: q, start_date, end_date, tags, page, page_size)
+- `GET /clips/search` - Search clips with pagination (query params: q, start_date, end_date, tags, page, page_size, highlight_begin, highlight_end)
 - `GET /clips/:id` - Get clip by ID
 - `PUT /clips/:id` - Update clip metadata
 - `DELETE /clips/:id` - Delete clip
-- `GET /clips/:id/file` - Download file attachment
+- `GET /clips/:id/file` - Download file attachment (streaming)
+- `GET /tags` - List all tags
+- `GET /tags/search` - Search tags with autocomplete
 - `POST /clips/:id/short-url` - Create a short URL for sharing a clip (requires `CLIPPER_SHORT_URL_BASE`)
+- `GET /short/:code` - Redirect short URL to full clip URL
 - `GET /s/:code` - Public endpoint to resolve short URL (returns HTML page, JSON, or file based on Accept header)
 - `GET /shared-assets/:filename` - Static assets for shared clip page (CSS/JS)
+- `GET /export` - Export all clips as tar.gz archive (streaming)
+- `POST /import` - Import clips from tar.gz archive (streaming, multipart)
 
 ## WebSocket Endpoint
 
@@ -205,4 +211,4 @@ Server broadcasts four types of notifications:
 - Each test creates isolated temporary database
 - Server tests use raw HTTP requests via tower::ServiceExt
 - Multipart file upload tests construct raw HTTP multipart bodies
-- **Test coverage**: 18 tests
+- **Test coverage**: 81 tests (23 unit tests + 58 API tests)

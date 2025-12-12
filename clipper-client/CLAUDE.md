@@ -59,4 +59,4 @@ while let Some(notification) = rx.recv().await {
 
 - Client tests must run sequentially: `-- --test-threads=1`
 - Tests require running server (tests start temporary server instances)
-- **Test coverage**: 18 tests
+- **Test coverage**: 20 tests (2 unit tests + 18 integration tests)

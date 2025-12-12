@@ -187,7 +187,7 @@ Both the CLI and desktop app support connecting to HTTPS servers with self-signe
 - Server tests must run sequentially: `-- --test-threads=1`
 - Client tests must run sequentially: `-- --test-threads=1`
 - Each test creates isolated temporary database
-- **Total test coverage**: clipper-indexer (all core operations), clipper-server (18 tests), clipper-client (18 tests)
+- **Total test coverage**: clipper-indexer (all core operations), clipper-server (81 tests), clipper-client (20 tests)
 
 ## Project Status
 
@@ -212,6 +212,11 @@ Both the CLI and desktop app support connecting to HTTPS servers with self-signe
 - Global hotkey support
 - Advanced search operators
 - Export/import functionality (tar.gz archive with clips and attachments, deduplication on import)
+- Self-signed certificate trust (SSH-like fingerprint verification)
+- Streaming file upload/download for reduced memory consumption
+- Tags management with dedicated tags table
+- Search result highlighting
+- PII detection before sharing
 
 ### Future Work
 - Clipboard monitoring daemon (standalone)

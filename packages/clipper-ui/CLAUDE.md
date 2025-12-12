@@ -29,16 +29,29 @@ import "@unwritten-codes/clipper-ui/styles/dark.css";
 - `src/api/` - API client utilities
 - `src/components/` - Reusable React components
   - `ClipEntry.tsx` - Individual clip display with copy, edit, delete, share buttons
+  - `ClipList.tsx` - Virtualized clip list with infinite scroll
+  - `ConnectionError.tsx` - Connection error display with retry
+  - `DateFilter.tsx` - Date range filter picker
+  - `DateTag.tsx` - Date display tag component
+  - `FavoriteToggle.tsx` - Favorite star toggle button
+  - `ImagePopup.tsx` - Image preview popup
+  - `LanguageSelector.tsx` - Language selection dropdown
+  - `SearchBox.tsx` - Search input with tag suggestions and autocomplete
   - `ShareDialog.tsx` - Dialog for generating and copying share URLs
   - `Toast.tsx` - Toast notification system
-  - `ImagePopup.tsx` - Image preview popup
-  - `EditClipDialog.tsx` - Edit clip tags and notes
+  - `Tooltip.tsx` - Tooltip component
 - `src/hooks/` - React hooks
-  - `useServerConfig.ts` - Fetches server config (checks if sharing is enabled via `shortUrlEnabled`)
   - `useCleanupConfig.ts` - Fetches cleanup config for fade-out effect
+  - `useClips.ts` - Clip data fetching and caching
+  - `useKeyboardNavigation.ts` - Keyboard navigation for clip list (arrow keys, Enter, etc.)
+  - `useScrollAnchor.ts` - Scroll position preservation
+  - `useServerConfig.ts` - Fetches server config (checks if sharing is enabled via `shortUrlEnabled`)
+  - `useSyntaxTheme.ts` - Syntax highlighting theme management
+  - `useTheme.ts` - Theme (light/dark/auto) management
 - `src/i18n/` - Internationalization (English, Chinese)
 - `src/styles/` - CSS styles (base, dark theme)
 - `src/types.ts` - TypeScript type definitions (includes `ServerConfig` with `shortUrlEnabled`)
+- `src/utils/` - Utility functions
 - `src/index.ts` - Main export file
 
 ## Usage
@@ -52,6 +65,7 @@ Both apps share the same components for consistent look and feel.
 ## Dependencies
 
 - `highlight.js` - Syntax highlighting for code clips
+- `validator` - Input validation utilities
 
 ## Sharing Feature
 

@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.21.6]
+
+### Improved
+
+- Streaming file download/upload to reduce memory consumption
+- Polish auth error page
+
+### Fixed
+
+- Login button invisible under light theme in server web UI
+- Images not displaying correctly when server uses self-signed certificate
+- Adding host tag to search box now replaces existing host tag instead of appending
+
 ## [0.21.5]
 
 ### Fixed

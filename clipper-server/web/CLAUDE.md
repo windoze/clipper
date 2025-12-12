@@ -42,9 +42,9 @@ npm run build
 
 Located in `src/`:
 
-- `hooks/useWebSocket.ts`: WebSocket connection for real-time updates
-- `hooks/useCleanupConfig.ts`: Fetches cleanup config from `/version` API for fade-out effect
-- `components/`: Reusable UI components (shared via @unwritten-codes/clipper-ui package)
+- `App.tsx`: Main application component with clip list, search, filters
+- `components/LoginScreen.tsx`: Authentication login page (self-contained styling for theme support)
+- Uses shared components from `@unwritten-codes/clipper-ui` package
 
 ## Architecture
 
