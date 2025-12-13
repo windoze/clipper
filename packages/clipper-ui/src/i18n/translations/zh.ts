@@ -25,7 +25,7 @@ export const zh = {
   "clip.delete_confirm": "确定要删除这条剪贴吗？",
   "clip.delete_protected": "此剪贴受保护。",
   "clip.delete_protected_favorite": "此剪贴已收藏。",
-  "clip.delete_protected_tags": "此剪贴有标签：{tags}",
+  "clip.delete_protected_tags": "此剪贴有标签：",
   "clip.delete_confirm_checkbox": "我已了解，仍然删除",
   "clip.expand": "展开",
   "clip.collapse": "收起",

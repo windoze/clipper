@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.23.0]
+
+### Security
+
+- Fixed SQL injection vulnerabilities in database queries
+  - All external string inputs now use bind parameters instead of string concatenation
+  - Affected functions: update_entry, search_entries, list_entries, delete_entry, short URL operations, tag operations
+
 ## [0.22.0]
 
 ### Changed

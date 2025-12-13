@@ -25,7 +25,7 @@ export const en = {
   "clip.delete_confirm": "Are you sure you want to delete this clip?",
   "clip.delete_protected": "This clip is protected.",
   "clip.delete_protected_favorite": "This clip is in favorites.",
-  "clip.delete_protected_tags": "This clip has tags: {tags}",
+  "clip.delete_protected_tags": "This clip has tags:",
   "clip.delete_confirm_checkbox": "I understand, delete anyway",
   "clip.expand": "Show more",
   "clip.collapse": "Show less",

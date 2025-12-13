@@ -1187,9 +1187,9 @@ export const ClipEntry = memo(function ClipEntry({
       />
 
       {showDeleteConfirm && (() => {
-        // Calculate user-added tags (exclude system tags like $favorite and $host:*)
+        // Calculate user-added tags (exclude all system tags starting with $)
         const userAddedTags = clip.tags.filter(
-          (tag) => tag !== FAVORITE_TAG && !tag.startsWith("$host:")
+          (tag) => !tag.startsWith("$")
         );
         const isProtected = favorite || userAddedTags.length > 0;
         return (
@@ -1205,7 +1205,14 @@ export const ClipEntry = memo(function ClipEntry({
                     <p className="delete-confirm-note">{t("clip.delete_protected_favorite")}</p>
                   )}
                   {userAddedTags.length > 0 && (
-                    <p className="delete-confirm-note">{t("clip.delete_protected_tags", { tags: userAddedTags.join(", ") })}</p>
+                    <div className="delete-confirm-note delete-confirm-tags">
+                      <span>{t("clip.delete_protected_tags")}</span>
+                      <div className="clip-tags">
+                        {userAddedTags.map((tag) => (
+                          <span key={tag} className="tag">{tag}</span>
+                        ))}
+                      </div>
+                    </div>
                   )}
                   <label className="delete-confirm-checkbox">
                     <input
