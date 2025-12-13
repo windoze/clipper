@@ -71,6 +71,17 @@ If a previously trusted certificate's fingerprint changes, clipper-cli will disp
 
 Trusted certificates are stored in the `trustedCertificates` field of the settings.json file (shared with the Clipper desktop app).
 
+## Scripts
+
+The `scripts/` folder contains useful shell integrations:
+
+- **clipper-zsh-autosuggestions.zsh** - Custom strategy for zsh-autosuggestions using clip search
+- **clipper-fish-autosuggestions.fish** - Autosuggestions plugin for fish shell
+- **clipper-fzf.sh** - Interactive clip selection with fzf and preview
+- **generate-completions.sh** - Generate shell completions for bash, zsh, fish, PowerShell
+
+See [scripts/README.md](scripts/README.md) for detailed usage instructions.
+
 ## Error Handling
 
 - CLI uses anyhow for error context
