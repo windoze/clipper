@@ -75,11 +75,6 @@ fn generate_short_code() -> String {
         .collect()
 }
 
-/// Escape a string for use in SurrealQL single-quoted strings
-fn escape_surql_string(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('\'', "\\'")
-}
-
 pub struct ClipperIndexer {
     db: Surreal<Db>,
     storage: FileStorage,
@@ -266,13 +261,14 @@ impl ClipperIndexer {
                 format!("tag_{:x}", hasher.finish())
             };
             let insert_query = format!(
-                "INSERT INTO {} {{ id: '{}', text: '{}', created_at: <datetime>'{}' }} ON DUPLICATE KEY UPDATE id = id;",
-                TAGS_TABLE,
-                escape_surql_string(&tag_id),
-                escape_surql_string(&tag),
-                now.to_rfc3339()
+                "INSERT INTO {} {{ id: $id, text: $text, created_at: <datetime>$created_at }} ON DUPLICATE KEY UPDATE id = id;",
+                TAGS_TABLE
             );
-            db.query(insert_query).await?;
+            db.query(insert_query)
+                .bind(("id", tag_id))
+                .bind(("text", tag))
+                .bind(("created_at", now.to_rfc3339()))
+                .await?;
         }
 
         Ok(())
@@ -294,13 +290,15 @@ impl ClipperIndexer {
             // We use the tag text as the record ID to ensure uniqueness
             let tag_id = Self::tag_text_to_id(tag);
             let query = format!(
-                "INSERT INTO {} {{ id: '{}', text: '{}', created_at: <datetime>'{}' }} ON DUPLICATE KEY UPDATE id = id;",
-                TAGS_TABLE,
-                escape_surql_string(&tag_id),
-                escape_surql_string(tag),
-                now.to_rfc3339()
+                "INSERT INTO {} {{ id: $id, text: $text, created_at: <datetime>$created_at }} ON DUPLICATE KEY UPDATE id = id;",
+                TAGS_TABLE
             );
-            self.db.query(query).await?;
+            self.db
+                .query(query)
+                .bind(("id", tag_id))
+                .bind(("text", tag.clone()))
+                .bind(("created_at", now.to_rfc3339()))
+                .await?;
         }
 
         Ok(())
@@ -536,7 +534,7 @@ impl ClipperIndexer {
 
         // Build update query
         let mut updates = Vec::new();
-        let mut query_string = format!("UPDATE {}:{} SET ", TABLE_NAME, id);
+        let query_string = format!("UPDATE type::thing($table, $id) SET ");
 
         let tags_to_sync = tags.clone();
         if tags.is_some() {
@@ -552,10 +550,13 @@ impl ClipperIndexer {
             return Ok(existing_entry);
         }
 
-        query_string.push_str(&updates.join(", "));
-        query_string.push(';');
+        let query_string = format!("{}{};", query_string, updates.join(", "));
 
-        let mut query = self.db.query(query_string);
+        let mut query = self
+            .db
+            .query(query_string)
+            .bind(("table", TABLE_NAME))
+            .bind(("id", id.to_string()));
 
         if let Some(t) = tags {
             query = query.bind(("tags", t));
@@ -645,33 +646,26 @@ impl ClipperIndexer {
 
         // Use reference number 0 for the matches operator
         let match_operator = if highlight_enabled { "@0@" } else { "@@" };
-        let mut where_clauses = vec![format!(
-            "search_content {} '{}'",
-            match_operator, tokenized_query
-        )];
+        let mut where_clauses = vec![format!("search_content {} $query", match_operator)];
 
-        if let Some(start_date) = filters.start_date {
-            where_clauses.push(format!(
-                "created_at >= <datetime>'{}'",
-                start_date.to_rfc3339()
-            ));
+        if filters.start_date.is_some() {
+            where_clauses.push("created_at >= <datetime>$start_date".to_string());
         }
 
-        if let Some(end_date) = filters.end_date {
-            where_clauses.push(format!(
-                "created_at <= <datetime>'{}'",
-                end_date.to_rfc3339()
-            ));
+        if filters.end_date.is_some() {
+            where_clauses.push("created_at <= <datetime>$end_date".to_string());
         }
 
-        if let Some(tags) = filters.tags
-            && !tags.is_empty()
-        {
-            let tag_conditions: Vec<String> = tags
-                .iter()
-                .map(|tag| format!("'{}' IN tags", tag))
-                .collect();
-            where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
+        // For tags, we need to check membership - use array contains
+        let filter_tags = filters.tags.clone();
+        if let Some(ref tags) = filter_tags {
+            if !tags.is_empty() {
+                // Build tag conditions using indexed parameters
+                let tag_conditions: Vec<String> = (0..tags.len())
+                    .map(|i| format!("$tag{} IN tags", i))
+                    .collect();
+                where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
+            }
         }
 
         let where_clause = where_clauses.join(" AND ");
@@ -681,7 +675,24 @@ impl ClipperIndexer {
             "SELECT count() FROM {} WHERE {} GROUP ALL;",
             TABLE_NAME, where_clause
         );
-        let mut count_response = self.db.query(count_query).await?;
+        let mut count_query_builder = self
+            .db
+            .query(&count_query)
+            .bind(("query", tokenized_query.clone()));
+
+        if let Some(start_date) = filters.start_date {
+            count_query_builder = count_query_builder.bind(("start_date", start_date.to_rfc3339()));
+        }
+        if let Some(end_date) = filters.end_date {
+            count_query_builder = count_query_builder.bind(("end_date", end_date.to_rfc3339()));
+        }
+        if let Some(ref tags) = filter_tags {
+            for (i, tag) in tags.iter().enumerate() {
+                count_query_builder = count_query_builder.bind((format!("tag{}", i), tag.clone()));
+            }
+        }
+
+        let mut count_response = count_query_builder.await?;
 
         #[derive(Deserialize)]
         struct CountResult {
@@ -693,29 +704,42 @@ impl ClipperIndexer {
 
         // Build select clause with optional highlight
         let select_clause = if highlight_enabled {
-            let h = highlight.as_ref().unwrap();
-            let prefix = h.prefix.as_ref().unwrap();
-            let suffix = h.suffix.as_ref().unwrap();
-            format!(
-                "*, search::highlight('{}', '{}', 0) AS highlighted_content",
-                escape_surql_string(prefix),
-                escape_surql_string(suffix)
-            )
+            "*, search::highlight($hl_prefix, $hl_suffix, 0) AS highlighted_content".to_string()
         } else {
             "*".to_string()
         };
 
         // Get paginated results
         let query = format!(
-            "SELECT {} FROM {} WHERE {} ORDER BY created_at DESC LIMIT {} START {};",
-            select_clause,
-            TABLE_NAME,
-            where_clause,
-            paging.page_size,
-            paging.offset()
+            "SELECT {} FROM {} WHERE {} ORDER BY created_at DESC LIMIT $limit START $offset;",
+            select_clause, TABLE_NAME, where_clause
         );
 
-        let mut response = self.db.query(query).await?;
+        let mut query_builder = self
+            .db
+            .query(&query)
+            .bind(("query", tokenized_query))
+            .bind(("limit", paging.page_size as i64))
+            .bind(("offset", paging.offset() as i64));
+
+        if let Some(start_date) = filters.start_date {
+            query_builder = query_builder.bind(("start_date", start_date.to_rfc3339()));
+        }
+        if let Some(end_date) = filters.end_date {
+            query_builder = query_builder.bind(("end_date", end_date.to_rfc3339()));
+        }
+        if let Some(ref tags) = filter_tags {
+            for (i, tag) in tags.iter().enumerate() {
+                query_builder = query_builder.bind((format!("tag{}", i), tag.clone()));
+            }
+        }
+        if highlight_enabled {
+            let h = highlight.as_ref().unwrap();
+            query_builder = query_builder.bind(("hl_prefix", h.prefix.clone().unwrap_or_default()));
+            query_builder = query_builder.bind(("hl_suffix", h.suffix.clone().unwrap_or_default()));
+        }
+
+        let mut response = query_builder.await?;
 
         // Use a different struct when highlight is enabled
         if highlight_enabled {
@@ -797,28 +821,22 @@ impl ClipperIndexer {
     ) -> Result<PagedResult<ClipboardEntry>> {
         let mut where_clauses = Vec::new();
 
-        if let Some(start_date) = filters.start_date {
-            where_clauses.push(format!(
-                "created_at >= <datetime>'{}'",
-                start_date.to_rfc3339()
-            ));
+        if filters.start_date.is_some() {
+            where_clauses.push("created_at >= <datetime>$start_date".to_string());
         }
 
-        if let Some(end_date) = filters.end_date {
-            where_clauses.push(format!(
-                "created_at <= <datetime>'{}'",
-                end_date.to_rfc3339()
-            ));
+        if filters.end_date.is_some() {
+            where_clauses.push("created_at <= <datetime>$end_date".to_string());
         }
 
-        if let Some(tags) = filters.tags
-            && !tags.is_empty()
-        {
-            let tag_conditions: Vec<String> = tags
-                .iter()
-                .map(|tag| format!("'{}' IN tags", tag))
-                .collect();
-            where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
+        let filter_tags = filters.tags.clone();
+        if let Some(ref tags) = filter_tags {
+            if !tags.is_empty() {
+                let tag_conditions: Vec<String> = (0..tags.len())
+                    .map(|i| format!("$tag{} IN tags", i))
+                    .collect();
+                where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
+            }
         }
 
         // Get total count
@@ -832,7 +850,19 @@ impl ClipperIndexer {
             )
         };
 
-        let mut count_response = self.db.query(count_query).await?;
+        let mut count_query_builder = self.db.query(&count_query);
+        if let Some(start_date) = filters.start_date {
+            count_query_builder = count_query_builder.bind(("start_date", start_date.to_rfc3339()));
+        }
+        if let Some(end_date) = filters.end_date {
+            count_query_builder = count_query_builder.bind(("end_date", end_date.to_rfc3339()));
+        }
+        if let Some(ref tags) = filter_tags {
+            for (i, tag) in tags.iter().enumerate() {
+                count_query_builder = count_query_builder.bind((format!("tag{}", i), tag.clone()));
+            }
+        }
+        let mut count_response = count_query_builder.await?;
 
         #[derive(Deserialize)]
         struct CountResult {
@@ -845,23 +875,35 @@ impl ClipperIndexer {
         // Get paginated results
         let query = if where_clauses.is_empty() {
             format!(
-                "SELECT * FROM {} ORDER BY created_at DESC LIMIT {} START {};",
-                TABLE_NAME,
-                paging.page_size,
-                paging.offset()
+                "SELECT * FROM {} ORDER BY created_at DESC LIMIT $limit START $offset;",
+                TABLE_NAME
             )
         } else {
             let where_clause = where_clauses.join(" AND ");
             format!(
-                "SELECT * FROM {} WHERE {} ORDER BY created_at DESC LIMIT {} START {};",
-                TABLE_NAME,
-                where_clause,
-                paging.page_size,
-                paging.offset()
+                "SELECT * FROM {} WHERE {} ORDER BY created_at DESC LIMIT $limit START $offset;",
+                TABLE_NAME, where_clause
             )
         };
 
-        let mut response = self.db.query(query).await?;
+        let mut query_builder = self
+            .db
+            .query(&query)
+            .bind(("limit", paging.page_size as i64))
+            .bind(("offset", paging.offset() as i64));
+        if let Some(start_date) = filters.start_date {
+            query_builder = query_builder.bind(("start_date", start_date.to_rfc3339()));
+        }
+        if let Some(end_date) = filters.end_date {
+            query_builder = query_builder.bind(("end_date", end_date.to_rfc3339()));
+        }
+        if let Some(ref tags) = filter_tags {
+            for (i, tag) in tags.iter().enumerate() {
+                query_builder = query_builder.bind((format!("tag{}", i), tag.clone()));
+            }
+        }
+
+        let mut response = query_builder.await?;
 
         let entries: Vec<DbClipboardEntry> = response
             .take(0)
@@ -903,8 +945,12 @@ impl ClipperIndexer {
         }
 
         // Delete the database entry
-        let query = format!("DELETE {}:{};", TABLE_NAME, id);
-        self.db.query(query).await?;
+        let query = "DELETE type::thing($table, $id);";
+        self.db
+            .query(query)
+            .bind(("table", TABLE_NAME))
+            .bind(("id", id.to_string()))
+            .await?;
 
         Ok(())
     }
@@ -999,11 +1045,12 @@ impl ClipperIndexer {
 
         while attempts < MAX_ATTEMPTS {
             // Check if the short code already exists
-            let check_query = format!(
-                "SELECT * FROM {} WHERE short_code = '{}';",
-                SHORT_URL_TABLE, short_code
-            );
-            let mut response = self.db.query(check_query).await?;
+            let check_query = format!("SELECT * FROM {} WHERE short_code = $code;", SHORT_URL_TABLE);
+            let mut response = self
+                .db
+                .query(check_query)
+                .bind(("code", short_code.clone()))
+                .await?;
             let existing: Vec<DbShortUrl> = response.take(0).unwrap_or_default();
 
             if existing.is_empty() {
@@ -1052,12 +1099,13 @@ impl ClipperIndexer {
     /// # Returns
     /// The ShortUrl if found and not expired
     pub async fn get_short_url(&self, short_code: &str) -> Result<ShortUrl> {
-        let query = format!(
-            "SELECT * FROM {SHORT_URL_TABLE} WHERE short_code = '{}';",
-            short_code
-        );
+        let query = format!("SELECT * FROM {} WHERE short_code = $code;", SHORT_URL_TABLE);
 
-        let mut response = self.db.query(query).await?;
+        let mut response = self
+            .db
+            .query(query)
+            .bind(("code", short_code.to_string()))
+            .await?;
         let results: Vec<DbShortUrl> = response
             .take(0)
             .map_err(|e| IndexerError::Serialization(e.to_string()))?;
@@ -1094,11 +1142,15 @@ impl ClipperIndexer {
     /// A vector of ShortUrls associated with the clip
     pub async fn get_short_urls_for_clip(&self, clip_id: &str) -> Result<Vec<ShortUrl>> {
         let query = format!(
-            "SELECT * FROM {} WHERE clip_id = '{}' ORDER BY created_at DESC;",
-            SHORT_URL_TABLE, clip_id
+            "SELECT * FROM {} WHERE clip_id = $clip_id ORDER BY created_at DESC;",
+            SHORT_URL_TABLE
         );
 
-        let mut response = self.db.query(query).await?;
+        let mut response = self
+            .db
+            .query(query)
+            .bind(("clip_id", clip_id.to_string()))
+            .await?;
         let results: Vec<DbShortUrl> = response
             .take(0)
             .map_err(|e| IndexerError::Serialization(e.to_string()))?;
@@ -1122,8 +1174,12 @@ impl ClipperIndexer {
     /// # Arguments
     /// * `id` - The ID of the short URL to delete
     pub async fn delete_short_url(&self, id: &str) -> Result<()> {
-        let query = format!("DELETE {}:{};", SHORT_URL_TABLE, id);
-        self.db.query(query).await?;
+        let query = "DELETE type::thing($table, $id);";
+        self.db
+            .query(query)
+            .bind(("table", SHORT_URL_TABLE))
+            .bind(("id", id.to_string()))
+            .await?;
         Ok(())
     }
 
@@ -1137,10 +1193,15 @@ impl ClipperIndexer {
     pub async fn delete_short_urls_for_clip(&self, clip_id: &str) -> Result<usize> {
         // First count how many will be deleted
         let count_query = format!(
-            "SELECT count() FROM {} WHERE clip_id = '{}' GROUP ALL;",
-            SHORT_URL_TABLE, clip_id
+            "SELECT count() FROM {} WHERE clip_id = $clip_id GROUP ALL;",
+            SHORT_URL_TABLE
         );
-        let mut count_response = self.db.query(count_query).await?;
+        let clip_id_owned = clip_id.to_string();
+        let mut count_response = self
+            .db
+            .query(count_query)
+            .bind(("clip_id", clip_id_owned.clone()))
+            .await?;
 
         #[derive(Deserialize)]
         struct CountResult {
@@ -1151,11 +1212,11 @@ impl ClipperIndexer {
         let count = count_results.first().map(|c| c.count as usize).unwrap_or(0);
 
         // Delete the short URLs
-        let delete_query = format!(
-            "DELETE FROM {} WHERE clip_id = '{}';",
-            SHORT_URL_TABLE, clip_id
-        );
-        self.db.query(delete_query).await?;
+        let delete_query = format!("DELETE FROM {} WHERE clip_id = $clip_id;", SHORT_URL_TABLE);
+        self.db
+            .query(delete_query)
+            .bind(("clip_id", clip_id_owned))
+            .await?;
 
         Ok(count)
     }
@@ -1267,17 +1328,19 @@ impl ClipperIndexer {
             return self.list_tags(paging).await;
         }
 
-        // Pre-tokenize search query for better search
-        // let tokenized_query = crate::models::tokenize(search_query);
-
-        let where_clause = format!("text @@ '{}'", search_query);
+        let where_clause = "text @@ $query";
+        let search_query_owned = search_query.to_string();
 
         // Get total count
         let count_query = format!(
             "SELECT count() FROM {} WHERE {} GROUP ALL;",
             TAGS_TABLE, where_clause
         );
-        let mut count_response = self.db.query(count_query).await?;
+        let mut count_response = self
+            .db
+            .query(count_query)
+            .bind(("query", search_query_owned.clone()))
+            .await?;
 
         #[derive(Deserialize)]
         struct CountResult {
@@ -1289,14 +1352,17 @@ impl ClipperIndexer {
 
         // Get paginated results
         let query = format!(
-            "SELECT * FROM {} WHERE {} ORDER BY text ASC LIMIT {} START {};",
-            TAGS_TABLE,
-            where_clause,
-            paging.page_size,
-            paging.offset()
+            "SELECT * FROM {} WHERE {} ORDER BY text ASC LIMIT $limit START $offset;",
+            TAGS_TABLE, where_clause
         );
 
-        let mut response = self.db.query(query).await?;
+        let mut response = self
+            .db
+            .query(query)
+            .bind(("query", search_query_owned))
+            .bind(("limit", paging.page_size as i64))
+            .bind(("offset", paging.offset() as i64))
+            .await?;
         let db_tags: Vec<DbTag> = response
             .take(0)
             .map_err(|e| IndexerError::Serialization(e.to_string()))?;
@@ -1326,13 +1392,13 @@ impl ClipperIndexer {
     /// # Returns
     /// The Tag if found
     pub async fn get_tag_by_text(&self, text: &str) -> Result<Tag> {
-        let query = format!(
-            "SELECT * FROM {} WHERE text = '{}';",
-            TAGS_TABLE,
-            escape_surql_string(text)
-        );
+        let query = format!("SELECT * FROM {} WHERE text = $text;", TAGS_TABLE);
 
-        let mut response = self.db.query(query).await?;
+        let mut response = self
+            .db
+            .query(query)
+            .bind(("text", text.to_string()))
+            .await?;
         let results: Vec<DbTag> = response
             .take(0)
             .map_err(|e| IndexerError::Serialization(e.to_string()))?;
