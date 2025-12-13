@@ -534,7 +534,7 @@ impl ClipperIndexer {
 
         // Build update query
         let mut updates = Vec::new();
-        let query_string = format!("UPDATE type::thing($table, $id) SET ");
+        let query_string = "UPDATE type::thing($table, $id) SET ".to_string();
 
         let tags_to_sync = tags.clone();
         if tags.is_some() {
@@ -658,14 +658,14 @@ impl ClipperIndexer {
 
         // For tags, we need to check membership - use array contains
         let filter_tags = filters.tags.clone();
-        if let Some(ref tags) = filter_tags {
-            if !tags.is_empty() {
-                // Build tag conditions using indexed parameters
-                let tag_conditions: Vec<String> = (0..tags.len())
-                    .map(|i| format!("$tag{} IN tags", i))
-                    .collect();
-                where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
-            }
+        if let Some(ref tags) = filter_tags
+            && !tags.is_empty()
+        {
+            // Build tag conditions using indexed parameters
+            let tag_conditions: Vec<String> = (0..tags.len())
+                .map(|i| format!("$tag{} IN tags", i))
+                .collect();
+            where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
         }
 
         let where_clause = where_clauses.join(" AND ");
@@ -830,13 +830,13 @@ impl ClipperIndexer {
         }
 
         let filter_tags = filters.tags.clone();
-        if let Some(ref tags) = filter_tags {
-            if !tags.is_empty() {
-                let tag_conditions: Vec<String> = (0..tags.len())
-                    .map(|i| format!("$tag{} IN tags", i))
-                    .collect();
-                where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
-            }
+        if let Some(ref tags) = filter_tags
+            && !tags.is_empty()
+        {
+            let tag_conditions: Vec<String> = (0..tags.len())
+                .map(|i| format!("$tag{} IN tags", i))
+                .collect();
+            where_clauses.push(format!("({})", tag_conditions.join(" AND ")));
         }
 
         // Get total count
@@ -1045,7 +1045,10 @@ impl ClipperIndexer {
 
         while attempts < MAX_ATTEMPTS {
             // Check if the short code already exists
-            let check_query = format!("SELECT * FROM {} WHERE short_code = $code;", SHORT_URL_TABLE);
+            let check_query = format!(
+                "SELECT * FROM {} WHERE short_code = $code;",
+                SHORT_URL_TABLE
+            );
             let mut response = self
                 .db
                 .query(check_query)
@@ -1099,7 +1102,10 @@ impl ClipperIndexer {
     /// # Returns
     /// The ShortUrl if found and not expired
     pub async fn get_short_url(&self, short_code: &str) -> Result<ShortUrl> {
-        let query = format!("SELECT * FROM {} WHERE short_code = $code;", SHORT_URL_TABLE);
+        let query = format!(
+            "SELECT * FROM {} WHERE short_code = $code;",
+            SHORT_URL_TABLE
+        );
 
         let mut response = self
             .db
