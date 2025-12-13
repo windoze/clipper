@@ -613,6 +613,15 @@
   border-color: #5c3030;
 }
 
+:root[data-theme="dark"] .delete-confirm-checkbox {
+  background: #3a3a3a;
+  color: #e9ecef;
+}
+
+:root[data-theme="dark"] .delete-confirm-checkbox:hover {
+  background: #454545;
+}
+
 /* ============================================
    Share Dialog - Dark Theme
    ============================================ */
@@ -1273,6 +1282,15 @@
     color: #f5c2c7;
     background: #3d2020;
     border-color: #5c3030;
+  }
+
+  :root:not([data-theme="light"]) .delete-confirm-checkbox {
+    background: #3a3a3a;
+    color: #e9ecef;
+  }
+
+  :root:not([data-theme="light"]) .delete-confirm-checkbox:hover {
+    background: #454545;
   }
 
   /* Share dialog dark mode fallback */

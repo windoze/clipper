@@ -2753,6 +2753,35 @@
   border: 1px solid #f5c2c7;
 }
 
+.delete-confirm-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #495057;
+}
+
+.delete-confirm-checkbox:hover {
+  background: #e9ecef;
+}
+
+.delete-confirm-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #dc3545;
+}
+
+.delete-confirm-checkbox span {
+  flex: 1;
+  user-select: none;
+}
+
 .delete-confirm-actions {
   display: flex;
   gap: 12px;

@@ -231,6 +231,7 @@ export const ClipEntry = memo(function ClipEntry({
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteProtected, setConfirmDeleteProtected] = useState(false);
   // Local expanded state, but keyboard can override it
   const [isExpandedLocal, setIsExpandedLocal] = useState(false);
   // Use keyboard-controlled expansion if provided, otherwise use local state
@@ -458,6 +459,7 @@ export const ClipEntry = memo(function ClipEntry({
   const handleDeleteCancel = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowDeleteConfirm(false);
+    setConfirmDeleteProtected(false);
   };
 
   const handleDownload = async (e: React.MouseEvent) => {
@@ -768,19 +770,29 @@ export const ClipEntry = memo(function ClipEntry({
   useEffect(() => {
     if (!showDeleteConfirm) return;
 
+    // Calculate whether this clip is protected (has favorite or user-added tags)
+    const userAddedTags = clip.tags.filter(
+      (tag) => tag !== FAVORITE_TAG && !tag.startsWith("$host:")
+    );
+    const isProtected = favorite || userAddedTags.length > 0;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         setShowDeleteConfirm(false);
+        setConfirmDeleteProtected(false);
       } else if (e.key === "Enter" && !deleting) {
-        e.preventDefault();
-        handleDeleteConfirm();
+        // Only allow Enter to delete if not protected, or if checkbox is checked
+        if (!isProtected || confirmDeleteProtected) {
+          e.preventDefault();
+          handleDeleteConfirm();
+        }
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [showDeleteConfirm, deleting]);
+  }, [showDeleteConfirm, deleting, favorite, clip.tags, confirmDeleteProtected]);
 
   // Handle click on the clip entry itself - activate it and toggle expand/collapse for long content
   const handleEntryClick = () => {
@@ -1179,28 +1191,44 @@ export const ClipEntry = memo(function ClipEntry({
         const userAddedTags = clip.tags.filter(
           (tag) => tag !== FAVORITE_TAG && !tag.startsWith("$host:")
         );
-        const isBlocked = favorite || userAddedTags.length > 0;
+        const isProtected = favorite || userAddedTags.length > 0;
         return (
           <div className="delete-confirm-backdrop" onClick={handleDeleteCancel}>
             <div
               className="delete-confirm-dialog"
               onClick={(e) => e.stopPropagation()}
             >
-              {isBlocked ? (
+              {isProtected ? (
                 <>
-                  <p>{t("clip.delete_blocked")}</p>
+                  <p>{t("clip.delete_protected")}</p>
                   {favorite && (
-                    <p className="delete-confirm-note">{t("clip.delete_blocked_favorite")}</p>
+                    <p className="delete-confirm-note">{t("clip.delete_protected_favorite")}</p>
                   )}
                   {userAddedTags.length > 0 && (
-                    <p className="delete-confirm-note">{t("clip.delete_blocked_tags", { tags: userAddedTags.join(", ") })}</p>
+                    <p className="delete-confirm-note">{t("clip.delete_protected_tags", { tags: userAddedTags.join(", ") })}</p>
                   )}
+                  <label className="delete-confirm-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={confirmDeleteProtected}
+                      onChange={(e) => setConfirmDeleteProtected(e.target.checked)}
+                    />
+                    <span>{t("clip.delete_confirm_checkbox")}</span>
+                  </label>
                   <div className="delete-confirm-actions">
                     <button
                       className="delete-confirm-btn cancel"
                       onClick={handleDeleteCancel}
+                      disabled={deleting}
                     >
-                      {t("common.close")}
+                      {t("common.cancel")}
+                    </button>
+                    <button
+                      className="delete-confirm-btn confirm"
+                      onClick={handleDeleteConfirm}
+                      disabled={deleting || !confirmDeleteProtected}
+                    >
+                      {deleting ? t("common.deleting") : t("common.delete")}
                     </button>
                   </div>
                 </>

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.22.0]
+
+### Changed
+
+- Protect favorite and tagged clips from deletion
+- Cmd/Ctrl + C to copy selected clip
+- Settings to limit bundled server memory usage
+
 ## [0.21.6]
 
 ### Improved
