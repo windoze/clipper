@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.23.1]
+
+### Changed
+
+- Home/End keys now move to start/end of the clip list.
+- Show position indicator when navigating clip list with keyboard.
+
 ## [0.23.0]
 
 ### Security
