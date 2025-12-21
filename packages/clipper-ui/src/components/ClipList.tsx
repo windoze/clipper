@@ -302,21 +302,46 @@ export function ClipList({
     return () => observer.disconnect();
   }, [scrollRef, clips.length]); // Re-observe when clips change
 
-  // Background prefetch: keep loading items until all are loaded
-  // This ensures data is ready before user scrolls to it
-  useEffect(() => {
-    // Only prefetch when not currently loading and there's more to load
-    if (loadingMore || !hasMore || loading) return;
+  // Track if initial background prefetch has been done
+  const initialPrefetchDoneRef = useRef(false);
 
-    // Start prefetch after a short delay to avoid blocking initial render
+  // Reset initial prefetch flag when clips are reset (e.g., filter change)
+  useEffect(() => {
+    if (clips.length <= 100) {
+      initialPrefetchDoneRef.current = false;
+    }
+  }, [clips.length]);
+
+  // Background prefetch: load one additional batch after initial load
+  useEffect(() => {
+    // Only do initial prefetch once, when not loading and there's more to load
+    if (initialPrefetchDoneRef.current || loadingMore || !hasMore || loading) return;
+
+    // Start prefetch after initial render is complete
     const prefetchTimer = setTimeout(() => {
       if (hasMoreRef.current && !loadingMoreRef.current) {
+        initialPrefetchDoneRef.current = true;
         onLoadMoreRef.current();
       }
-    }, 100); // Small delay between fetches
+    }, 100);
 
     return () => clearTimeout(prefetchTimer);
-  }, [loadingMore, hasMore, loading, clips.length]);
+  }, [loadingMore, hasMore, loading]);
+
+  // Threshold-based prefetch: when focused clip is within 50 of the end, load more
+  const PREFETCH_THRESHOLD = 50;
+  useEffect(() => {
+    if (loadingMore || !hasMore || loading) return;
+    if (!focusedClipId) return;
+
+    const focusedIndex = clips.findIndex(clip => clip.id === focusedClipId);
+    if (focusedIndex === -1) return;
+
+    const distanceFromEnd = clips.length - 1 - focusedIndex;
+    if (distanceFromEnd < PREFETCH_THRESHOLD) {
+      onLoadMoreRef.current();
+    }
+  }, [focusedClipId, clips, loadingMore, hasMore, loading]);
 
   // Calculate number of skeleton placeholders to show for unloaded items
   const loadedCount = clips.length;
