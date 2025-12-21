@@ -767,6 +767,51 @@
   background: #a8a8a8;
 }
 
+/* ============================================
+   Scroll Position Indicator
+   ============================================ */
+.scroll-position-indicator {
+  position: sticky;
+  top: 8px;
+  left: 0;
+  z-index: 100;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: 20px;
+  margin-bottom: -32px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  opacity: 1;
+  transition: opacity var(--fade-duration, 300ms) ease-out;
+}
+
+.scroll-position-indicator.fading {
+  opacity: 0;
+}
+
+.scroll-position-current {
+  color: #ffffff;
+}
+
+.scroll-position-separator {
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 2px;
+}
+
+.scroll-position-total {
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .clip-list-status {
   display: flex;
   align-items: center;

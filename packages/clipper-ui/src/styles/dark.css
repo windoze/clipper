@@ -150,6 +150,12 @@
   background: #5a5a5a;
 }
 
+/* Scroll position indicator - dark mode */
+:root[data-theme="dark"] .scroll-position-indicator {
+  background: rgba(60, 60, 60, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
 /* Skeleton placeholder - dark mode */
 :root[data-theme="dark"] .clip-entry-placeholder {
   background: #2d2d2d;
@@ -944,6 +950,12 @@
 
   :root:not([data-theme="light"]) .clip-list-container::-webkit-scrollbar-thumb:hover {
     background: #5a5a5a;
+  }
+
+  /* Scroll position indicator - dark mode auto */
+  :root:not([data-theme="light"]) .scroll-position-indicator {
+    background: rgba(60, 60, 60, 0.9);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   }
 
   /* Skeleton placeholder - dark mode auto */

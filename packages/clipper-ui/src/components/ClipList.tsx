@@ -1,7 +1,8 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { Clip, Tag } from "../types";
 import { ClipEntry } from "./ClipEntry";
 import { ConnectionError } from "./ConnectionError";
+import { ScrollPositionIndicator } from "./ScrollPositionIndicator";
 import { useI18n } from "../i18n";
 import { useScrollAnchor } from "../hooks/useScrollAnchor";
 import { useKeyboardNavigation, ClipButtonAction } from "../hooks/useKeyboardNavigation";
@@ -323,6 +324,13 @@ export function ClipList({
   // Limit skeleton count for performance, but show at least a few to indicate more items
   const skeletonCount = Math.min(unloadedCount, MAX_SKELETON_COUNT);
 
+  // Calculate the current focused clip index (1-based) for the scroll position indicator
+  const focusedClipIndex = useMemo(() => {
+    if (!focusedClipId) return 1; // Default to first item if nothing focused
+    const index = clips.findIndex(clip => clip.id === focusedClipId);
+    return index === -1 ? 1 : index + 1; // Convert to 1-based index
+  }, [focusedClipId, clips]);
+
   if (loading) {
     return (
       <div className="clip-list-status">
@@ -366,6 +374,12 @@ export function ClipList({
       ref={scrollCallbackRef}
       className={`clip-list-container${keyboardNavigating ? " keyboard-navigating" : ""}`}
     >
+      {/* Scroll position indicator - shows x/y when activated entry changes */}
+      <ScrollPositionIndicator
+        currentIndex={focusedClipIndex}
+        total={total}
+      />
+
       {/* Render all loaded clips - they stay in DOM and don't re-render during scroll */}
       <div className="clip-list">
         {clips.map((clip) => (

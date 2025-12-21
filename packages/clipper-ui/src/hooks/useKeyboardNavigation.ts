@@ -418,6 +418,60 @@ export function useKeyboardNavigation({
       return;
     }
 
+    // Home key - scroll to top and focus first clip
+    if (key === "Home") {
+      e.preventDefault();
+      if (clips.length > 0) {
+        // Focus the first clip
+        const firstClipId = clips[0].id;
+        blurElementsOutsideClip(firstClipId);
+        setFocusedClipId(firstClipId);
+        setFocusedButtonIndex(-1);
+        setKeyboardNavigating(true);
+
+        // Scroll to top
+        const clipListElement = containerRef?.current;
+        if (clipListElement) {
+          let scrollableParent: HTMLElement | null = clipListElement.parentElement;
+          while (scrollableParent) {
+            const style = window.getComputedStyle(scrollableParent);
+            const overflowY = style.overflowY;
+            if (overflowY === "auto" || overflowY === "scroll") {
+              break;
+            }
+            scrollableParent = scrollableParent.parentElement;
+          }
+          const scrollContainer = scrollableParent || clipListElement;
+          scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }
+      return;
+    }
+
+    // End key - focus last currently loaded clip (don't load all)
+    // If more clips can be loaded, it will trigger load more when needed via scroll
+    if (key === "End") {
+      e.preventDefault();
+      if (clips.length > 0) {
+        // Focus the last currently loaded clip
+        const lastClipId = clips[clips.length - 1].id;
+        blurElementsOutsideClip(lastClipId);
+        setFocusedClipId(lastClipId);
+        setFocusedButtonIndex(-1);
+        setKeyboardNavigating(true);
+
+        // Scroll to the last clip - this may trigger load more via IntersectionObserver
+        // We use a slight delay to ensure the focus state is set before scrolling
+        setTimeout(() => {
+          const lastClipElement = document.querySelector(`[data-clip-id="${lastClipId}"]`);
+          if (lastClipElement) {
+            lastClipElement.scrollIntoView({ behavior: "smooth", block: "end" });
+          }
+        }, 0);
+      }
+      return;
+    }
+
     // Page Up/Down scrolls the list and changes active item
     // Handle this early, before isActiveElementInteractive check, because Page Up/Down
     // should work even when no element has focus (just visual activation)
