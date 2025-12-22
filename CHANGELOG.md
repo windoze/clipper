@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.23.2]
+
+### Changed
+
+- Less aggressive prefetching to improve performance and reduce resource usage.
+
 ## [0.23.1]
 
 ### Changed
