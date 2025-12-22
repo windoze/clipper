@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.0]
+
+### Added
+
+- Persistent clip entry language - syntax highlighting language selection is now saved per clip and persists across sessions.
+
 ## [0.23.2]
 
 ### Changed
