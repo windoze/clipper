@@ -22,9 +22,17 @@ cargo test -p clipper-indexer
 
 ## Database Schema (SurrealDB)
 
-- Table: `clipboard` with fields: id, content, created_at, tags, additional_notes, file_attachment, search_content
+- Table: `clipboard` with fields: id, content, created_at, tags, additional_notes, file_attachment, original_filename, language, search_content
 - Indexes: created_at, tags, full-text search on search_content
 - Schema auto-initialized in `ClipperIndexer::new()`
+
+## Language Field
+
+The `language` field stores the user's preferred syntax highlighting language for a clip:
+- Optional field (can be `None`)
+- Set via `add_entry_from_text(..., language: Option<String>)` or `update_entry(..., language: Option<String>)`
+- Pass `Some("")` (empty string) to clear the language
+- Pass `None` to leave the language unchanged during updates
 
 ## Key Design Decisions
 

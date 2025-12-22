@@ -23,6 +23,7 @@ async fn test_add_entry_from_text() {
             "Hello, World!".to_string(),
             vec!["greeting".to_string()],
             Some("This is a test note".to_string()),
+            None,
         )
         .await
         .expect("Failed to add entry");
@@ -41,7 +42,7 @@ async fn test_get_entry() {
     let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
 
     let entry = indexer
-        .add_entry_from_text("Test content".to_string(), vec!["test".to_string()], None)
+        .add_entry_from_text("Test content".to_string(), vec!["test".to_string()], None, None)
         .await
         .expect("Failed to add entry");
 
@@ -74,6 +75,7 @@ async fn test_update_entry() {
             &entry.id,
             Some(vec!["updated".to_string(), "test".to_string()]),
             Some("Updated notes".to_string()),
+            None,
         )
         .await
         .expect("Failed to update entry");
@@ -143,6 +145,7 @@ async fn test_search_entries() {
             "Programming languages comparison".to_string(),
             vec!["comparison".to_string()],
             Some("Rust vs Python".to_string()),
+            None,
         )
         .await
         .unwrap();
@@ -172,7 +175,7 @@ async fn test_list_entries_with_date_range() {
 
     // Add entries
     indexer
-        .add_entry_from_text("Recent entry".to_string(), vec!["recent".to_string()], None)
+        .add_entry_from_text("Recent entry".to_string(), vec!["recent".to_string()], None, None)
         .await
         .unwrap();
 
@@ -236,7 +239,7 @@ async fn test_list_entries_with_tag_filter() {
         .unwrap();
 
     indexer
-        .add_entry_from_text("Entry 3".to_string(), vec!["tag3".to_string()], None)
+        .add_entry_from_text("Entry 3".to_string(), vec!["tag3".to_string()], None, None)
         .await
         .unwrap();
 
@@ -361,7 +364,7 @@ async fn test_cleanup_entries_no_tags() {
 
     // Add entry with no tags
     let entry_no_tags = indexer
-        .add_entry_from_text("No tags entry".to_string(), vec![], None)
+        .add_entry_from_text("No tags entry".to_string(), vec![], None, None)
         .await
         .unwrap();
 
@@ -484,7 +487,7 @@ async fn test_cleanup_entries_with_date_range() {
 
     // Add entry with no tags
     let entry1 = indexer
-        .add_entry_from_text("Entry 1 no tags".to_string(), vec![], None)
+        .add_entry_from_text("Entry 1 no tags".to_string(), vec![], None, None)
         .await
         .unwrap();
 
@@ -496,7 +499,7 @@ async fn test_cleanup_entries_with_date_range() {
 
     // Add another entry with no tags
     let entry2 = indexer
-        .add_entry_from_text("Entry 2 no tags".to_string(), vec![], None)
+        .add_entry_from_text("Entry 2 no tags".to_string(), vec![], None, None)
         .await
         .unwrap();
 
@@ -1087,7 +1090,7 @@ async fn test_list_tags_pagination() {
     // Add an entry with many tags
     let tags: Vec<String> = (0..25).map(|i| format!("tag{:02}", i)).collect();
     indexer
-        .add_entry_from_text("Test".to_string(), tags, None)
+        .add_entry_from_text("Test".to_string(), tags, None, None)
         .await
         .expect("Failed to add entry");
 
@@ -1117,4 +1120,224 @@ async fn test_list_tags_pagination() {
 
     assert_eq!(page3.items.len(), 5);
     assert_eq!(page3.page, 3);
+}
+
+// ==================== Language Persistence Tests ====================
+
+#[tokio::test]
+async fn test_add_entry_with_language() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry with a language
+    let entry = indexer
+        .add_entry_from_text(
+            "fn main() { println!(\"Hello\"); }".to_string(),
+            vec!["code".to_string()],
+            None,
+            Some("rust".to_string()),
+        )
+        .await
+        .expect("Failed to add entry");
+
+    assert_eq!(entry.language, Some("rust".to_string()));
+
+    // Retrieve and verify language is persisted
+    let retrieved = indexer
+        .get_entry(&entry.id)
+        .await
+        .expect("Failed to get entry");
+
+    assert_eq!(retrieved.language, Some("rust".to_string()));
+}
+
+#[tokio::test]
+async fn test_add_entry_without_language() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry without a language
+    let entry = indexer
+        .add_entry_from_text(
+            "Some plain text".to_string(),
+            vec!["text".to_string()],
+            None,
+            None,
+        )
+        .await
+        .expect("Failed to add entry");
+
+    assert_eq!(entry.language, None);
+
+    // Retrieve and verify language is None
+    let retrieved = indexer
+        .get_entry(&entry.id)
+        .await
+        .expect("Failed to get entry");
+
+    assert_eq!(retrieved.language, None);
+}
+
+#[tokio::test]
+async fn test_update_entry_language() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry without a language
+    let entry = indexer
+        .add_entry_from_text(
+            "console.log('hello')".to_string(),
+            vec!["code".to_string()],
+            None,
+            None,
+        )
+        .await
+        .expect("Failed to add entry");
+
+    assert_eq!(entry.language, None);
+
+    // Update the entry with a language
+    let updated = indexer
+        .update_entry(&entry.id, None, None, Some("javascript".to_string()))
+        .await
+        .expect("Failed to update entry");
+
+    assert_eq!(updated.language, Some("javascript".to_string()));
+
+    // Verify the language is persisted
+    let retrieved = indexer
+        .get_entry(&entry.id)
+        .await
+        .expect("Failed to get entry");
+
+    assert_eq!(retrieved.language, Some("javascript".to_string()));
+}
+
+#[tokio::test]
+async fn test_update_entry_change_language() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry with a language
+    let entry = indexer
+        .add_entry_from_text(
+            "print('hello')".to_string(),
+            vec!["code".to_string()],
+            None,
+            Some("python".to_string()),
+        )
+        .await
+        .expect("Failed to add entry");
+
+    assert_eq!(entry.language, Some("python".to_string()));
+
+    // Change the language
+    let updated = indexer
+        .update_entry(&entry.id, None, None, Some("ruby".to_string()))
+        .await
+        .expect("Failed to update entry");
+
+    assert_eq!(updated.language, Some("ruby".to_string()));
+
+    // Verify the language change is persisted
+    let retrieved = indexer
+        .get_entry(&entry.id)
+        .await
+        .expect("Failed to get entry");
+
+    assert_eq!(retrieved.language, Some("ruby".to_string()));
+}
+
+#[tokio::test]
+async fn test_update_entry_clear_language() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry with a language
+    let entry = indexer
+        .add_entry_from_text(
+            "SELECT * FROM users".to_string(),
+            vec!["database".to_string()],
+            None,
+            Some("sql".to_string()),
+        )
+        .await
+        .expect("Failed to add entry");
+
+    assert_eq!(entry.language, Some("sql".to_string()));
+
+    // Clear the language by passing an empty string
+    let updated = indexer
+        .update_entry(&entry.id, None, None, Some("".to_string()))
+        .await
+        .expect("Failed to update entry");
+
+    assert_eq!(updated.language, None);
+
+    // Verify the language is cleared
+    let retrieved = indexer
+        .get_entry(&entry.id)
+        .await
+        .expect("Failed to get entry");
+
+    assert_eq!(retrieved.language, None);
+}
+
+#[tokio::test]
+async fn test_update_entry_language_preserves_other_fields() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry with tags, notes, and language
+    let entry = indexer
+        .add_entry_from_text(
+            "Some code content".to_string(),
+            vec!["tag1".to_string(), "tag2".to_string()],
+            Some("Important code snippet".to_string()),
+            Some("typescript".to_string()),
+        )
+        .await
+        .expect("Failed to add entry");
+
+    // Update only the language (pass None for tags and notes)
+    let updated = indexer
+        .update_entry(&entry.id, None, None, Some("javascript".to_string()))
+        .await
+        .expect("Failed to update entry");
+
+    // Verify language changed
+    assert_eq!(updated.language, Some("javascript".to_string()));
+    // Verify other fields are preserved
+    assert_eq!(updated.tags, vec!["tag1", "tag2"]);
+    assert_eq!(
+        updated.additional_notes,
+        Some("Important code snippet".to_string())
+    );
+    assert_eq!(updated.content, "Some code content");
+}
+
+#[tokio::test]
+async fn test_update_entry_only_tags_preserves_language() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    // Add an entry with a language
+    let entry = indexer
+        .add_entry_from_text(
+            "package main".to_string(),
+            vec!["original".to_string()],
+            None,
+            Some("go".to_string()),
+        )
+        .await
+        .expect("Failed to add entry");
+
+    // Update only the tags (pass None for language)
+    let updated = indexer
+        .update_entry(
+            &entry.id,
+            Some(vec!["updated".to_string()]),
+            None,
+            None,
+        )
+        .await
+        .expect("Failed to update entry");
+
+    // Verify tags changed
+    assert_eq!(updated.tags, vec!["updated"]);
+    // Verify language is preserved
+    assert_eq!(updated.language, Some("go".to_string()));
 }

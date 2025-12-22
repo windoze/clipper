@@ -32,6 +32,7 @@ async fn test_create_clip() {
             "Test content".to_string(),
             vec!["test".to_string(), "example".to_string()],
             Some("Test notes".to_string()),
+            None,
         )
         .await
         .expect("Failed to create clip");
@@ -53,6 +54,7 @@ async fn test_create_clip_without_notes() {
             "Simple content".to_string(),
             vec!["simple".to_string()],
             None,
+            None,
         )
         .await
         .expect("Failed to create clip");
@@ -70,7 +72,7 @@ async fn test_get_clip() {
 
     // Create a clip first
     let created = client
-        .create_clip("Get me".to_string(), vec!["findme".to_string()], None)
+        .create_clip("Get me".to_string(), vec!["findme".to_string()], None, None)
         .await
         .expect("Failed to create clip");
 
@@ -112,6 +114,7 @@ async fn test_update_clip() {
             "Original content".to_string(),
             vec!["original".to_string()],
             None,
+            None,
         )
         .await
         .expect("Failed to create clip");
@@ -122,6 +125,7 @@ async fn test_update_clip() {
             &created.id,
             Some(vec!["updated".to_string(), "new".to_string()]),
             Some("Updated notes".to_string()),
+            None,
         )
         .await
         .expect("Failed to update clip");
@@ -140,13 +144,13 @@ async fn test_update_clip_tags_only() {
 
     // Create a clip
     let created = client
-        .create_clip("Content".to_string(), vec!["old".to_string()], None)
+        .create_clip("Content".to_string(), vec!["old".to_string()], None, None)
         .await
         .expect("Failed to create clip");
 
     // Update only tags
     let updated = client
-        .update_clip(&created.id, Some(vec!["new".to_string()]), None)
+        .update_clip(&created.id, Some(vec!["new".to_string()]), None, None)
         .await
         .expect("Failed to update clip");
 
@@ -161,7 +165,7 @@ async fn test_delete_clip() {
 
     // Create a clip
     let created = client
-        .create_clip("Delete me".to_string(), vec!["temporary".to_string()], None)
+        .create_clip("Delete me".to_string(), vec!["temporary".to_string()], None, None)
         .await
         .expect("Failed to create clip");
 
@@ -184,12 +188,12 @@ async fn test_list_clips() {
 
     // Create a few clips
     client
-        .create_clip("Clip 1".to_string(), vec!["test".to_string()], None)
+        .create_clip("Clip 1".to_string(), vec!["test".to_string()], None, None)
         .await
         .expect("Failed to create clip");
 
     client
-        .create_clip("Clip 2".to_string(), vec!["test".to_string()], None)
+        .create_clip("Clip 2".to_string(), vec!["test".to_string()], None, None)
         .await
         .expect("Failed to create clip");
 
@@ -214,6 +218,7 @@ async fn test_list_clips_with_tag_filter() {
             "Important clip".to_string(),
             vec!["important".to_string(), "work".to_string()],
             None,
+            None,
         )
         .await
         .expect("Failed to create clip");
@@ -222,6 +227,7 @@ async fn test_list_clips_with_tag_filter() {
         .create_clip(
             "Personal clip".to_string(),
             vec!["personal".to_string()],
+            None,
             None,
         )
         .await
@@ -250,6 +256,7 @@ async fn test_search_clips() {
             "The quick brown fox".to_string(),
             vec!["animals".to_string()],
             None,
+            None,
         )
         .await
         .expect("Failed to create clip");
@@ -258,6 +265,7 @@ async fn test_search_clips() {
         .create_clip(
             "The lazy dog".to_string(),
             vec!["animals".to_string()],
+            None,
             None,
         )
         .await
@@ -288,6 +296,7 @@ async fn test_search_clips_with_tag_filter() {
             "Work document about meetings".to_string(),
             vec!["work".to_string()],
             None,
+            None,
         )
         .await
         .expect("Failed to create clip");
@@ -296,6 +305,7 @@ async fn test_search_clips_with_tag_filter() {
         .create_clip(
             "Personal notes about meetings".to_string(),
             vec!["personal".to_string()],
+            None,
             None,
         )
         .await
@@ -339,6 +349,7 @@ async fn test_websocket_notifications() {
             "Notification test".to_string(),
             vec!["notify".to_string()],
             None,
+            None,
         )
         .await
         .expect("Failed to create clip");
@@ -379,7 +390,7 @@ async fn test_websocket_update_notification() {
 
     // Create a clip
     let created = client
-        .create_clip("Update test".to_string(), vec!["test".to_string()], None)
+        .create_clip("Update test".to_string(), vec!["test".to_string()], None, None)
         .await
         .expect("Failed to create clip");
 
@@ -390,7 +401,7 @@ async fn test_websocket_update_notification() {
 
     // Update the clip
     client
-        .update_clip(&created.id, Some(vec!["updated".to_string()]), None)
+        .update_clip(&created.id, Some(vec!["updated".to_string()]), None, None)
         .await
         .expect("Failed to update clip");
 
@@ -428,7 +439,7 @@ async fn test_websocket_delete_notification() {
 
     // Create a clip
     let created = client
-        .create_clip("Delete test".to_string(), vec!["test".to_string()], None)
+        .create_clip("Delete test".to_string(), vec!["test".to_string()], None, None)
         .await
         .expect("Failed to create clip");
 
@@ -579,4 +590,184 @@ async fn test_upload_file_with_websocket_notification() {
         }
         _ => panic!("Expected NewClip notification"),
     }
+}
+
+// ==================== Language Persistence Tests ====================
+
+#[tokio::test]
+async fn test_create_clip_with_language() {
+    wait_for_server().await;
+
+    let client = ClipperClient::new(test_server_url());
+
+    let clip = client
+        .create_clip(
+            "fn main() { println!(\"Hello\"); }".to_string(),
+            vec!["code".to_string()],
+            None,
+            Some("rust".to_string()),
+        )
+        .await
+        .expect("Failed to create clip");
+
+    assert_eq!(clip.language, Some("rust".to_string()));
+
+    // Verify language is persisted by retrieving the clip
+    let retrieved = client
+        .get_clip(&clip.id)
+        .await
+        .expect("Failed to get clip");
+
+    assert_eq!(retrieved.language, Some("rust".to_string()));
+}
+
+#[tokio::test]
+async fn test_create_clip_without_language() {
+    wait_for_server().await;
+
+    let client = ClipperClient::new(test_server_url());
+
+    let clip = client
+        .create_clip(
+            "Some plain text".to_string(),
+            vec!["text".to_string()],
+            None,
+            None,
+        )
+        .await
+        .expect("Failed to create clip");
+
+    assert_eq!(clip.language, None);
+
+    // Verify language is None when retrieved
+    let retrieved = client
+        .get_clip(&clip.id)
+        .await
+        .expect("Failed to get clip");
+
+    assert_eq!(retrieved.language, None);
+}
+
+#[tokio::test]
+async fn test_update_clip_add_language() {
+    wait_for_server().await;
+
+    let client = ClipperClient::new(test_server_url());
+
+    // Create a clip without a language
+    let created = client
+        .create_clip(
+            "console.log('hello')".to_string(),
+            vec!["code".to_string()],
+            None,
+            None,
+        )
+        .await
+        .expect("Failed to create clip");
+
+    assert_eq!(created.language, None);
+
+    // Update to add a language
+    let updated = client
+        .update_clip(&created.id, None, None, Some("javascript".to_string()))
+        .await
+        .expect("Failed to update clip");
+
+    assert_eq!(updated.language, Some("javascript".to_string()));
+
+    // Verify language is persisted
+    let retrieved = client
+        .get_clip(&created.id)
+        .await
+        .expect("Failed to get clip");
+
+    assert_eq!(retrieved.language, Some("javascript".to_string()));
+}
+
+#[tokio::test]
+async fn test_update_clip_change_language() {
+    wait_for_server().await;
+
+    let client = ClipperClient::new(test_server_url());
+
+    // Create a clip with a language
+    let created = client
+        .create_clip(
+            "print('hello')".to_string(),
+            vec!["code".to_string()],
+            None,
+            Some("python".to_string()),
+        )
+        .await
+        .expect("Failed to create clip");
+
+    assert_eq!(created.language, Some("python".to_string()));
+
+    // Update to change the language
+    let updated = client
+        .update_clip(&created.id, None, None, Some("ruby".to_string()))
+        .await
+        .expect("Failed to update clip");
+
+    assert_eq!(updated.language, Some("ruby".to_string()));
+}
+
+#[tokio::test]
+async fn test_update_clip_language_preserves_other_fields() {
+    wait_for_server().await;
+
+    let client = ClipperClient::new(test_server_url());
+
+    // Create a clip with all fields
+    let created = client
+        .create_clip(
+            "Some code content".to_string(),
+            vec!["tag1".to_string(), "tag2".to_string()],
+            Some("Important notes".to_string()),
+            Some("typescript".to_string()),
+        )
+        .await
+        .expect("Failed to create clip");
+
+    // Update only the language
+    let updated = client
+        .update_clip(&created.id, None, None, Some("javascript".to_string()))
+        .await
+        .expect("Failed to update clip");
+
+    // Verify language changed
+    assert_eq!(updated.language, Some("javascript".to_string()));
+    // Verify other fields are preserved
+    assert_eq!(updated.tags, vec!["tag1", "tag2"]);
+    assert_eq!(updated.additional_notes, Some("Important notes".to_string()));
+    assert_eq!(updated.content, "Some code content");
+}
+
+#[tokio::test]
+async fn test_update_clip_tags_preserves_language() {
+    wait_for_server().await;
+
+    let client = ClipperClient::new(test_server_url());
+
+    // Create a clip with a language
+    let created = client
+        .create_clip(
+            "package main".to_string(),
+            vec!["original".to_string()],
+            None,
+            Some("go".to_string()),
+        )
+        .await
+        .expect("Failed to create clip");
+
+    // Update only the tags (pass None for language)
+    let updated = client
+        .update_clip(&created.id, Some(vec!["updated".to_string()]), None, None)
+        .await
+        .expect("Failed to update clip");
+
+    // Verify tags changed
+    assert_eq!(updated.tags, vec!["updated"]);
+    // Verify language is preserved
+    assert_eq!(updated.language, Some("go".to_string()));
 }

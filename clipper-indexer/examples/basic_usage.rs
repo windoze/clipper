@@ -72,6 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "updated".to_string(),
             ]),
             Some("Updated with new information".to_string()),
+            None,
         )
         .await?;
     println!("Updated entry tags: {:?}", updated.tags);

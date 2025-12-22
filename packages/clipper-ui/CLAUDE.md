@@ -28,14 +28,14 @@ import "@unwritten-codes/clipper-ui/styles/dark.css";
 
 - `src/api/` - API client utilities
 - `src/components/` - Reusable React components
-  - `ClipEntry.tsx` - Individual clip display with copy, edit, delete, share buttons
+  - `ClipEntry.tsx` - Individual clip display with copy, edit, delete, share buttons, language selector
   - `ClipList.tsx` - Virtualized clip list with infinite scroll
   - `ConnectionError.tsx` - Connection error display with retry
   - `DateFilter.tsx` - Date range filter picker
   - `DateTag.tsx` - Date display tag component
   - `FavoriteToggle.tsx` - Favorite star toggle button
   - `ImagePopup.tsx` - Image preview popup
-  - `LanguageSelector.tsx` - Language selection dropdown
+  - `LanguageSelector.tsx` - Language selection dropdown (31 languages supported)
   - `SearchBox.tsx` - Search input with tag suggestions and autocomplete
   - `ShareDialog.tsx` - Dialog for generating and copying share URLs
   - `Toast.tsx` - Toast notification system
@@ -97,3 +97,13 @@ interface ApiClient {
   // ... other methods
 }
 ```
+
+## Language Persistence
+
+The `ClipEntry` component supports persistent language selection for syntax highlighting:
+- Uses `clip.language` as the default value when available
+- Falls back to auto-detection via highlight.js if no language is saved
+- Manual language changes call `api.updateClip()` to persist to the server
+- Auto-detection does **not** update the server - only manual user selection persists
+
+The `LanguageSelector` component provides a dropdown with 31 programming languages.
