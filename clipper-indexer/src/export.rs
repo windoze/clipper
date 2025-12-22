@@ -28,6 +28,9 @@ pub struct ExportedClip {
     /// The original filename of the attachment (if any)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub original_filename: Option<String>,
+    /// Optional language identifier for the clip content
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
     /// The path within the archive where the file attachment is stored (if any)
     /// Format: "files/{id}_{original_filename}" or "files/{id}" if no original filename
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,6 +55,7 @@ impl From<ClipboardEntry> for ExportedClip {
             tags: entry.tags,
             additional_notes: entry.additional_notes,
             original_filename: entry.original_filename,
+            language: entry.language,
             attachment_path,
         }
     }
@@ -323,6 +327,7 @@ mod tests {
             tags: vec!["tag1".to_string(), "tag2".to_string()],
             additional_notes: Some("Some notes".to_string()),
             original_filename: None,
+            language: None,
             attachment_path: None,
         };
 
@@ -355,6 +360,7 @@ mod tests {
             tags: vec![],
             additional_notes: None,
             original_filename: Some("test.txt".to_string()),
+            language: None,
             attachment_path: Some("files/test456_test.txt".to_string()),
         };
 
@@ -391,6 +397,7 @@ mod tests {
             tags: vec!["tag".to_string()],
             additional_notes: None,
             original_filename: None,
+            language: None,
             attachment_path: None,
         };
 
@@ -403,6 +410,7 @@ mod tests {
             tags: vec!["tag".to_string()],
             additional_notes: None,
             original_filename: None,
+            language: None,
             attachment_path: None,
         };
 
@@ -428,6 +436,7 @@ mod tests {
             tags: vec![],
             additional_notes: None,
             original_filename: Some(long_filename.clone()),
+            language: None,
             attachment_path: Some(format!(
                 "files/12345678-1234-1234-1234-123456789012_{}",
                 long_filename

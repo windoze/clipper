@@ -51,7 +51,7 @@ Then we should run `npm install` in following directories to update lock files:
 
 And run `cargo check` in the root to update Cargo.lock.
 
-Then we need to update the changelog in `CHANGELOG.md` accordingly.
+Then we need to update the changelog in `CHANGELOG.md` base on git history since the last release.
 
 ## Build & Test Commands
 

@@ -84,12 +84,13 @@ pub async fn create_clip(
     content: String,
     tags: Vec<String>,
     additional_notes: Option<String>,
+    language: Option<String>,
 ) -> Result<Clip, String> {
     let client = state.client();
     let mut tags_with_host = tags;
     tags_with_host.push(get_hostname_tag());
     client
-        .create_clip(content, tags_with_host, additional_notes)
+        .create_clip(content, tags_with_host, additional_notes, language)
         .await
         .map_err(|e| e.to_string())
 }
@@ -100,10 +101,11 @@ pub async fn update_clip(
     id: String,
     tags: Option<Vec<String>>,
     additional_notes: Option<String>,
+    language: Option<String>,
 ) -> Result<Clip, String> {
     let client = state.client();
     client
-        .update_clip(&id, tags, additional_notes)
+        .update_clip(&id, tags, additional_notes, language)
         .await
         .map_err(|e| e.to_string())
 }

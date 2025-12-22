@@ -13,6 +13,9 @@ pub struct Clip {
     pub file_attachment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub original_filename: Option<String>,
+    /// Optional language identifier for the clip content (e.g., "en", "zh", "rust", "python")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
     /// Highlighted content with search terms wrapped by highlight markers.
     /// Only present in search results when highlight params are provided.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -25,6 +28,8 @@ pub struct CreateClipRequest {
     pub tags: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,6 +38,8 @@ pub struct UpdateClipRequest {
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

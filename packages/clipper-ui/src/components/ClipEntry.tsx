@@ -242,7 +242,15 @@ export const ClipEntry = memo(function ClipEntry({
     }
     setIsExpandedLocal(expanded);
   };
-  const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(() => detectLanguage(clip.content));
+  // Use clip.language if set, otherwise auto-detect
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageId>(() => {
+    // If clip has a saved language, use it (validate it's a known language)
+    if (clip.language && LANGUAGES.some(l => l.id === clip.language)) {
+      return clip.language as LanguageId;
+    }
+    // Otherwise auto-detect
+    return detectLanguage(clip.content);
+  });
   const [showNotesPopup, setShowNotesPopup] = useState(false);
   const [notesValue, setNotesValue] = useState(clip.additional_notes || "");
   const [savingNotes, setSavingNotes] = useState(false);
@@ -794,6 +802,27 @@ export const ClipEntry = memo(function ClipEntry({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showDeleteConfirm, deleting, favorite, clip.tags, confirmDeleteProtected]);
 
+  // Handle manual language change - update server and local state
+  const handleLanguageChange = useCallback(async (newLanguage: LanguageId) => {
+    // Update local state immediately for responsive UI
+    setSelectedLanguage(newLanguage);
+
+    // Persist the change to the server
+    try {
+      onBeforeClipModified?.(clip.id);
+      const updatedClip = await api.updateClip(
+        clip.id,
+        clip.tags,
+        clip.additional_notes || undefined,
+        newLanguage
+      );
+      onClipUpdated?.(updatedClip);
+    } catch (err) {
+      console.error("Failed to update language:", err);
+      showToast(t("toast.updateFailed"), "error");
+    }
+  }, [clip.id, clip.tags, clip.additional_notes, api, onBeforeClipModified, onClipUpdated, showToast, t]);
+
   // Handle click on the clip entry itself - activate it and toggle expand/collapse for long content
   const handleEntryClick = () => {
     // Always activate on click
@@ -838,7 +867,7 @@ export const ClipEntry = memo(function ClipEntry({
             {!isImage && (
               <LanguageSelector
                 value={selectedLanguage}
-                onChange={setSelectedLanguage}
+                onChange={handleLanguageChange}
                 visible={true}
               />
             )}

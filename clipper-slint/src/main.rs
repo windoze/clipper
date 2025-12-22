@@ -523,7 +523,7 @@ impl AppController {
         let weak_self: ArcWeak<Self> = Arc::downgrade(self);
 
         self.runtime.spawn(async move {
-            match client.update_clip(&clip.id, Some(tags), None).await {
+            match client.update_clip(&clip.id, Some(tags), None, None).await {
                 Ok(updated) => {
                     {
                         let mut cache_guard = cache.lock().unwrap();

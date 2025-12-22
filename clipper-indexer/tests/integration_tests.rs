@@ -64,6 +64,7 @@ async fn test_update_entry() {
             "Original content".to_string(),
             vec!["original".to_string()],
             None,
+            None,
         )
         .await
         .expect("Failed to add entry");
@@ -122,6 +123,7 @@ async fn test_search_entries() {
             "Rust programming is fun".to_string(),
             vec!["rust".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -130,6 +132,7 @@ async fn test_search_entries() {
         .add_entry_from_text(
             "Python is also fun".to_string(),
             vec!["python".to_string()],
+            None,
             None,
         )
         .await
@@ -180,6 +183,7 @@ async fn test_list_entries_with_date_range() {
             "Another entry".to_string(),
             vec!["another".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -216,6 +220,7 @@ async fn test_list_entries_with_tag_filter() {
             "Entry 1".to_string(),
             vec!["tag1".to_string(), "common".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -224,6 +229,7 @@ async fn test_list_entries_with_tag_filter() {
         .add_entry_from_text(
             "Entry 2".to_string(),
             vec!["tag2".to_string(), "common".to_string()],
+            None,
             None,
         )
         .await
@@ -267,6 +273,7 @@ async fn test_delete_entry() {
             "To be deleted".to_string(),
             vec!["delete".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -298,6 +305,7 @@ async fn test_search_with_combined_filters() {
             "Rust is awesome".to_string(),
             vec!["rust".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -309,6 +317,7 @@ async fn test_search_with_combined_filters() {
             "Rust programming tips".to_string(),
             vec!["rust".to_string(), "tips".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -319,6 +328,7 @@ async fn test_search_with_combined_filters() {
         .add_entry_from_text(
             "Python programming".to_string(),
             vec!["python".to_string()],
+            None,
             None,
         )
         .await
@@ -361,6 +371,7 @@ async fn test_cleanup_entries_no_tags() {
             "With tag entry".to_string(),
             vec!["important".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -390,6 +401,7 @@ async fn test_cleanup_entries_only_host_tag() {
             "Host only entry".to_string(),
             vec!["$host:my-machine".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -399,6 +411,7 @@ async fn test_cleanup_entries_only_host_tag() {
         .add_entry_from_text(
             "Host and other entry".to_string(),
             vec!["$host:my-machine".to_string(), "important".to_string()],
+            None,
             None,
         )
         .await
@@ -432,6 +445,7 @@ async fn test_cleanup_entries_multiple_host_tags() {
                 "$host:machine2".to_string(),
             ],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -441,6 +455,7 @@ async fn test_cleanup_entries_multiple_host_tags() {
         .add_entry_from_text(
             "With tag entry".to_string(),
             vec!["favorite".to_string()],
+            None,
             None,
         )
         .await
@@ -549,6 +564,7 @@ async fn test_cleanup_entries_none_to_delete() {
             "Entry 1".to_string(),
             vec!["important".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -557,6 +573,7 @@ async fn test_cleanup_entries_none_to_delete() {
         .add_entry_from_text(
             "Entry 2".to_string(),
             vec!["$host:machine".to_string(), "favorite".to_string()],
+            None,
             None,
         )
         .await
@@ -589,6 +606,7 @@ async fn test_create_short_url() {
             "Test content for short URL".to_string(),
             vec!["test".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -614,6 +632,7 @@ async fn test_create_short_url_with_expiration() {
         .add_entry_from_text(
             "Test content".to_string(),
             vec!["test".to_string()],
+            None,
             None,
         )
         .await
@@ -653,6 +672,7 @@ async fn test_get_short_url() {
         .add_entry_from_text(
             "Test content".to_string(),
             vec!["test".to_string()],
+            None,
             None,
         )
         .await
@@ -695,6 +715,7 @@ async fn test_get_expired_short_url() {
             "Test content".to_string(),
             vec!["test".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -722,6 +743,7 @@ async fn test_get_short_urls_for_clip() {
         .add_entry_from_text(
             "Test content".to_string(),
             vec!["test".to_string()],
+            None,
             None,
         )
         .await
@@ -756,6 +778,7 @@ async fn test_delete_short_url() {
             "Test content".to_string(),
             vec!["test".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -782,6 +805,7 @@ async fn test_delete_short_urls_for_clip() {
         .add_entry_from_text(
             "Test content".to_string(),
             vec!["test".to_string()],
+            None,
             None,
         )
         .await
@@ -815,6 +839,7 @@ async fn test_cleanup_expired_short_urls() {
         .add_entry_from_text(
             "Test content".to_string(),
             vec!["test".to_string()],
+            None,
             None,
         )
         .await
@@ -869,6 +894,7 @@ async fn test_short_url_unique_codes() {
             "Test content".to_string(),
             vec!["test".to_string()],
             None,
+            None,
         )
         .await
         .unwrap();
@@ -896,6 +922,7 @@ async fn test_tags_synced_on_add_entry() {
             "Test content".to_string(),
             vec!["rust".to_string(), "programming".to_string()],
             None,
+            None,
         )
         .await
         .expect("Failed to add entry");
@@ -922,6 +949,7 @@ async fn test_tags_synced_on_update_entry() {
             "Test content".to_string(),
             vec!["initial".to_string()],
             None,
+            None,
         )
         .await
         .expect("Failed to add entry");
@@ -931,6 +959,7 @@ async fn test_tags_synced_on_update_entry() {
         .update_entry(
             &entry.id,
             Some(vec!["initial".to_string(), "updated".to_string()]),
+            None,
             None,
         )
         .await
@@ -958,6 +987,7 @@ async fn test_tags_deduplication() {
             "Test 1".to_string(),
             vec!["common".to_string(), "unique1".to_string()],
             None,
+            None,
         )
         .await
         .expect("Failed to add entry 1");
@@ -966,6 +996,7 @@ async fn test_tags_deduplication() {
         .add_entry_from_text(
             "Test 2".to_string(),
             vec!["common".to_string(), "unique2".to_string()],
+            None,
             None,
         )
         .await
@@ -998,6 +1029,7 @@ async fn test_search_tags() {
                 "database".to_string(),
             ],
             None,
+            None,
         )
         .await
         .expect("Failed to add entry");
@@ -1022,6 +1054,7 @@ async fn test_get_tag_by_text() {
         .add_entry_from_text(
             "Test content".to_string(),
             vec!["test-tag".to_string()],
+            None,
             None,
         )
         .await

@@ -151,17 +151,20 @@ impl ClipperClient {
     /// * `content` - Text content of the clip
     /// * `tags` - List of tags for the clip
     /// * `additional_notes` - Optional additional notes
+    /// * `language` - Optional language identifier (e.g., "en", "zh", "rust", "python")
     pub async fn create_clip(
         &self,
         content: String,
         tags: Vec<String>,
         additional_notes: Option<String>,
+        language: Option<String>,
     ) -> Result<Clip> {
         let url = format!("{}/clips", self.base_url);
         let request = CreateClipRequest {
             content,
             tags,
             additional_notes,
+            language,
         };
 
         let response = self
@@ -372,22 +375,25 @@ impl ClipperClient {
         self.handle_response(response).await
     }
 
-    /// Update a clip's tags and/or additional notes
+    /// Update a clip's tags, additional notes, and/or language
     ///
     /// # Arguments
     /// * `id` - The clip ID
     /// * `tags` - Optional new tags
     /// * `additional_notes` - Optional new additional notes
+    /// * `language` - Optional new language identifier
     pub async fn update_clip(
         &self,
         id: &str,
         tags: Option<Vec<String>>,
         additional_notes: Option<String>,
+        language: Option<String>,
     ) -> Result<Clip> {
         let url = format!("{}/clips/{}", self.base_url, id);
         let request = UpdateClipRequest {
             tags,
             additional_notes,
+            language,
         };
 
         let response = self

@@ -45,6 +45,10 @@ enum Commands {
         /// Additional notes
         #[arg(short, long)]
         notes: Option<String>,
+
+        /// Language identifier (e.g., "en", "zh", "rust", "python")
+        #[arg(short, long)]
+        language: Option<String>,
     },
 
     /// Get a clip by ID
@@ -58,7 +62,7 @@ enum Commands {
         format: String,
     },
 
-    /// Update a clip's tags and/or notes
+    /// Update a clip's tags, notes, and/or language
     #[clap(alias = "u")]
     Update {
         /// Clip ID
@@ -71,6 +75,10 @@ enum Commands {
         /// New additional notes
         #[arg(short, long)]
         notes: Option<String>,
+
+        /// New language identifier (e.g., "en", "zh", "rust", "python")
+        #[arg(short, long)]
+        language: Option<String>,
     },
 
     /// Search clips
@@ -278,6 +286,7 @@ async fn main() -> Result<()> {
             content,
             tags,
             notes,
+            language,
         } => {
             let mut tags_vec: Vec<String> = tags
                 .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
@@ -289,7 +298,7 @@ async fn main() -> Result<()> {
             }
 
             let clip = client
-                .create_clip(content, tags_vec, notes)
+                .create_clip(content, tags_vec, notes, language)
                 .await
                 .context("Failed to create clip")?;
 
@@ -312,11 +321,11 @@ async fn main() -> Result<()> {
             }
         }
 
-        Commands::Update { id, tags, notes } => {
+        Commands::Update { id, tags, notes, language } => {
             let tags_vec = tags.map(|t| t.split(',').map(|s| s.trim().to_string()).collect());
 
             let clip = client
-                .update_clip(&id, tags_vec, notes)
+                .update_clip(&id, tags_vec, notes, language)
                 .await
                 .context("Failed to update clip")?;
 

@@ -178,6 +178,8 @@ struct CreateClipRequest {
     tags: Vec<String>,
     #[serde(default)]
     additional_notes: Option<String>,
+    #[serde(default)]
+    language: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -192,6 +194,8 @@ struct ClipResponse {
     file_attachment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     original_filename: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    language: Option<String>,
 }
 
 impl From<ClipboardEntry> for ClipResponse {
@@ -204,6 +208,7 @@ impl From<ClipboardEntry> for ClipResponse {
             additional_notes: entry.additional_notes,
             file_attachment: entry.file_attachment,
             original_filename: entry.original_filename,
+            language: entry.language,
         }
     }
 }
@@ -242,6 +247,8 @@ struct SearchClipResponse {
     file_attachment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     original_filename: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    language: Option<String>,
     /// Highlighted content with search terms wrapped by highlight markers.
     /// Only present when highlight_begin and highlight_end query params are provided.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -258,6 +265,7 @@ impl From<SearchResultItem> for SearchClipResponse {
             additional_notes: item.entry.additional_notes,
             file_attachment: item.entry.file_attachment,
             original_filename: item.entry.original_filename,
+            language: item.entry.language,
             highlighted_content: item.highlighted_content,
         }
     }
@@ -298,6 +306,7 @@ async fn create_clip(
             payload.content.clone(),
             payload.tags.clone(),
             payload.additional_notes,
+            payload.language,
         )
         .await?;
 
@@ -457,6 +466,8 @@ struct UpdateClipRequest {
     tags: Option<Vec<String>>,
     #[serde(default)]
     additional_notes: Option<String>,
+    #[serde(default)]
+    language: Option<String>,
 }
 
 async fn update_clip(
@@ -466,7 +477,7 @@ async fn update_clip(
 ) -> Result<Json<ClipResponse>> {
     let entry = state
         .indexer
-        .update_entry(&id, payload.tags, payload.additional_notes)
+        .update_entry(&id, payload.tags, payload.additional_notes, payload.language)
         .await?;
 
     // Notify WebSocket clients

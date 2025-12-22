@@ -40,12 +40,14 @@ export function createTauriApiClient(): ClipperApi {
     async createClip(
       content: string,
       tags?: string[],
-      additionalNotes?: string
+      additionalNotes?: string,
+      language?: string
     ): Promise<Clip> {
       return invoke<Clip>("create_clip", {
         content,
         tags: tags || [],
         additionalNotes,
+        language,
       });
     },
 
@@ -63,12 +65,14 @@ export function createTauriApiClient(): ClipperApi {
     async updateClip(
       id: string,
       tags?: string[],
-      additionalNotes?: string | null
+      additionalNotes?: string | null,
+      language?: string | null
     ): Promise<Clip> {
       return invoke<Clip>("update_clip", {
         id,
         tags,
         additionalNotes,
+        language,
       });
     },
 

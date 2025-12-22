@@ -276,7 +276,7 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                     let hostname_tag = get_hostname_tag();
                     rt.spawn(async move {
                         match client
-                            .create_clip(text, vec![hostname_tag], None)
+                            .create_clip(text, vec![hostname_tag], None, None)
                             .await
                         {
                             Ok(clip) => {

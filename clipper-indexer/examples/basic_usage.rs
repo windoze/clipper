@@ -19,6 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Rust is a systems programming language".to_string(),
             vec!["rust".to_string(), "programming".to_string()],
             Some("Great for performance-critical applications".to_string()),
+            None,
         )
         .await?;
     println!("Created entry with ID: {}", entry1.id);
@@ -30,6 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Python is a versatile programming language".to_string(),
             vec!["python".to_string(), "programming".to_string()],
             Some("Great for rapid development".to_string()),
+            None,
         )
         .await?;
     println!("Created entry with ID: {}", entry2.id);

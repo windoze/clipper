@@ -29,6 +29,9 @@ pub struct ClipboardEntry {
     pub file_attachment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub original_filename: Option<String>,
+    /// Optional language identifier for the clip content (e.g., "en", "zh", "rust", "python")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
     #[serde(skip_serializing)]
     pub search_content: String,
 }
@@ -70,6 +73,7 @@ impl ClipboardEntry {
             additional_notes: None,
             file_attachment: None,
             original_filename: None,
+            language: None,
             search_content,
         }
     }
@@ -87,6 +91,11 @@ impl ClipboardEntry {
 
     pub fn with_file_attachment(mut self, file_path: String) -> Self {
         self.file_attachment = Some(file_path);
+        self
+    }
+
+    pub fn with_language(mut self, language: String) -> Self {
+        self.language = Some(language);
         self
     }
 

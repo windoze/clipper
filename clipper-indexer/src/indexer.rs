@@ -40,6 +40,7 @@ struct DbClipboardEntry {
     additional_notes: Option<String>,
     file_attachment: Option<String>,
     original_filename: Option<String>,
+    language: Option<String>,
     search_content: String,
 }
 
@@ -110,6 +111,7 @@ impl ClipperIndexer {
             DEFINE FIELD IF NOT EXISTS additional_notes ON TABLE {TABLE_NAME} TYPE option<string>;
             DEFINE FIELD IF NOT EXISTS file_attachment ON TABLE {TABLE_NAME} TYPE option<string>;
             DEFINE FIELD IF NOT EXISTS original_filename ON TABLE {TABLE_NAME} TYPE option<string>;
+            DEFINE FIELD IF NOT EXISTS language ON TABLE {TABLE_NAME} TYPE option<string>;
             DEFINE FIELD IF NOT EXISTS search_content ON TABLE {TABLE_NAME} TYPE string;
 
             DEFINE TABLE IF NOT EXISTS {CONFIG_TABLE} SCHEMAFULL;
@@ -134,6 +136,7 @@ impl ClipperIndexer {
             r#"
             DEFINE INDEX IF NOT EXISTS idx_created_at ON TABLE {TABLE_NAME} COLUMNS created_at;
             DEFINE INDEX IF NOT EXISTS idx_tags ON TABLE {TABLE_NAME} COLUMNS tags;
+            DEFINE INDEX IF NOT EXISTS idx_language ON TABLE {TABLE_NAME} COLUMNS language;
             DEFINE INDEX IF NOT EXISTS idx_short_code ON TABLE {SHORT_URL_TABLE} COLUMNS short_code UNIQUE;
             DEFINE INDEX IF NOT EXISTS idx_short_url_clip_id ON TABLE {SHORT_URL_TABLE} COLUMNS clip_id;
             DEFINE INDEX IF NOT EXISTS idx_short_url_expires_at ON TABLE {SHORT_URL_TABLE} COLUMNS expires_at;
@@ -330,11 +333,16 @@ impl ClipperIndexer {
         content: String,
         tags: Vec<String>,
         additional_notes: Option<String>,
+        language: Option<String>,
     ) -> Result<ClipboardEntry> {
         let mut entry = ClipboardEntry::new(content, tags);
 
         if let Some(notes) = additional_notes {
             entry = entry.with_notes(notes);
+        }
+
+        if let Some(lang) = language {
+            entry = entry.with_language(lang);
         }
 
         // Insert into database using SDK method
@@ -350,6 +358,7 @@ impl ClipperIndexer {
                 additional_notes: entry.additional_notes.clone(),
                 file_attachment: entry.file_attachment.clone(),
                 original_filename: entry.original_filename.clone(),
+                language: entry.language.clone(),
                 search_content: entry.search_content.clone(),
             })
             .await?;
@@ -414,6 +423,7 @@ impl ClipperIndexer {
                 additional_notes: entry.additional_notes.clone(),
                 file_attachment: entry.file_attachment.clone(),
                 original_filename: entry.original_filename.clone(),
+                language: entry.language.clone(),
                 search_content: entry.search_content.clone(),
             })
             .await?;
@@ -486,6 +496,7 @@ impl ClipperIndexer {
                 additional_notes: entry.additional_notes.clone(),
                 file_attachment: entry.file_attachment.clone(),
                 original_filename: entry.original_filename.clone(),
+                language: entry.language.clone(),
                 search_content: entry.search_content.clone(),
             })
             .await?;
@@ -509,23 +520,55 @@ impl ClipperIndexer {
                 additional_notes: db_entry.additional_notes,
                 file_attachment: db_entry.file_attachment,
                 original_filename: db_entry.original_filename,
+                language: db_entry.language,
                 search_content: db_entry.search_content,
             })
             .ok_or_else(|| IndexerError::NotFound(format!("Entry with id {} not found", id)))
     }
 
+    /// Update an entry's tags, additional notes, and/or language.
+    ///
+    /// # Arguments
+    /// * `id` - The ID of the entry to update
+    /// * `tags` - If Some, replaces the tags (empty vec clears tags); if None, leaves tags unchanged
+    /// * `additional_notes` - If Some, replaces the notes (empty string clears to None); if None, leaves notes unchanged
+    /// * `language` - If Some, sets the language (empty string clears to None); if None, leaves unchanged
+    ///
+    /// # Empty value handling
+    /// - `tags: Some(vec![])` - clears tags to empty array
+    /// - `additional_notes: Some("")` - clears notes to None in database
+    /// - `language: Some("")` - clears language to None in database
     pub async fn update_entry(
         &self,
         id: &str,
         tags: Option<Vec<String>>,
         additional_notes: Option<String>,
+        language: Option<String>,
     ) -> Result<ClipboardEntry> {
         // First, retrieve the existing entry to get the content
         let existing_entry = self.get_entry(id).await?;
 
+        // Normalize empty values to None for optional string fields
+        let additional_notes_normalized: Option<Option<String>> = additional_notes.map(|notes| {
+            if notes.trim().is_empty() {
+                None
+            } else {
+                Some(notes)
+            }
+        });
+
+        let language_normalized: Option<Option<String>> = language.map(|lang| {
+            if lang.trim().is_empty() {
+                None
+            } else {
+                Some(lang)
+            }
+        });
+
         // Calculate new search_content if additional_notes is being updated
-        let new_search_content = match &additional_notes {
-            Some(notes) => format!("{} {}", existing_entry.content, notes),
+        let new_search_content = match &additional_notes_normalized {
+            Some(Some(notes)) => format!("{} {}", existing_entry.content, notes),
+            Some(None) => existing_entry.content.clone(), // Clearing notes
             None => match &existing_entry.additional_notes {
                 Some(existing_notes) => format!("{} {}", existing_entry.content, existing_notes),
                 None => existing_entry.content.clone(),
@@ -541,9 +584,13 @@ impl ClipperIndexer {
             updates.push("tags = $tags");
         }
 
-        if additional_notes.is_some() {
+        if additional_notes_normalized.is_some() {
             updates.push("additional_notes = $additional_notes");
             updates.push("search_content = $search_content");
+        }
+
+        if language_normalized.is_some() {
+            updates.push("language = $language");
         }
 
         if updates.is_empty() {
@@ -562,9 +609,13 @@ impl ClipperIndexer {
             query = query.bind(("tags", t));
         }
 
-        if let Some(notes) = additional_notes {
-            query = query.bind(("additional_notes", notes));
+        if let Some(notes_opt) = additional_notes_normalized {
+            query = query.bind(("additional_notes", notes_opt));
             query = query.bind(("search_content", new_search_content));
+        }
+
+        if let Some(lang_opt) = language_normalized {
+            query = query.bind(("language", lang_opt));
         }
 
         query.await?;
@@ -752,6 +803,7 @@ impl ClipperIndexer {
                 additional_notes: Option<String>,
                 file_attachment: Option<String>,
                 original_filename: Option<String>,
+                language: Option<String>,
                 search_content: String,
                 highlighted_content: Option<String>,
             }
@@ -771,6 +823,7 @@ impl ClipperIndexer {
                         additional_notes: db_entry.additional_notes,
                         file_attachment: db_entry.file_attachment,
                         original_filename: db_entry.original_filename,
+                        language: db_entry.language,
                         search_content: db_entry.search_content,
                     },
                     highlighted_content: db_entry.highlighted_content,
@@ -799,6 +852,7 @@ impl ClipperIndexer {
                         additional_notes: db_entry.additional_notes,
                         file_attachment: db_entry.file_attachment,
                         original_filename: db_entry.original_filename,
+                        language: db_entry.language,
                         search_content: db_entry.search_content,
                     },
                     highlighted_content: None,
@@ -919,6 +973,7 @@ impl ClipperIndexer {
                 additional_notes: db_entry.additional_notes,
                 file_attachment: db_entry.file_attachment,
                 original_filename: db_entry.original_filename,
+                language: db_entry.language,
                 search_content: db_entry.search_content,
             })
             .collect();
@@ -1581,6 +1636,7 @@ impl ClipperIndexer {
                         additional_notes: clip.additional_notes.clone(),
                         file_attachment: None,
                         original_filename: Some(original_filename.clone()),
+                        language: clip.language.clone(),
                         search_content: match &clip.additional_notes {
                             Some(notes) => format!("{} {}", clip.content, notes),
                             None => clip.content.clone(),
@@ -1607,6 +1663,7 @@ impl ClipperIndexer {
                         additional_notes: clip.additional_notes.clone(),
                         file_attachment: None,
                         original_filename: clip.original_filename.clone(),
+                        language: clip.language.clone(),
                         search_content: match &clip.additional_notes {
                             Some(notes) => format!("{} {}", clip.content, notes),
                             None => clip.content.clone(),
@@ -1624,6 +1681,7 @@ impl ClipperIndexer {
                     additional_notes: clip.additional_notes.clone(),
                     file_attachment: None,
                     original_filename: None,
+                    language: clip.language.clone(),
                     search_content: match &clip.additional_notes {
                         Some(notes) => format!("{} {}", clip.content, notes),
                         None => clip.content.clone(),
@@ -1660,6 +1718,7 @@ impl ClipperIndexer {
                 additional_notes: entry.additional_notes.clone(),
                 file_attachment: entry.file_attachment.clone(),
                 original_filename: entry.original_filename.clone(),
+                language: entry.language.clone(),
                 search_content: entry.search_content.clone(),
             })
             .await?;

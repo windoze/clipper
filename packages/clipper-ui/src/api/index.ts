@@ -58,17 +58,19 @@ export interface ClipperApi {
   createClip(
     content: string,
     tags?: string[],
-    additionalNotes?: string
+    additionalNotes?: string,
+    language?: string
   ): Promise<Clip>;
 
   /** Upload a file as a new clip */
   uploadFile(file: File, tags?: string[], additionalNotes?: string): Promise<Clip>;
 
-  /** Update clip tags and/or notes */
+  /** Update clip tags, notes, and/or language */
   updateClip(
     id: string,
     tags?: string[],
-    additionalNotes?: string | null
+    additionalNotes?: string | null,
+    language?: string | null
   ): Promise<Clip>;
 
   /** Delete a clip */
@@ -259,7 +261,8 @@ export function createRestApiClient(
     async createClip(
       content: string,
       tags: string[] = [],
-      additionalNotes?: string
+      additionalNotes?: string,
+      language?: string
     ): Promise<Clip> {
       // Add $host:$web tag for clips created from the web UI
       const allTags = tags.includes("$host:$web") ? tags : [...tags, "$host:$web"];
@@ -269,6 +272,9 @@ export function createRestApiClient(
       };
       if (additionalNotes) {
         body.additional_notes = additionalNotes;
+      }
+      if (language) {
+        body.language = language;
       }
 
       const response = await fetch(`${baseUrl}/clips`, {
@@ -304,7 +310,8 @@ export function createRestApiClient(
     async updateClip(
       id: string,
       tags?: string[],
-      additionalNotes?: string | null
+      additionalNotes?: string | null,
+      language?: string | null
     ): Promise<Clip> {
       const body: Record<string, unknown> = {};
       if (tags !== undefined) {
@@ -312,6 +319,9 @@ export function createRestApiClient(
       }
       if (additionalNotes !== undefined) {
         body.additional_notes = additionalNotes;
+      }
+      if (language !== undefined) {
+        body.language = language;
       }
 
       const response = await fetch(`${baseUrl}/clips/${id}`, {
