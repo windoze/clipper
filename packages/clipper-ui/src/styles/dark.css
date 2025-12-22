@@ -188,6 +188,16 @@
   outline-offset: 2px;
 }
 
+/* Button focus states - dark mode */
+:root[data-theme="dark"] .copy-button:focus,
+:root[data-theme="dark"] .share-button:focus,
+:root[data-theme="dark"] .delete-button:focus,
+:root[data-theme="dark"] .favorite-button:focus,
+:root[data-theme="dark"] .expand-button:focus,
+:root[data-theme="dark"] .notes-indicator:focus {
+  outline-color: #8b9cf7;
+}
+
 /* Aging effect works the same in dark mode - just uses CSS variable */
 :root[data-theme="dark"] .clip-entry.clip-entry-aging:hover {
   opacity: 1;
@@ -245,7 +255,8 @@
 }
 
 :root[data-theme="dark"] .date-tag-arrow:focus {
-  background: rgba(59, 130, 246, 0.2);
+  outline-color: #8b9cf7;
+  background: rgba(139, 156, 247, 0.2);
 }
 
 :root[data-theme="dark"] .language-selector-dropdown {
@@ -988,6 +999,21 @@
   :root:not([data-theme="light"]) .clip-entry .button-focused {
     outline: 2px solid #8b9cf7;
     outline-offset: 2px;
+  }
+
+  /* Button focus states - dark mode auto */
+  :root:not([data-theme="light"]) .copy-button:focus,
+  :root:not([data-theme="light"]) .share-button:focus,
+  :root:not([data-theme="light"]) .delete-button:focus,
+  :root:not([data-theme="light"]) .favorite-button:focus,
+  :root:not([data-theme="light"]) .expand-button:focus,
+  :root:not([data-theme="light"]) .notes-indicator:focus {
+    outline-color: #8b9cf7;
+  }
+
+  :root:not([data-theme="light"]) .date-tag-arrow:focus {
+    outline-color: #8b9cf7;
+    background: rgba(139, 156, 247, 0.2);
   }
 
   :root:not([data-theme="light"]) .clip-content {

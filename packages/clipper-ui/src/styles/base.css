@@ -1030,9 +1030,9 @@
 
 .date-tag-arrow:focus {
   opacity: 1;
-  outline: 2px solid var(--accent-color, #007bff);
+  outline: 2px solid #667eea;
   outline-offset: 1px;
-  background: rgba(0, 123, 255, 0.1);
+  background: rgba(102, 126, 234, 0.1);
 }
 
 .date-tag-arrow-left {
@@ -1061,6 +1061,12 @@
 
 .favorite-button.active {
   color: #ffc107;
+}
+
+.favorite-button:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Clip Content Wrapper */
@@ -1096,6 +1102,12 @@
 .expand-button:hover {
   text-decoration: underline;
   color: #0056b3;
+}
+
+.expand-button:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Search Highlight Styles */
@@ -2720,6 +2732,11 @@
   background: rgba(102, 126, 234, 0.1);
 }
 
+.copy-button:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
 .share-button {
   background: none;
   border: none;
@@ -2736,6 +2753,11 @@
 .share-button:hover {
   color: #667eea;
   background: rgba(102, 126, 234, 0.1);
+}
+
+.share-button:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
 }
 
 .clip-action-separator {
@@ -2762,6 +2784,11 @@
 
 .delete-button:hover {
   background: #c82333;
+}
+
+.delete-button:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
 }
 
 /* Delete Confirmation Dialog */
@@ -3762,6 +3789,11 @@
   color: #667eea;
   opacity: 1;
   background: rgba(102, 126, 234, 0.1);
+}
+
+.notes-indicator:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
 }
 
 /* ============================================
