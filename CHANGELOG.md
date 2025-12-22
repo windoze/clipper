@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.2]
+
+### Fixed
+
+- ESC key no longer triggers position flyover unexpectedly
+- Blur internal control when deactivating entry for better focus management
+
 ## [0.24.1]
 
 ### Fixed
