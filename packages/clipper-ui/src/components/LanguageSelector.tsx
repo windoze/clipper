@@ -85,6 +85,13 @@ export function LanguageSelector({ value, onChange, visible }: LanguageSelectorP
     };
   }, [isOpen]);
 
+  // Close dropdown when parent clip entry is deactivated
+  useEffect(() => {
+    if (!visible && isOpen) {
+      setIsOpen(false);
+    }
+  }, [visible, isOpen]);
+
   const handleSelect = useCallback((languageId: LanguageId) => {
     onChange(languageId);
     setIsOpen(false);

@@ -196,6 +196,16 @@ export const ClipEntry = memo(function ClipEntry({
   const favorite = isFavorite(clip);
   const entryRef = useRef<HTMLDivElement>(null);
 
+  // Blur any focused element inside this clip entry when it becomes deactivated
+  useEffect(() => {
+    if (!isFocused && entryRef.current) {
+      const activeElement = document.activeElement as HTMLElement;
+      if (activeElement && entryRef.current.contains(activeElement)) {
+        activeElement.blur();
+      }
+    }
+  }, [isFocused]);
+
   // Calculate age-based opacity for visual aging effect
   const ageStyle = useMemo(() => {
     const ageRatio = calculateAgeRatio(clip, cleanupConfig);
@@ -868,7 +878,7 @@ export const ClipEntry = memo(function ClipEntry({
               <LanguageSelector
                 value={selectedLanguage}
                 onChange={handleLanguageChange}
-                visible={true}
+                visible={isFocused}
               />
             )}
             {hasNotes ? (
