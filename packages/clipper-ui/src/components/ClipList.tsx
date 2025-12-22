@@ -349,11 +349,19 @@ export function ClipList({
   // Limit skeleton count for performance, but show at least a few to indicate more items
   const skeletonCount = Math.min(unloadedCount, MAX_SKELETON_COUNT);
 
+  // Track the last valid focused clip index to avoid resetting when deactivating
+  const lastFocusedIndexRef = useRef<number>(1);
+
   // Calculate the current focused clip index (1-based) for the scroll position indicator
   const focusedClipIndex = useMemo(() => {
-    if (!focusedClipId) return 1; // Default to first item if nothing focused
+    if (!focusedClipId) {
+      // When deactivated, keep the last known position (don't reset to 1)
+      return lastFocusedIndexRef.current;
+    }
     const index = clips.findIndex(clip => clip.id === focusedClipId);
-    return index === -1 ? 1 : index + 1; // Convert to 1-based index
+    const newIndex = index === -1 ? lastFocusedIndexRef.current : index + 1;
+    lastFocusedIndexRef.current = newIndex;
+    return newIndex;
   }, [focusedClipId, clips]);
 
   if (loading) {
