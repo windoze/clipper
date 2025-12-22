@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.1]
+
+### Fixed
+
+- Focus style sometimes not visible in UI
+
 ## [0.24.0]
 
 ### Added
