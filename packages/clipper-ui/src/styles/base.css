@@ -1150,6 +1150,11 @@
   border-color: #adb5bd;
 }
 
+.language-selector-button:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
 .language-selector-label {
   max-width: 80px;
   overflow: hidden;
@@ -2012,6 +2017,11 @@
   filter: brightness(1.1);
 }
 
+.tag.tag-clickable:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
 /* Host tag styling */
 .tag.tag-host {
   display: inline-flex;
@@ -2050,6 +2060,11 @@
   background: #f3f4f6;
   color: #374151;
   border-color: #9ca3af;
+}
+
+.tag.tag-add:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
 }
 
 /* Add tag wrapper for positioning dropdown */
@@ -2168,6 +2183,13 @@
 
 .tag-remove-btn:hover {
   background: #c82333;
+}
+
+.tag-remove-btn:focus {
+  opacity: 1;
+  transform: scale(1);
+  outline: 2px solid #667eea;
+  outline-offset: 1px;
 }
 
 .tag-remove-btn svg {

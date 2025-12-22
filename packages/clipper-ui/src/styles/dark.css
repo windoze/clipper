@@ -233,6 +233,10 @@
   border-color: #5a5a5a;
 }
 
+:root[data-theme="dark"] .language-selector-button:focus {
+  outline-color: #8b9cf7;
+}
+
 /* Date Tag - Dark Theme */
 :root[data-theme="dark"] .date-tag {
   background: #363636;
@@ -357,6 +361,10 @@
   background: #7b93f5;
 }
 
+:root[data-theme="dark"] .tag.tag-clickable:focus {
+  outline-color: #8b9cf7;
+}
+
 /* Add tag button - dark theme */
 :root[data-theme="dark"] .tag.tag-add {
   background: transparent;
@@ -368,6 +376,10 @@
   background: #374151;
   color: #d1d5db;
   border-color: #6b7280;
+}
+
+:root[data-theme="dark"] .tag.tag-add:focus {
+  outline-color: #8b9cf7;
 }
 
 /* Add tag inline input - dark theme */
@@ -410,6 +422,10 @@
 
 :root[data-theme="dark"] .tag-remove-btn:hover {
   background: #c62828;
+}
+
+:root[data-theme="dark"] .tag-remove-btn:focus {
+  outline-color: #8b9cf7;
 }
 
 /* ============================================
@@ -1040,6 +1056,10 @@
     border-color: #5a5a5a;
   }
 
+  :root:not([data-theme="light"]) .language-selector-button:focus {
+    outline-color: #8b9cf7;
+  }
+
   :root:not([data-theme="light"]) .language-selector-dropdown {
     background: #2d2d2d;
     border-color: #404040;
@@ -1115,6 +1135,10 @@
     color: white !important;
   }
 
+  :root:not([data-theme="light"]) .tag.tag-clickable:focus {
+    outline-color: #8b9cf7;
+  }
+
   /* Add tag button - auto dark mode */
   :root:not([data-theme="light"]) .tag.tag-add {
     background: transparent;
@@ -1126,6 +1150,10 @@
     background: #374151;
     color: #d1d5db;
     border-color: #6b7280;
+  }
+
+  :root:not([data-theme="light"]) .tag.tag-add:focus {
+    outline-color: #8b9cf7;
   }
 
   /* Add tag inline input - auto dark mode */
@@ -1168,6 +1196,10 @@
 
   :root:not([data-theme="light"]) .tag-remove-btn:hover {
     background: #c62828;
+  }
+
+  :root:not([data-theme="light"]) .tag-remove-btn:focus {
+    outline-color: #8b9cf7;
   }
 
   :root:not([data-theme="light"]) .clip-attachment {
