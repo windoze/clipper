@@ -16,3 +16,7 @@ edition = "2024"
 rust-version = "1.91"
 repository = "https://github.com/windoze/clipper"
 authors = ["Chen Xu <windoze@0d0a.com>"]
+
+[profile.release]
+lto = true
+strip = true
