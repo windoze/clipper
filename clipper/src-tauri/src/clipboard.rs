@@ -353,9 +353,9 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                             // Check file size
                             if metadata.len() > max_size {
                                 let file_size_mb = metadata.len() as f64 / (1024.0 * 1024.0);
-                                let max_size_mb = max_size / (1024 * 1024);
+                                let max_size_mb = max_size as f64 / (1024.0 * 1024.0);
                                 eprintln!(
-                                    "[clipboard] File {} ({:.2} MB) exceeds maximum allowed size ({} MB), skipping",
+                                    "[clipboard] File {} ({:.2} MB) exceeds maximum allowed size ({:.2} MB), skipping",
                                     path.display(),
                                     file_size_mb,
                                     max_size_mb
@@ -373,12 +373,12 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                                 continue;
                             }
 
-                            // Read file bytes
-                            let bytes = match tokio::fs::read(&path).await {
-                                Ok(b) => b,
+                            // Open the file for streaming upload.
+                            let file = match tokio::fs::File::open(&path).await {
+                                Ok(file) => file,
                                 Err(e) => {
                                     eprintln!(
-                                        "[clipboard] Failed to read file {}: {}",
+                                        "[clipboard] Failed to open file {}: {}",
                                         path.display(),
                                         e
                                     );
@@ -395,8 +395,8 @@ pub fn start_clipboard_monitor(app: AppHandle) {
                             let full_path = path.to_string_lossy().to_string();
 
                             match client
-                                .upload_file_bytes_with_content(
-                                    bytes,
+                                .upload_file_with_content(
+                                    file,
                                     filename.clone(),
                                     vec!["$file".to_string(), hostname_tag.clone()],
                                     None,

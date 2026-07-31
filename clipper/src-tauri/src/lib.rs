@@ -570,11 +570,10 @@ pub fn run() {
                     }
                 }
                 tauri::WindowEvent::DragDrop(DragDropEvent::Drop { paths, .. }) => {
-                    const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
-
                     let app = window.app_handle().clone();
                     let state = app.state::<AppState>();
                     let client = state.client();
+                    let max_upload_size = state.get_max_upload_size_bytes();
                     let paths = paths.clone();
 
                     // Process all files sequentially in a single async task to avoid race conditions
@@ -596,13 +595,14 @@ pub fn run() {
                                 }
                             };
 
-                            if metadata.len() > MAX_FILE_SIZE {
+                            if metadata.len() > max_upload_size {
                                 let size_mb = metadata.len() as f64 / (1024.0 * 1024.0);
+                                let max_size_mb = max_upload_size as f64 / (1024.0 * 1024.0);
                                 log::warn!(
-                                    "File too large: {} ({:.1} MB, max {} MB)",
+                                    "File too large: {} ({:.2} MB, max {:.2} MB)",
                                     path.display(),
                                     size_mb,
-                                    MAX_FILE_SIZE / (1024 * 1024)
+                                    max_size_mb
                                 );
                                 let _ = app.emit(
                                     "file-upload-error",
@@ -610,14 +610,14 @@ pub fn run() {
                                         "path": path.to_string_lossy(),
                                         "error": "file_too_large",
                                         "size_mb": size_mb,
-                                        "max_size_mb": MAX_FILE_SIZE / (1024 * 1024)
+                                        "max_size_mb": max_size_mb
                                     }),
                                 );
                                 continue;
                             }
 
-                            match tokio::fs::read(&path).await {
-                                Ok(bytes) => {
+                            match tokio::fs::File::open(&path).await {
+                                Ok(file) => {
                                     let filename = path
                                         .file_name()
                                         .and_then(|n| n.to_str())
@@ -629,8 +629,8 @@ pub fn run() {
 
                                     let hostname_tag = get_hostname_tag();
                                     match client
-                                        .upload_file_bytes_with_content(
-                                            bytes,
+                                        .upload_file_with_content(
+                                            file,
                                             filename,
                                             vec!["$file".to_string(), hostname_tag],
                                             None,
@@ -654,12 +654,12 @@ pub fn run() {
                                     }
                                 }
                                 Err(e) => {
-                                    log::error!("Failed to read dropped file: {}", e);
+                                    log::error!("Failed to open dropped file: {}", e);
                                     let _ = app.emit(
                                         "file-upload-error",
                                         serde_json::json!({
                                             "path": path.to_string_lossy(),
-                                            "error": format!("Failed to read file: {}", e)
+                                            "error": format!("Failed to open file: {}", e)
                                         }),
                                     );
                                 }
