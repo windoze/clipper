@@ -1,6 +1,7 @@
 use crate::settings::SettingsManager;
 use std::path::PathBuf;
-use std::process::{Child, Stdio};
+use std::process::{Child, ExitStatus, Stdio};
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Manager};
 use tokio::sync::{Mutex, RwLock};
 
@@ -9,6 +10,10 @@ use std::os::unix::io::IntoRawFd;
 
 #[cfg(windows)]
 use std::os::windows::io::IntoRawHandle;
+
+const GRACEFUL_STOP_TIMEOUT: Duration = Duration::from_secs(10);
+const DROP_STOP_TIMEOUT: Duration = Duration::from_secs(2);
+const STOP_POLL_INTERVAL: Duration = Duration::from_millis(100);
 
 /// Manages the bundled clipper-server sidecar process
 pub struct ServerManager {
@@ -538,22 +543,31 @@ impl ServerManager {
 
     /// Stop the server gracefully
     pub async fn stop(&self) -> Result<(), String> {
-        // Drop the pipe writer first - this signals the child that parent is shutting down
-        // But we also need to kill it explicitly for immediate shutdown
+        // Drop the pipe writer first - this signals the child to shut down gracefully.
         *self._pipe_writer.lock().await = None;
 
         let mut child_guard = self.child.lock().await;
-        if let Some(mut child) = child_guard.take() {
-            // Kill the process
-            child
-                .kill()
-                .map_err(|e| format!("Failed to kill server: {}", e))?;
-            // Wait for the process to exit
-            let _ = child.wait();
-            log::info!("Bundled server stopped");
+        let child = child_guard.take();
+        drop(child_guard);
+
+        if let Some(mut child) = child {
+            log::info!("Requesting bundled server graceful shutdown");
+
+            match wait_for_child_exit(&mut child, GRACEFUL_STOP_TIMEOUT).await? {
+                Some(status) => {
+                    log::info!("Bundled server stopped gracefully with status: {}", status);
+                }
+                None => {
+                    log::warn!(
+                        "Bundled server did not stop within {:?}; forcing shutdown",
+                        GRACEFUL_STOP_TIMEOUT
+                    );
+                    force_kill_child(&mut child)?;
+                }
+            }
 
             // Wait for the process to fully terminate and port to be released
-            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+            tokio::time::sleep(Duration::from_millis(500)).await;
         }
 
         *self.port.write().await = None;
@@ -600,18 +614,93 @@ impl Drop for ServerManager {
     fn drop(&mut self) {
         // Try to stop the server synchronously on drop
         // This is a best-effort cleanup
-        // First drop the pipe writer to signal the child
+        // First drop the pipe writer to signal the child.
         if let Ok(mut pipe_guard) = self._pipe_writer.try_lock() {
             *pipe_guard = None;
         }
-        // Then kill the child process
+
         if let Ok(mut child_guard) = self.child.try_lock()
             && let Some(mut child) = child_guard.take()
         {
-            let _ = child.kill();
-            let _ = child.wait();
+            match wait_for_child_exit_blocking(&mut child, DROP_STOP_TIMEOUT) {
+                Ok(Some(status)) => {
+                    log::info!(
+                        "Bundled server stopped gracefully during cleanup with status: {}",
+                        status
+                    );
+                }
+                Ok(None) => {
+                    log::warn!(
+                        "Bundled server did not stop within {:?} during cleanup; forcing shutdown",
+                        DROP_STOP_TIMEOUT
+                    );
+                    let _ = child.kill();
+                    let _ = child.wait();
+                }
+                Err(e) => {
+                    log::warn!(
+                        "Failed to wait for bundled server during cleanup: {}; forcing shutdown",
+                        e
+                    );
+                    let _ = child.kill();
+                    let _ = child.wait();
+                }
+            }
         }
     }
+}
+
+async fn wait_for_child_exit(
+    child: &mut Child,
+    timeout: Duration,
+) -> Result<Option<ExitStatus>, String> {
+    let deadline = Instant::now() + timeout;
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => return Ok(Some(status)),
+            Ok(None) if Instant::now() >= deadline => return Ok(None),
+            Ok(None) => tokio::time::sleep(STOP_POLL_INTERVAL).await,
+            Err(e) => return Err(format!("Failed to wait for bundled server: {}", e)),
+        }
+    }
+}
+
+fn wait_for_child_exit_blocking(
+    child: &mut Child,
+    timeout: Duration,
+) -> std::io::Result<Option<ExitStatus>> {
+    let deadline = Instant::now() + timeout;
+
+    loop {
+        match child.try_wait()? {
+            Some(status) => return Ok(Some(status)),
+            None if Instant::now() >= deadline => return Ok(None),
+            None => std::thread::sleep(STOP_POLL_INTERVAL),
+        }
+    }
+}
+
+fn force_kill_child(child: &mut Child) -> Result<(), String> {
+    match child.kill() {
+        Ok(()) => {}
+        Err(kill_err) => {
+            if let Ok(Some(status)) = child.try_wait() {
+                log::info!(
+                    "Bundled server exited before forced shutdown with status: {}",
+                    status
+                );
+                return Ok(());
+            }
+            return Err(format!("Failed to force kill bundled server: {}", kill_err));
+        }
+    }
+
+    let status = child
+        .wait()
+        .map_err(|e| format!("Failed to wait after forcing bundled server shutdown: {}", e))?;
+    log::warn!("Bundled server was force stopped with status: {}", status);
+    Ok(())
 }
 
 /// Forward a log line from the bundled server with the appropriate log level.
