@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { ServerConfig } from "@unwritten-codes/clipper-ui";
+import { getAuthHeaders } from "../authHeaders";
 
 interface VersionResponse {
   version: string;
@@ -32,7 +33,9 @@ export function useFetchServerConfig(): ServerConfig | null {
     const fetchConfig = async () => {
       try {
         // Fetch version info from the server (same origin)
-        const response = await fetch("/version");
+        const response = await fetch("/version", {
+          headers: getAuthHeaders(),
+        });
         if (!response.ok) {
           console.warn("Failed to fetch server version:", response.status);
           setServerConfig(null);

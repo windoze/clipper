@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { ServerConfig } from "@unwritten-codes/clipper-ui";
+import { getAuthHeaders } from "../api/authHeaders";
 
 interface VersionResponse {
   version: string;
@@ -36,7 +37,9 @@ export function useFetchServerConfig(): ServerConfig | null {
       const serverUrl = await invoke<string>("get_server_url");
 
       // Fetch version info from the server
-      const response = await fetch(`${serverUrl}/version`);
+      const response = await fetch(`${serverUrl}/version`, {
+        headers: await getAuthHeaders(),
+      });
       if (!response.ok) {
         console.warn("Failed to fetch server version:", response.status);
         setServerConfig(null);

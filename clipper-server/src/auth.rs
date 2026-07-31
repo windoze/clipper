@@ -19,7 +19,6 @@ use crate::state::AppState;
 ///
 /// Certain endpoints are always allowed without authentication:
 /// - GET /health - Health check endpoint
-/// - GET /version - Version and configuration info
 /// - GET /auth/check - Authentication status check
 /// - GET /ws - WebSocket endpoint (handles its own message-based authentication)
 /// - GET /s/{code} - Public short URL resolver
@@ -41,7 +40,6 @@ pub async fn auth_middleware(
     // /shared-assets/* serves static files for shared clip pages (no auth required)
     let path = request.uri().path();
     if path == "/health"
-        || path == "/version"
         || path == "/auth/check"
         || path == "/ws"
         || path.starts_with("/s/")

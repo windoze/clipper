@@ -224,7 +224,7 @@ volumes:
 ## REST API
 
 - `GET /health` - Health check
-- `GET /version` - Server version and status information
+- `GET /version` - Server version and status information (requires auth when enabled)
 - `POST /clips` - Create a clip
 - `POST /clips/upload` - Upload a file
 - `GET /clips` - List clips (with pagination)

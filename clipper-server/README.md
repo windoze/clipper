@@ -460,6 +460,8 @@ GET /version
 
 Returns server version and status information.
 
+Requires `Authorization: Bearer <token>` when authentication is enabled. Use `/health` for unauthenticated uptime checks.
+
 **Response**: `200 OK`
 ```json
 {

@@ -24,7 +24,9 @@ async fn create_auth_app() -> (Router, TempDir) {
 
     let state = AppState::new(indexer, config);
     let app = Router::new()
+        .route("/health", get(|| async { "ok" }))
         .route("/private", get(|| async { "ok" }))
+        .route("/version", get(|| async { "version" }))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -67,6 +69,54 @@ async fn test_auth_rejects_query_token() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn test_auth_allows_health_without_header() {
+    let (app, _temp_dir) = create_auth_app().await;
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/health")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_auth_requires_bearer_header_for_version() {
+    let (app, _temp_dir) = create_auth_app().await;
+
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/version")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/version")
+                .header(header::AUTHORIZATION, "Bearer secret-token")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
 #[tokio::test]

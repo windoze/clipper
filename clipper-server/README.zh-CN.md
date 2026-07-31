@@ -460,6 +460,8 @@ GET /version
 
 返回服务器版本和状态信息。
 
+启用身份验证时需要 `Authorization: Bearer <token>`。未认证的存活检查请使用 `/health`。
+
 **响应**：`200 OK`
 ```json
 {
