@@ -168,7 +168,7 @@ export const zh = {
   // Status Indicator
   "status.wsConnected": "实时同步",
   "status.wsDisconnected": "已断开",
-  "status.wsUnavailable": "需要 HTTPS",
+  "status.wsUnavailable": "非本地访问需要 HTTPS",
 
   // Toast Messages
   "toast.clipCopied": "已复制到剪贴板",

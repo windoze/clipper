@@ -169,7 +169,7 @@ export const en = {
   // Status Indicator
   "status.wsConnected": "Real-time sync",
   "status.wsDisconnected": "Disconnected",
-  "status.wsUnavailable": "HTTPS required",
+  "status.wsUnavailable": "HTTPS required outside localhost",
 
   // Toast Messages
   "toast.clipCopied": "Copied to clipboard",

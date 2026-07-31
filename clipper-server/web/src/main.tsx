@@ -141,7 +141,7 @@ function AuthWrapper() {
   return (
     <CleanupConfigWrapper>
       <ServerConfigWrapper>
-        <App authToken={currentToken} />
+        <App authToken={currentToken} authRequired={authRequired} />
       </ServerConfigWrapper>
     </CleanupConfigWrapper>
   );

@@ -17,17 +17,18 @@ import {
   Tag,
 } from "@unwritten-codes/clipper-ui";
 import { SettingsDialog, useSettingsDialog } from "./components/SettingsDialog";
-import { useWebSocket, isSecureContext } from "./hooks/useWebSocket";
+import { useWebSocket, canUseWebSocketContext } from "./hooks/useWebSocket";
 
 interface AppProps {
   /** Auth token for WebSocket authentication (when server requires auth) */
   authToken?: string;
+  authRequired?: boolean;
 }
 
 // Detect platform for keyboard shortcut display
 const isMac = typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 
-function App({ authToken }: AppProps) {
+function App({ authToken, authRequired = false }: AppProps) {
   const { t } = useI18n();
   const {
     clips,
@@ -105,8 +106,8 @@ function App({ authToken }: AppProps) {
     deleteClipFromList(clipId, onDeleted);
   }, [deleteClipFromList]);
 
-  // WebSocket for real-time updates (only enabled on HTTPS)
-  const { isConnected, isSecure } = useWebSocket({
+  // WebSocket for real-time updates.
+  const { isConnected, isAvailable } = useWebSocket({
     onNewClip: useCallback((_id: string, _content: string, _tags: string[]) => {
       showToast(t("toast.newClip"), "info");
       refetch();
@@ -138,17 +139,18 @@ function App({ authToken }: AppProps) {
     onAuthError: useCallback((_error: string) => {
       showToast(t("toast.wsAuthFailed"), "error");
     }, [showToast, t]),
-    enabled: isSecureContext(),
+    enabled: canUseWebSocketContext(),
+    authRequired,
     token: authToken,
   });
 
   // Show connection status toast (only on first connect)
   useEffect(() => {
-    if (isSecure && isConnected && !hasShownConnectedToast.current) {
+    if (isAvailable && isConnected && !hasShownConnectedToast.current) {
       hasShownConnectedToast.current = true;
       showToast(t("toast.wsConnected"), "success");
     }
-  }, [isSecure, isConnected, showToast, t]);
+  }, [isAvailable, isConnected, showToast, t]);
 
   // Tag filter handlers
   const filterTags = filters.tags || [];
@@ -490,8 +492,8 @@ function App({ authToken }: AppProps) {
               {total}
             </span>
             <span
-              className={`header-ws-dot ${isConnected ? "ws-connected" : isSecure ? "ws-disconnected" : "ws-unavailable"}`}
-              title={isConnected ? t("status.wsConnected") : isSecure ? t("status.wsDisconnected") : t("status.wsUnavailable")}
+              className={`header-ws-dot ${isConnected ? "ws-connected" : isAvailable ? "ws-disconnected" : "ws-unavailable"}`}
+              title={isConnected ? t("status.wsConnected") : isAvailable ? t("status.wsDisconnected") : t("status.wsUnavailable")}
             />
             <button
               className="header-button-group-item"

@@ -17,6 +17,8 @@ interface UseWebSocketOptions {
   onError?: (error: string) => void;
   onAuthError?: (error: string) => void;
   enabled?: boolean;
+  /** Whether the server requires WebSocket auth before notifications */
+  authRequired?: boolean;
   /** Auth token to send after connection (if server requires auth) */
   token?: string;
 }
@@ -37,6 +39,26 @@ export function isSecureContext(): boolean {
 }
 
 /**
+ * Check if the current page is served from a local development address.
+ */
+export function isLocalhostContext(): boolean {
+  const hostname = window.location.hostname;
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname.endsWith(".localhost")
+  );
+}
+
+/**
+ * WebSocket is allowed over HTTPS, or over plain HTTP for localhost.
+ */
+export function canUseWebSocketContext(): boolean {
+  return isSecureContext() || isLocalhostContext();
+}
+
+/**
  * Get the WebSocket URL based on the current page URL
  */
 function getWebSocketUrl(): string {
@@ -47,7 +69,7 @@ function getWebSocketUrl(): string {
 
 /**
  * Hook to manage WebSocket connection to the clipper server.
- * Only connects when running on HTTPS for security.
+ * Connects over HTTPS, or over HTTP when the page is served from localhost.
  * Supports message-based authentication when a token is provided.
  */
 export function useWebSocket({
@@ -58,6 +80,7 @@ export function useWebSocket({
   onError,
   onAuthError,
   enabled = true,
+  authRequired = false,
   token,
 }: UseWebSocketOptions = {}) {
   const wsRef = useRef<WebSocket | null>(null);
@@ -66,6 +89,8 @@ export function useWebSocket({
   const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY_MS);
   const [isConnected, setIsConnected] = useState(false);
   const [isSecure] = useState(isSecureContext);
+  const [isLocalhost] = useState(isLocalhostContext);
+  const [isAvailable] = useState(canUseWebSocketContext);
   // Track if we're waiting for auth response
   const isAuthenticatingRef = useRef(false);
 
@@ -91,8 +116,13 @@ export function useWebSocket({
   }, []);
 
   const connect = useCallback(() => {
-    // Only connect if enabled and on HTTPS
-    if (!enabled || !isSecure) {
+    // Only connect if enabled and allowed in this browser context.
+    if (!enabled || !isAvailable) {
+      return;
+    }
+
+    if (authRequired && !tokenRef.current) {
+      setIsConnected(false);
       return;
     }
 
@@ -115,8 +145,8 @@ export function useWebSocket({
         // Start activity timeout
         resetActivityTimeout();
 
-        // If we have a token, send auth message and wait for response
-        if (tokenRef.current) {
+        // If auth is required, send auth message and wait for response.
+        if (authRequired) {
           console.log("WebSocket: sending auth message");
           isAuthenticatingRef.current = true;
           ws.send(JSON.stringify({ type: "auth", token: tokenRef.current }));
@@ -225,7 +255,7 @@ export function useWebSocket({
       console.error("Failed to create WebSocket:", e);
       callbacksRef.current.onError?.("Failed to create WebSocket connection");
     }
-  }, [enabled, isSecure, resetActivityTimeout]);
+  }, [authRequired, enabled, isAvailable, resetActivityTimeout]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -253,6 +283,8 @@ export function useWebSocket({
   return {
     isConnected,
     isSecure,
+    isLocalhost,
+    isAvailable,
     reconnect: connect,
     disconnect,
   };
