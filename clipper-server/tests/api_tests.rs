@@ -2253,6 +2253,14 @@ async fn test_resolve_short_url_query_param_override() {
 
 // ==================== Static Assets Tests ====================
 
+fn shared_asset_uri(extension: &str) -> String {
+    format!(
+        "/shared-assets/shared_clip-{}.{}",
+        env!("BUILD_TIMESTAMP"),
+        extension
+    )
+}
+
 #[tokio::test]
 async fn test_serve_css_asset() {
     let (app, _temp_dir) = create_test_app().await;
@@ -2261,7 +2269,7 @@ async fn test_serve_css_asset() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/assets/shared_clip.css")
+                .uri(shared_asset_uri("css"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -2300,7 +2308,7 @@ async fn test_serve_js_asset() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/assets/shared_clip.js")
+                .uri(shared_asset_uri("js"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -2338,7 +2346,7 @@ async fn test_serve_asset_not_found() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/assets/nonexistent.js")
+                .uri("/shared-assets/nonexistent.js")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -2409,8 +2417,14 @@ async fn test_shared_clip_html_references_assets() {
 
     let html = response_text(response).await;
     // Check that HTML references external CSS and JS
-    assert!(html.contains(r#"href="/assets/shared_clip.css""#));
-    assert!(html.contains(r#"src="/assets/shared_clip.js""#));
+    assert!(html.contains(&format!(
+        r#"href="/shared-assets/shared_clip-{}.css""#,
+        env!("BUILD_TIMESTAMP")
+    )));
+    assert!(html.contains(&format!(
+        r#"src="/shared-assets/shared_clip-{}.js""#,
+        env!("BUILD_TIMESTAMP")
+    )));
     // Check that inline styles and scripts are removed
     assert!(!html.contains("<style>"));
     // Check that data variables are still inline (needed by JS)
