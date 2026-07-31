@@ -1950,6 +1950,64 @@ async fn test_resolve_short_url_octet_stream_with_file() {
 }
 
 #[tokio::test]
+async fn test_resolve_short_url_sanitizes_attachment_filename() {
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    let db_path = temp_dir.path().join("db");
+    let storage_path = temp_dir.path().join("storage");
+
+    let indexer = ClipperIndexer::new(&db_path, &storage_path)
+        .await
+        .expect("Failed to create indexer");
+
+    let entry = indexer
+        .add_entry_from_file_content(
+            bytes::Bytes::from_static(b"download content"),
+            "bad\"\r\nname-\u{96ea}.txt".to_string(),
+            vec!["file".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+    let short_url = indexer.create_short_url(&entry.id, None).await.unwrap();
+
+    let config = ServerConfig::default();
+    let state = AppState::new(indexer, config.clone());
+    let app = Router::new()
+        .merge(api::routes(config.upload.max_size_bytes))
+        .with_state(state);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/s/{}", short_url.short_code))
+                .header("accept", "application/octet-stream")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let content_disposition = response
+        .headers()
+        .get("content-disposition")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    assert!(!content_disposition.contains('\r'));
+    assert!(!content_disposition.contains('\n'));
+    assert!(content_disposition.contains("filename=\"bad___name-_.txt\""));
+    assert!(
+        content_disposition
+            .contains("filename*=UTF-8''bad%22%0D%0Aname-%E9%9B%AA.txt")
+    );
+
+    let content = response_text(response).await;
+    assert_eq!(content, "download content");
+}
+
+#[tokio::test]
 async fn test_resolve_short_url_not_found() {
     let (app, _temp_dir) = create_test_app_with_short_url().await;
 

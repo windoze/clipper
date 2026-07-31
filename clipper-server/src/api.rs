@@ -803,6 +803,71 @@ struct ResolveShortUrlQuery {
     accept: Option<String>,
 }
 
+fn attachment_content_disposition(filename: &str) -> String {
+    let fallback = sanitize_content_disposition_filename(filename);
+    let encoded = percent_encode_rfc5987(filename);
+    format!("attachment; filename=\"{}\"; filename*=UTF-8''{}", fallback, encoded)
+}
+
+fn sanitize_content_disposition_filename(filename: &str) -> String {
+    let basename = filename
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or(filename)
+        .trim();
+
+    let sanitized: String = basename
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || matches!(ch, ' ' | '.' | '-' | '_') {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect();
+
+    let sanitized = sanitized.trim_matches([' ', '.']);
+    if sanitized.is_empty() {
+        "attachment".to_string()
+    } else {
+        sanitized.to_string()
+    }
+}
+
+fn percent_encode_rfc5987(value: &str) -> String {
+    let mut encoded = String::new();
+    for byte in value.bytes() {
+        if is_rfc5987_attr_char(byte) {
+            encoded.push(byte as char);
+        } else {
+            encoded.push_str(&format!("%{:02X}", byte));
+        }
+    }
+    encoded
+}
+
+fn is_rfc5987_attr_char(byte: u8) -> bool {
+    matches!(
+        byte,
+        b'0'..=b'9'
+            | b'A'..=b'Z'
+            | b'a'..=b'z'
+            | b'!'
+            | b'#'
+            | b'$'
+            | b'&'
+            | b'+'
+            | b'-'
+            | b'.'
+            | b'^'
+            | b'_'
+            | b'`'
+            | b'|'
+            | b'~'
+    )
+}
+
 /// Resolve short URL and return content based on Accept header or query parameter
 ///
 /// Content negotiation (via Accept header or ?accept= query parameter):
@@ -839,16 +904,19 @@ async fn resolve_short_url(
                 .original_filename
                 .as_deref()
                 .unwrap_or("attachment");
+            let content_disposition = attachment_content_disposition(filename);
 
             Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, "application/octet-stream")
-                .header(
-                    header::CONTENT_DISPOSITION,
-                    format!("attachment; filename=\"{}\"", filename),
-                )
+                .header(header::CONTENT_DISPOSITION, content_disposition)
                 .body(Body::from(bytes.to_vec()))
-                .unwrap()
+                .map_err(|e| {
+                    crate::error::ServerError::Internal(format!(
+                        "Failed to build file response: {}",
+                        e
+                    ))
+                })?
         } else {
             return Err(crate::error::ServerError::NotFound(
                 "This clip has no file attachment".to_string(),
