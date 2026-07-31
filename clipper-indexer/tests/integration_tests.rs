@@ -326,6 +326,34 @@ async fn test_delete_entry() {
 }
 
 #[tokio::test]
+async fn test_delete_entry_cascades_short_urls() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    let entry = indexer
+        .add_entry_from_text(
+            "Clip with short URLs".to_string(),
+            vec!["delete".to_string()],
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+
+    let short_url1 = indexer.create_short_url(&entry.id, None).await.unwrap();
+    let short_url2 = indexer.create_short_url(&entry.id, None).await.unwrap();
+
+    indexer
+        .delete_entry(&entry.id)
+        .await
+        .expect("Failed to delete entry");
+
+    let short_urls = indexer.get_short_urls_for_clip(&entry.id).await.unwrap();
+    assert!(short_urls.is_empty());
+    assert!(indexer.get_short_url(&short_url1.short_code).await.is_err());
+    assert!(indexer.get_short_url(&short_url2.short_code).await.is_err());
+}
+
+#[tokio::test]
 async fn test_search_with_combined_filters() {
     let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
 
@@ -584,6 +612,29 @@ async fn test_cleanup_entries_with_file_attachment() {
     // Verify file is also deleted from storage
     let file_content = indexer.get_file_content(&file_key).await;
     assert!(file_content.is_err());
+}
+
+#[tokio::test]
+async fn test_cleanup_entries_cascades_short_urls() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    let entry = indexer
+        .add_entry_from_text(
+            "Cleanup clip with short URL".to_string(),
+            vec!["$host:test-machine".to_string()],
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+    let short_url = indexer.create_short_url(&entry.id, None).await.unwrap();
+
+    let deleted_ids = indexer.cleanup_entries(None, None).await.unwrap();
+    assert_eq!(deleted_ids, vec![entry.id.clone()]);
+
+    let short_urls = indexer.get_short_urls_for_clip(&entry.id).await.unwrap();
+    assert!(short_urls.is_empty());
+    assert!(indexer.get_short_url(&short_url.short_code).await.is_err());
 }
 
 #[tokio::test]

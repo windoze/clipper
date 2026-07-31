@@ -1035,6 +1035,9 @@ impl ClipperIndexer {
             let _ = self.storage.delete_file(&file_key).await;
         }
 
+        // Delete short URLs that point to this entry before deleting the clip.
+        self.delete_short_urls_for_clip(id).await?;
+
         // Delete the database entry
         let query = "DELETE type::thing($table, $id);";
         self.db
@@ -1093,6 +1096,11 @@ impl ClipperIndexer {
 
         // Collect the IDs of entries to be deleted
         let deleted_ids: Vec<String> = entries.iter().map(|e| e.id.id.to_string()).collect();
+
+        // Delete short URLs for all matching entries before removing the clips.
+        for id in &deleted_ids {
+            self.delete_short_urls_for_clip(id).await?;
+        }
 
         // Delete all matching entries from the database
         let delete_query = format!("DELETE FROM {} WHERE {};", TABLE_NAME, where_clause);
