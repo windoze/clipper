@@ -17,6 +17,18 @@ listen_addr = "0.0.0.0"
 port = 3000
 
 # =============================================================================
+# Authentication and CORS
+# =============================================================================
+[auth]
+# Bearer token required for protected API routes.
+# bearer_token = "your-secret-token"
+
+[cors]
+# Browser origins allowed to call the API cross-origin.
+# Leave empty for same-origin use only.
+# allowed_origins = ["http://localhost:5173", "https://clipper.example.com"]
+
+# =============================================================================
 # TLS/HTTPS Configuration (requires 'tls' feature)
 # =============================================================================
 [tls]

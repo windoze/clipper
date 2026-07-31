@@ -161,6 +161,10 @@ export function createRestApiClient(
   const baseUrl = options.baseUrl ?? "";
   let token = options.token;
 
+  function getFileEndpoint(clipId: string): string {
+    return `${baseUrl}/clips/${clipId}/file`;
+  }
+
   function getHeaders(contentType?: string): HeadersInit {
     const headers: HeadersInit = {};
     if (token) {
@@ -348,13 +352,27 @@ export function createRestApiClient(
     },
 
     getFileUrl(clipId: string): string {
-      // Include token in URL as query parameter for authenticated file access
-      // This is needed for <img src> tags which can't set Authorization headers
-      const url = `${baseUrl}/clips/${clipId}/file`;
-      if (token) {
-        return `${url}?token=${encodeURIComponent(token)}`;
+      return getFileEndpoint(clipId);
+    },
+
+    async getFileUrlAsync(clipId: string): Promise<string> {
+      if (!token) {
+        return getFileEndpoint(clipId);
       }
-      return url;
+
+      const response = await fetch(getFileEndpoint(clipId), {
+        headers: getHeaders(),
+      });
+      if (response.status === 401) {
+        options.onAuthError?.();
+        throw new Error("Unauthorized");
+      }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
     },
 
     async copyToClipboard(content: string): Promise<void> {
@@ -411,7 +429,7 @@ export function createRestApiClient(
         URL.revokeObjectURL(url);
       } else {
         const link = document.createElement("a");
-        link.href = this.getFileUrl(clipId);
+        link.href = getFileEndpoint(clipId);
         link.download = filename;
         link.target = "_blank";
         document.body.appendChild(link);

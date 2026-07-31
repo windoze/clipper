@@ -1,41 +1,21 @@
 //! Authentication middleware for Bearer token authentication.
 
 use axum::{
+    Json,
     extract::{Request, State},
-    http::{header, StatusCode},
+    http::{StatusCode, header},
     middleware::Next,
     response::{IntoResponse, Response},
-    Json,
 };
 use serde_json::json;
 
 use crate::state::AppState;
 
-/// Extract token from query string (e.g., ?token=xxx)
-/// The token value is URL-decoded since it may contain special characters
-fn extract_query_token(query: Option<&str>) -> Option<String> {
-    query.and_then(|q| {
-        q.split('&')
-            .filter_map(|pair| {
-                let (key, value) = pair.split_once('=')?;
-
-                if key == "token" {
-                    // URL-decode the token value since it may contain encoded special characters
-                    urlencoding::decode(value).ok().map(|s| s.into_owned())
-                } else {
-                    None
-                }
-            })
-            .next()
-    })
-}
-
 /// Middleware that validates Bearer token authentication.
 ///
 /// If authentication is not configured (no bearer token set), all requests are allowed.
-/// If authentication is configured, requests must include either:
-/// - A valid `Authorization: Bearer <token>` header, OR
-/// - A valid `?token=<token>` query parameter (useful for file downloads, WebSocket, etc.)
+/// If authentication is configured, requests must include a valid
+/// `Authorization: Bearer <token>` header.
 ///
 /// Certain endpoints are always allowed without authentication:
 /// - GET /health - Health check endpoint
@@ -95,16 +75,7 @@ pub async fn auth_middleware(
         }
     }
 
-    // Fall back to query parameter token (useful for file downloads, images, etc.)
-    if let Some(token) = extract_query_token(request.uri().query()) {
-        if auth_config.validate_token(&token) {
-            return next.run(request).await;
-        } else {
-            return unauthorized_response("Invalid token");
-        }
-    }
-
-    unauthorized_response("Missing Authorization header or token parameter")
+    unauthorized_response("Missing Authorization header")
 }
 
 /// Create an unauthorized response with a JSON body.

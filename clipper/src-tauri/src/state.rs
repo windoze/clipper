@@ -48,11 +48,6 @@ impl AppState {
         self.client.read().unwrap().base_url().to_string()
     }
 
-    /// Get the current token (if any)
-    pub fn token(&self) -> Option<String> {
-        self.client.read().unwrap().token().map(|s| s.to_string())
-    }
-
     /// Update the server URL (called when bundled server starts)
     #[allow(dead_code)]
     pub fn set_server_url(&self, url: &str) {

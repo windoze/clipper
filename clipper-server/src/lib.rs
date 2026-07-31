@@ -2,6 +2,7 @@ pub mod api;
 pub mod auth;
 pub mod cleanup;
 pub mod config;
+pub mod cors;
 pub mod error;
 pub mod parent_monitor;
 pub mod state;
@@ -18,7 +19,8 @@ pub mod cert_storage;
 
 pub use auth::auth_middleware;
 pub use cleanup::{run_clip_cleanup_task, run_short_url_cleanup_task};
-pub use config::{AuthConfig, CleanupConfig, Cli, ServerConfig};
+pub use config::{AuthConfig, CleanupConfig, Cli, CorsConfig, ServerConfig};
+pub use cors::build_cors_layer;
 pub use error::{Result, ServerError};
 pub use state::{AppState, ClipUpdate};
 

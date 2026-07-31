@@ -58,6 +58,7 @@ Options:
 - `CLIPPER_CLEANUP_RETENTION_DAYS` - Retention period in days (default: `30`)
 - `CLIPPER_CLEANUP_INTERVAL_HOURS` - Cleanup interval in hours (default: `24`)
 - `CLIPPER_BEARER_TOKEN` - Bearer token for authentication (if set, all requests require auth)
+- `CLIPPER_CORS_ALLOWED_ORIGINS` - Comma-separated browser origins allowed for cross-origin API calls (default: same-origin only)
 - `CLIPPER_SHORT_URL_BASE` - Base URL for shared clips (e.g., `https://clip.example.com`). If set, clip sharing is enabled.
 - `CLIPPER_SHORT_URL_EXPIRATION_HOURS` - Default expiration time for shared clips in hours (default: `24`, `0` = no expiration)
 
@@ -83,6 +84,9 @@ interval_hours = 24
 
 [auth]
 # bearer_token = "your-secret-token"
+
+[cors]
+# allowed_origins = ["http://localhost:5173", "https://clip.example.com"]
 ```
 
 Or specify a custom config file location:
@@ -109,7 +113,7 @@ CLIPPER_BEARER_TOKEN=your-secret-token clipper-server
 
 When authentication is enabled:
 - All REST API endpoints (except `/health`) require the `Authorization: Bearer <token>` header
-- File downloads also support `?token=<token>` query parameter
+- File downloads require the same `Authorization` header; long-lived tokens are not accepted in URLs
 - WebSocket connections use message-based authentication (client sends auth message after connecting)
 - The Web UI will show a login screen when authentication is required
 
@@ -720,8 +724,9 @@ With authentication:
 curl -H "Authorization: Bearer your-secret-token" \
   http://localhost:3000/clips
 
-# File download with query parameter
-curl "http://localhost:3000/clips/abc123/file?token=your-secret-token" -o file.txt
+# File download with authentication header
+curl -H "Authorization: Bearer your-secret-token" \
+  http://localhost:3000/clips/abc123/file -o file.txt
 ```
 
 ### Using WebSocket (JavaScript)
@@ -847,7 +852,7 @@ Tests cover:
 
 3. **Port Binding**: For production, consider using a reverse proxy (nginx, caddy) in front of the server
 
-4. **CORS**: The server uses permissive CORS for development. Configure appropriately for production.
+4. **CORS**: Cross-origin API calls are denied by default. Set `CLIPPER_CORS_ALLOWED_ORIGINS` to an explicit comma-separated origin list when hosting a separate browser frontend.
 
 5. **Graceful Shutdown**: The server handles SIGTERM and SIGINT signals for clean shutdowns.
 

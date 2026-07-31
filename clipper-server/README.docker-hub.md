@@ -42,6 +42,7 @@ Access the Web UI at `http://localhost:3000`
 | `CLIPPER_LISTEN_ADDR` | `0.0.0.0` | Listen address |
 | `PORT` | `3000` | HTTP port |
 | `RUST_LOG` | `clipper_server=info` | Log level |
+| `CLIPPER_CORS_ALLOWED_ORIGINS` | - | Comma-separated browser origins allowed for cross-origin API calls |
 
 ### Auto-Cleanup
 
@@ -78,10 +79,10 @@ Access the Web UI at `http://localhost:3000`
 | `CLIPPER_BEARER_TOKEN` | - | Bearer token for API authentication |
 
 When `CLIPPER_BEARER_TOKEN` is set, all API requests require authentication:
-- **REST API**: Include `Authorization: Bearer <token>` header or `?token=<token>` query parameter
+- **REST API**: Include `Authorization: Bearer <token>` header
 - **WebSocket**: Send `{"type": "auth", "token": "<token>"}` message after connecting
 - **Web UI**: Login screen appears automatically when authentication is required
-- **File downloads**: Use `?token=<token>` query parameter for direct file links
+- **File downloads**: Include the same `Authorization` header; long-lived tokens are not accepted in URLs
 
 ### Clip Sharing (Short URLs)
 
@@ -167,9 +168,6 @@ Example API call with authentication:
 ```bash
 # Using Authorization header
 curl -H "Authorization: Bearer your-secret-token" http://localhost:3000/clips
-
-# Using query parameter
-curl "http://localhost:3000/clips?token=your-secret-token"
 ```
 
 ### With Custom Upload Limit

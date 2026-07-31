@@ -11,10 +11,10 @@ use axum::{
 use clap::Parser;
 use clipper_indexer::ClipperIndexer;
 use clipper_server::{
-    AppState, Cli, ServerConfig, api, auth_middleware, run_clip_cleanup_task,
+    AppState, Cli, ServerConfig, api, auth_middleware, build_cors_layer, run_clip_cleanup_task,
     run_short_url_cleanup_task, websocket,
 };
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[cfg(not(feature = "embed-web"))]
@@ -170,6 +170,14 @@ async fn main() {
     } else {
         tracing::info!("Authentication disabled (open access)");
     }
+    if config.cors.allowed_origins.is_empty() {
+        tracing::info!("CORS allowed origins: same-origin only");
+    } else {
+        tracing::info!(
+            "CORS allowed origins: {}",
+            config.cors.allowed_origins.join(", ")
+        );
+    }
 
     // Build the application with routes
     #[allow(unused_mut)]
@@ -205,7 +213,7 @@ async fn main() {
     };
 
     // Build the app with web UI serving
-    let app = build_app_with_web_ui(api_routes);
+    let app = build_app_with_web_ui(api_routes, &config);
 
     // Start the server(s)
     #[cfg(feature = "tls")]
@@ -643,13 +651,13 @@ async fn health_check() -> &'static str {
 // ============================================================================
 
 #[cfg(feature = "embed-web")]
-fn build_app_with_web_ui(api_routes: Router) -> Router {
+fn build_app_with_web_ui(api_routes: Router, config: &ServerConfig) -> Router {
     tracing::info!("Serving embedded web UI");
 
     let app = Router::new()
         .merge(api_routes)
         .fallback(serve_embedded_file)
-        .layer(CorsLayer::permissive())
+        .layer(build_cors_layer(config))
         .layer(TraceLayer::new_for_http());
 
     app
@@ -690,7 +698,7 @@ async fn serve_embedded_file(uri: Uri) -> Response<Body> {
 // ============================================================================
 
 #[cfg(not(feature = "embed-web"))]
-fn build_app_with_web_ui(api_routes: Router) -> Router {
+fn build_app_with_web_ui(api_routes: Router, config: &ServerConfig) -> Router {
     // Determine web UI directory
     let web_dir = std::env::var("CLIPPER_WEB_DIR").unwrap_or_else(|_| {
         // Check common locations for the web UI
@@ -720,7 +728,7 @@ fn build_app_with_web_ui(api_routes: Router) -> Router {
     Router::new()
         .merge(api_routes)
         .fallback_service(serve_dir)
-        .layer(CorsLayer::permissive())
+        .layer(build_cors_layer(config))
         .layer(TraceLayer::new_for_http())
 }
 

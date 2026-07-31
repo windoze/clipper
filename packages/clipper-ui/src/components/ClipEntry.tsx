@@ -332,14 +332,47 @@ export const ClipEntry = memo(function ClipEntry({
 
   // Get file URL for image clips
   useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | undefined;
+
     if (isImage) {
-      // Use async version if available (for Tauri), otherwise use sync version
-      if (api.getFileUrlAsync) {
-        api.getFileUrlAsync(clip.id, clip.file_attachment || undefined).then(setImageUrl);
-      } else {
-        setImageUrl(api.getFileUrl(clip.id));
-      }
+      const loadImageUrl = async () => {
+        try {
+          // Use async version when available so authenticated web clients can fetch with headers.
+          const url = api.getFileUrlAsync
+            ? await api.getFileUrlAsync(clip.id, clip.file_attachment || undefined)
+            : api.getFileUrl(clip.id);
+
+          if (cancelled) {
+            if (url.startsWith("blob:")) {
+              URL.revokeObjectURL(url);
+            }
+            return;
+          }
+
+          if (url.startsWith("blob:")) {
+            objectUrl = url;
+          }
+          setImageUrl(url);
+        } catch (error) {
+          if (!cancelled) {
+            console.error("Failed to load image URL:", error);
+            setImageUrl(null);
+          }
+        }
+      };
+
+      loadImageUrl();
+    } else {
+      setImageUrl(null);
     }
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
   }, [clip.id, clip.file_attachment, isImage, api]);
 
   // Handler for keyboard-triggered button activation

@@ -188,7 +188,7 @@ let clips = client.list_clips(SearchFilters::new(), 1, 20).await?;
 The token is automatically:
 - Sent as `Authorization: Bearer <token>` header for REST API requests
 - Sent as a message-based authentication after WebSocket connection
-- Appended as `?token=<token>` query parameter for file downloads
+- Sent as `Authorization: Bearer <token>` header for file downloads
 
 ## WebSocket Notifications
 

@@ -79,6 +79,10 @@ pub struct Cli {
     #[arg(long, env = "CLIPPER_BEARER_TOKEN")]
     pub bearer_token: Option<String>,
 
+    /// Comma-separated CORS origins allowed to call the API from browsers
+    #[arg(long, env = "CLIPPER_CORS_ALLOWED_ORIGINS")]
+    pub cors_allowed_origins: Option<String>,
+
     // Cleanup options
     /// Enable automatic cleanup of old clips
     #[arg(long, env = "CLIPPER_CLEANUP_ENABLED")]
@@ -127,6 +131,8 @@ pub struct ServerConfig {
     #[serde(default)]
     pub auth: AuthConfig,
     #[serde(default)]
+    pub cors: CorsConfig,
+    #[serde(default)]
     pub upload: UploadConfig,
     #[serde(default)]
     pub short_url: ShortUrlConfig,
@@ -151,6 +157,26 @@ impl AuthConfig {
             Some(expected) if !expected.is_empty() => expected == token,
             _ => true, // No auth required
         }
+    }
+}
+
+/// Cross-origin resource sharing configuration
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct CorsConfig {
+    /// Explicit browser origins allowed to call the API.
+    ///
+    /// Leave empty for same-origin use only.
+    pub allowed_origins: Vec<String>,
+}
+
+impl CorsConfig {
+    pub fn parse_allowed_origins(input: &str) -> Vec<String> {
+        input
+            .split(',')
+            .map(str::trim)
+            .filter(|origin| !origin.is_empty())
+            .map(ToOwned::to_owned)
+            .collect()
     }
 }
 
@@ -364,6 +390,7 @@ impl Default for ServerConfig {
             acme: AcmeConfig::default(),
             cleanup: CleanupConfig::default(),
             auth: AuthConfig::default(),
+            cors: CorsConfig::default(),
             upload: UploadConfig::default(),
             short_url: ShortUrlConfig::default(),
         }
@@ -482,6 +509,10 @@ impl ServerConfig {
             cfg.auth.bearer_token = Some(bearer_token);
         }
 
+        if let Some(cors_allowed_origins) = cli.cors_allowed_origins {
+            cfg.cors.allowed_origins = CorsConfig::parse_allowed_origins(&cors_allowed_origins);
+        }
+
         // Upload configuration overrides
         if let Some(max_upload_size_mb) = cli.max_upload_size_mb {
             cfg.upload.max_size_bytes = max_upload_size_mb * 1024 * 1024;
@@ -575,6 +606,17 @@ impl ServerConfig {
             }
         }
 
+        for origin in &self.cors.allowed_origins {
+            if origin == "*" {
+                return Err(
+                    "Wildcard CORS origin is not allowed; configure explicit origins".to_string(),
+                );
+            }
+
+            axum::http::HeaderValue::from_str(origin)
+                .map_err(|_| format!("Invalid CORS origin header value: {}", origin))?;
+        }
+
         Ok(())
     }
 
@@ -638,6 +680,29 @@ mod tests {
         // TLS disabled should always validate OK
         let config = ServerConfig::default();
         assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_cors_parse_allowed_origins() {
+        let origins = CorsConfig::parse_allowed_origins(
+            "https://app.example.com, http://localhost:5173,",
+        );
+        assert_eq!(
+            origins,
+            vec![
+                "https://app.example.com".to_string(),
+                "http://localhost:5173".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn test_validate_rejects_wildcard_cors_origin() {
+        let mut config = ServerConfig::default();
+        config.cors.allowed_origins = vec!["*".to_string()];
+        let result = config.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Wildcard CORS origin"));
     }
 
     #[test]

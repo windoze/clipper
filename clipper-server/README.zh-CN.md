@@ -58,6 +58,7 @@ clipper-server [选项]
 - `CLIPPER_CLEANUP_RETENTION_DAYS` - 保留天数（默认: `30`）
 - `CLIPPER_CLEANUP_INTERVAL_HOURS` - 清理间隔小时数（默认: `24`）
 - `CLIPPER_BEARER_TOKEN` - 身份验证 Bearer 令牌（如设置，所有请求需要认证）
+- `CLIPPER_CORS_ALLOWED_ORIGINS` - 允许跨域调用 API 的浏览器 origin，多个值用英文逗号分隔（默认仅同源）
 - `CLIPPER_SHORT_URL_BASE` - 分享剪贴的基础 URL（例如 `https://clip.example.com`）。如设置，则启用剪贴分享功能。
 - `CLIPPER_SHORT_URL_EXPIRATION_HOURS` - 分享链接的默认过期时间（小时）（默认: `24`，`0` = 不过期）
 
@@ -83,6 +84,9 @@ interval_hours = 24
 
 [auth]
 # bearer_token = "your-secret-token"
+
+[cors]
+# allowed_origins = ["http://localhost:5173", "https://clip.example.com"]
 ```
 
 或指定自定义配置文件位置：
@@ -109,7 +113,7 @@ CLIPPER_BEARER_TOKEN=your-secret-token clipper-server
 
 启用身份验证后：
 - 所有 REST API 端点（除 `/health` 外）需要 `Authorization: Bearer <token>` 头
-- 文件下载也支持 `?token=<token>` 查询参数
+- 文件下载也需要相同的 `Authorization` 头；长期 token 不再接受放在 URL 中
 - WebSocket 连接使用基于消息的身份验证（客户端连接后发送认证消息）
 - Web UI 在需要认证时会显示登录界面
 
@@ -720,8 +724,9 @@ curl -X POST http://localhost:3000/clips/upload \
 curl -H "Authorization: Bearer your-secret-token" \
   http://localhost:3000/clips
 
-# 文件下载使用查询参数
-curl "http://localhost:3000/clips/abc123/file?token=your-secret-token" -o file.txt
+# 文件下载使用认证头
+curl -H "Authorization: Bearer your-secret-token" \
+  http://localhost:3000/clips/abc123/file -o file.txt
 ```
 
 ### 使用 WebSocket (JavaScript)
@@ -847,7 +852,7 @@ cargo test --test api_tests -p clipper-server -- --test-threads=1
 
 3. **端口绑定**：生产环境建议在服务器前使用反向代理（nginx、caddy）
 
-4. **CORS**：服务器在开发模式下使用宽松的 CORS。生产环境请适当配置。
+4. **CORS**：跨域 API 调用默认拒绝。独立部署浏览器前端时，请用 `CLIPPER_CORS_ALLOWED_ORIGINS` 配置明确的 origin 白名单。
 
 5. **优雅关闭**：服务器处理 SIGTERM 和 SIGINT 信号以实现干净关闭。
 

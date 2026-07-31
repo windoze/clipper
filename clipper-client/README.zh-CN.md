@@ -188,7 +188,7 @@ let clips = client.list_clips(SearchFilters::new(), 1, 20).await?;
 令牌会自动：
 - 作为 `Authorization: Bearer <token>` 头发送给 REST API 请求
 - WebSocket 连接后作为基于消息的身份验证发送
-- 作为 `?token=<token>` 查询参数附加到文件下载
+- 作为 `Authorization: Bearer <token>` 头发送给文件下载请求
 
 ## WebSocket 通知
 
