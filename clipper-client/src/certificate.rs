@@ -85,12 +85,14 @@ pub async fn fetch_server_certificate(host: &str, port: u16) -> Result<Certifica
 
     // Get the peer certificates
     let (_, conn) = tls_stream.get_ref();
-    let certs = conn
-        .peer_certificates()
-        .ok_or_else(|| ClientError::Certificate("No certificates received from server".to_string()))?;
+    let certs = conn.peer_certificates().ok_or_else(|| {
+        ClientError::Certificate("No certificates received from server".to_string())
+    })?;
 
     if certs.is_empty() {
-        return Err(ClientError::Certificate("Empty certificate chain".to_string()));
+        return Err(ClientError::Certificate(
+            "Empty certificate chain".to_string(),
+        ));
     }
 
     // Use the first (leaf) certificate
@@ -102,11 +104,8 @@ pub async fn fetch_server_certificate(host: &str, port: u16) -> Result<Certifica
         parse_certificate_details(cert_der.as_ref());
 
     // Check if the certificate passes standard WebPKI verification
-    let is_system_trusted = verify_certificate_with_system_roots(
-        cert_der,
-        &certs[1..],
-        &server_name,
-    );
+    let is_system_trusted =
+        verify_certificate_with_system_roots(cert_der, &certs[1..], &server_name);
 
     Ok(CertificateInfo {
         host: host.to_string(),
@@ -133,7 +132,8 @@ fn verify_certificate_with_system_roots(
     root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
     // Create a WebPKI verifier
-    let verifier = match rustls::client::WebPkiServerVerifier::builder(Arc::new(root_store)).build() {
+    let verifier = match rustls::client::WebPkiServerVerifier::builder(Arc::new(root_store)).build()
+    {
         Ok(v) => v,
         Err(_) => return false,
     };
@@ -149,7 +149,15 @@ fn verify_certificate_with_system_roots(
 
 /// Parse certificate details from DER bytes
 /// Returns (subject_cn, issuer_cn, not_before, not_after, is_self_signed)
-fn parse_certificate_details(_der_bytes: &[u8]) -> (Option<String>, Option<String>, Option<String>, Option<String>, bool) {
+fn parse_certificate_details(
+    _der_bytes: &[u8],
+) -> (
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    bool,
+) {
     // Basic parsing - extract common fields from X.509 certificate
     // This is a simplified parser that extracts CN fields
 
@@ -271,12 +279,9 @@ impl rustls::client::danger::ServerCertVerifier for TrustedFingerprintVerifier {
     ) -> std::result::Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
         // First, check if the certificate fingerprint is trusted
         let fingerprint = calculate_fingerprint(end_entity.as_ref());
-        let host = match server_name {
-            ServerName::DnsName(name) => name.as_ref().to_string(),
-            _ => String::new(),
-        };
+        let host = server_name.to_str();
 
-        if self.is_trusted(&host, &fingerprint) {
+        if self.is_trusted(host.as_ref(), &fingerprint) {
             // Certificate is explicitly trusted by fingerprint
             return Ok(rustls::client::danger::ServerCertVerified::assertion());
         }
@@ -347,24 +352,17 @@ pub fn create_http_client_with_trusted_certs(
 ) -> std::result::Result<reqwest::Client, reqwest::Error> {
     use reqwest::ClientBuilder;
 
-    // If we have trusted fingerprints, we need to accept potentially invalid certs
-    // and do our own verification. Since reqwest doesn't support custom verifiers directly,
-    // we configure it to accept invalid certs and rely on our TLS layer for WebSocket.
-    // For HTTP requests, we'll handle verification differently.
-
     if trusted_fingerprints.is_empty() {
         // No custom certs, use default secure client
         ClientBuilder::new()
             .timeout(std::time::Duration::from_secs(30))
             .build()
     } else {
-        // We have trusted certs - need to accept them
-        // Note: reqwest with rustls-tls doesn't easily support custom verifiers
-        // For now, we'll accept invalid certs when trusted_fingerprints is set
-        // A production implementation might use a custom connector
+        let tls_config = (*create_tls_config_with_trusted_certs(trusted_fingerprints)).clone();
+
         ClientBuilder::new()
             .timeout(std::time::Duration::from_secs(30))
-            .danger_accept_invalid_certs(true)
+            .use_preconfigured_tls(tls_config)
             .build()
     }
 }
@@ -372,6 +370,62 @@ pub fn create_http_client_with_trusted_certs(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rcgen::{CertifiedKey, generate_simple_self_signed};
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+    use std::sync::Arc;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+    use tokio_rustls::TlsAcceptor;
+
+    struct TestTlsServer {
+        url: String,
+        cert_der: Vec<u8>,
+        handle: tokio::task::JoinHandle<()>,
+    }
+
+    impl Drop for TestTlsServer {
+        fn drop(&mut self) {
+            self.handle.abort();
+        }
+    }
+
+    async fn spawn_test_tls_server() -> TestTlsServer {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+
+        let CertifiedKey { cert, signing_key } =
+            generate_simple_self_signed(vec!["localhost".to_string()]).unwrap();
+        let cert_der = cert.der().as_ref().to_vec();
+        let key_der = PrivateKeyDer::from(PrivatePkcs8KeyDer::from(signing_key.serialize_der()));
+
+        let config = rustls::ServerConfig::builder()
+            .with_no_client_auth()
+            .with_single_cert(vec![CertificateDer::from(cert_der.clone())], key_der)
+            .unwrap();
+        let acceptor = TlsAcceptor::from(Arc::new(config));
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        let handle = tokio::spawn(async move {
+            let Ok((stream, _)) = listener.accept().await else {
+                return;
+            };
+            let Ok(mut stream) = acceptor.accept(stream).await else {
+                return;
+            };
+
+            let mut request_buffer = [0_u8; 1024];
+            let _ = stream.read(&mut request_buffer).await;
+            let response = b"HTTP/1.1 200 OK\r\ncontent-length: 2\r\nconnection: close\r\n\r\nok";
+            let _ = stream.write_all(response).await;
+            let _ = stream.shutdown().await;
+        });
+
+        TestTlsServer {
+            url: format!("https://localhost:{}", addr.port()),
+            cert_der,
+            handle,
+        }
+    }
 
     #[test]
     fn test_fingerprint_calculation() {
@@ -397,5 +451,47 @@ mod tests {
         assert!(verifier.is_trusted("example.com", "AB:CD:EF:12"));
         assert!(!verifier.is_trusted("example.com", "XX:YY:ZZ:99"));
         assert!(!verifier.is_trusted("other.com", "AB:CD:EF:12"));
+    }
+
+    #[tokio::test]
+    async fn test_http_client_accepts_trusted_fingerprint() {
+        let server = spawn_test_tls_server().await;
+        let mut fingerprints = HashMap::new();
+        fingerprints.insert(
+            "localhost".to_string(),
+            calculate_fingerprint(&server.cert_der),
+        );
+
+        let client = create_http_client_with_trusted_certs(fingerprints).unwrap();
+        let response = client.get(&server.url).send().await.unwrap();
+
+        assert_eq!(response.status(), reqwest::StatusCode::OK);
+        assert_eq!(response.text().await.unwrap(), "ok");
+    }
+
+    #[tokio::test]
+    async fn test_http_client_rejects_wrong_fingerprint() {
+        let server = spawn_test_tls_server().await;
+        let mut fingerprints = HashMap::new();
+        fingerprints.insert(
+            "localhost".to_string(),
+            "00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00"
+                .to_string(),
+        );
+
+        let client = create_http_client_with_trusted_certs(fingerprints).unwrap();
+        let result = client.get(&server.url).send().await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_http_client_without_fingerprints_uses_default_verification() {
+        let server = spawn_test_tls_server().await;
+
+        let client = create_http_client_with_trusted_certs(HashMap::new()).unwrap();
+        let result = client.get(&server.url).send().await;
+
+        assert!(result.is_err());
     }
 }

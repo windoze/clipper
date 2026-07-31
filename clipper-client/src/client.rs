@@ -1,4 +1,6 @@
-use crate::certificate::create_tls_config_with_trusted_certs;
+use crate::certificate::{
+    create_http_client_with_trusted_certs, create_tls_config_with_trusted_certs,
+};
 use crate::error::{ClientError, Result};
 use crate::models::{
     Clip, ClipNotification, CreateClipRequest, CreateShortUrlRequest, ImportResult, PagedResult,
@@ -71,16 +73,8 @@ impl ClipperClient {
         token: Option<String>,
         trusted_fingerprints: HashMap<String, String>,
     ) -> Self {
-        // Create HTTP client that accepts certificates if we have trusted fingerprints
-        let client = if trusted_fingerprints.is_empty() {
-            reqwest::Client::new()
-        } else {
-            reqwest::Client::builder()
-                .danger_accept_invalid_certs(true)
-                .timeout(Duration::from_secs(30))
-                .build()
-                .unwrap_or_else(|_| reqwest::Client::new())
-        };
+        let client = create_http_client_with_trusted_certs(trusted_fingerprints.clone())
+            .unwrap_or_else(|_| reqwest::Client::new());
 
         Self {
             base_url: base_url.into().trim_end_matches('/').to_string(),
@@ -98,14 +92,8 @@ impl ClipperClient {
     /// Set trusted certificate fingerprints
     pub fn set_trusted_fingerprints(&mut self, fingerprints: HashMap<String, String>) {
         self.trusted_fingerprints = fingerprints.clone();
-        // Rebuild client if we have trusted certs
-        if !fingerprints.is_empty() {
-            self.client = reqwest::Client::builder()
-                .danger_accept_invalid_certs(true)
-                .timeout(Duration::from_secs(30))
-                .build()
-                .unwrap_or_else(|_| reqwest::Client::new());
-        }
+        self.client = create_http_client_with_trusted_certs(fingerprints)
+            .unwrap_or_else(|_| reqwest::Client::new());
     }
 
     /// Set the Bearer token for authentication
@@ -538,12 +526,13 @@ impl ClipperClient {
 
                 while let Some(chunk_result) = stream.next().await {
                     let chunk = chunk_result?;
-                    writer.write_all(&chunk).await.map_err(|e| {
-                        ClientError::ServerError {
+                    writer
+                        .write_all(&chunk)
+                        .await
+                        .map_err(|e| ClientError::ServerError {
                             status: 0,
                             message: format!("Failed to write to file: {}", e),
-                        }
-                    })?;
+                        })?;
                     total_bytes += chunk.len() as u64;
                 }
 

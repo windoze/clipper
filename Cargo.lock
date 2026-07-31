@@ -1706,6 +1706,7 @@ dependencies = [
  "chrono",
  "futures-util",
  "hex",
+ "rcgen",
  "reqwest",
  "rustls",
  "serde",
