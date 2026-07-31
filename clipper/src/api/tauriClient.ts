@@ -52,14 +52,26 @@ export function createTauriApiClient(): ClipperApi {
     },
 
     async uploadFile(
-      _file: File,
-      _tags?: string[],
-      _additionalNotes?: string
+      file: File,
+      tags?: string[],
+      additionalNotes?: string
     ): Promise<Clip> {
-      // In Tauri, file uploads are handled via the path-based upload_file command
-      // which is called directly from the drag-and-drop handler, not through this interface.
-      // This method is primarily for the web UI.
-      throw new Error("Use the upload_file Tauri command with a file path instead");
+      const maxUploadSizeBytes = await invoke<number>("get_max_upload_size_bytes");
+      if (file.size > maxUploadSizeBytes) {
+        const fileSizeMb = file.size / (1024 * 1024);
+        const maxSizeMb = maxUploadSizeBytes / (1024 * 1024);
+        throw new Error(
+          `File size (${fileSizeMb.toFixed(2)} MB) exceeds maximum allowed size (${maxSizeMb.toFixed(2)} MB)`
+        );
+      }
+
+      const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
+      return invoke<Clip>("upload_file_bytes", {
+        bytes,
+        filename: file.name || "uploaded_file",
+        tags: tags || [],
+        additionalNotes,
+      });
     },
 
     async updateClip(
@@ -109,71 +121,17 @@ export function createTauriApiClient(): ClipperApi {
     },
 
     async shareClip(clipId: string, expiresInHours?: number): Promise<string> {
-      // Get the server URL and settings (for auth token)
-      const serverUrl = await invoke<string>("get_server_url");
-      const settings = await invoke<{
-        useBundledServer?: boolean;
-        bundledServerToken?: string;
-        externalServerToken?: string;
-      }>("get_settings");
-
-      // Get the appropriate token based on server mode
-      const token = settings.useBundledServer
-        ? settings.bundledServerToken
-        : settings.externalServerToken;
-
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const body: { expires_in_hours?: number } = {};
-      if (expiresInHours !== undefined) {
-        body.expires_in_hours = expiresInHours;
-      }
-
-      const response = await fetch(`${serverUrl}/clips/${clipId}/short-url`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
+      return invoke<string>("share_clip", {
+        clipId,
+        expiresInHours: expiresInHours ?? null,
       });
-      if (!response.ok) {
-        throw new Error(`Failed to share clip: ${response.status}`);
-      }
-      const result = await response.json();
-      return result.full_url;
     },
 
     async listTags(page: number, pageSize: number): Promise<PagedTagResult> {
-      const serverUrl = await invoke<string>("get_server_url");
-      const settings = await invoke<{
-        useBundledServer?: boolean;
-        bundledServerToken?: string;
-        externalServerToken?: string;
-      }>("get_settings");
-
-      const token = settings.useBundledServer
-        ? settings.bundledServerToken
-        : settings.externalServerToken;
-
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("page_size", String(pageSize));
-
-      const response = await fetch(`${serverUrl}/tags?${params.toString()}`, {
-        headers,
+      return invoke<PagedTagResult>("list_tags", {
+        page,
+        pageSize,
       });
-      if (!response.ok) {
-        throw new Error(`Failed to list tags: ${response.status}`);
-      }
-      return response.json();
     },
 
     async searchTags(
@@ -181,34 +139,11 @@ export function createTauriApiClient(): ClipperApi {
       page: number,
       pageSize: number
     ): Promise<PagedTagResult> {
-      const serverUrl = await invoke<string>("get_server_url");
-      const settings = await invoke<{
-        useBundledServer?: boolean;
-        bundledServerToken?: string;
-        externalServerToken?: string;
-      }>("get_settings");
-
-      const token = settings.useBundledServer
-        ? settings.bundledServerToken
-        : settings.externalServerToken;
-
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const params = new URLSearchParams();
-      params.set("q", query);
-      params.set("page", String(page));
-      params.set("page_size", String(pageSize));
-
-      const response = await fetch(`${serverUrl}/tags/search?${params.toString()}`, {
-        headers,
+      return invoke<PagedTagResult>("search_tags", {
+        query,
+        page,
+        pageSize,
       });
-      if (!response.ok) {
-        throw new Error(`Failed to search tags: ${response.status}`);
-      }
-      return response.json();
     },
   };
 }

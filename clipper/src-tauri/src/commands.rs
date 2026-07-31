@@ -4,7 +4,9 @@ use crate::settings::{Settings, SettingsManager};
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
 use clipper_client::models::PagedResult;
-use clipper_client::{Clip, ImportResult, SearchFilters, ServerInfo, fetch_server_certificate};
+use clipper_client::{
+    Clip, ImportResult, PagedTagResult, SearchFilters, ServerInfo, fetch_server_certificate,
+};
 use gethostname::gethostname;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -96,6 +98,37 @@ pub async fn create_clip(
 }
 
 #[tauri::command]
+pub async fn upload_file_bytes(
+    state: State<'_, AppState>,
+    bytes: Vec<u8>,
+    filename: String,
+    tags: Vec<String>,
+    additional_notes: Option<String>,
+) -> Result<Clip, String> {
+    let max_size = state.get_max_upload_size_bytes();
+    if bytes.len() as u64 > max_size {
+        let max_size_mb = max_size as f64 / (1024.0 * 1024.0);
+        let file_size_mb = bytes.len() as f64 / (1024.0 * 1024.0);
+        return Err(format!(
+            "File size ({:.2} MB) exceeds maximum allowed size ({:.2} MB)",
+            file_size_mb, max_size_mb
+        ));
+    }
+
+    let client = state.client();
+    let mut tags_with_host = tags;
+    let hostname_tag = get_hostname_tag();
+    if !tags_with_host.iter().any(|tag| tag == &hostname_tag) {
+        tags_with_host.push(hostname_tag);
+    }
+
+    client
+        .upload_file_bytes(bytes, filename, tags_with_host, additional_notes)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn update_clip(
     state: State<'_, AppState>,
     id: String,
@@ -114,6 +147,47 @@ pub async fn update_clip(
 pub async fn delete_clip(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let client = state.client();
     client.delete_clip(&id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn share_clip(
+    state: State<'_, AppState>,
+    clip_id: String,
+    expires_in_hours: Option<u32>,
+) -> Result<String, String> {
+    let client = state.client();
+    client
+        .create_short_url(&clip_id, expires_in_hours)
+        .await
+        .map(|short_url| short_url.full_url)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn list_tags(
+    state: State<'_, AppState>,
+    page: usize,
+    page_size: usize,
+) -> Result<PagedTagResult, String> {
+    let client = state.client();
+    client
+        .list_tags(page, page_size)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn search_tags(
+    state: State<'_, AppState>,
+    query: String,
+    page: usize,
+    page_size: usize,
+) -> Result<PagedTagResult, String> {
+    let client = state.client();
+    client
+        .search_tags(&query, page, page_size)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
