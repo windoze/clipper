@@ -51,18 +51,21 @@ npm run tauri:build
 
 ## 架构
 
-Clipper 是一个模块化的 Rust 工作空间，包含六个主要组件：
+Clipper 由 Rust 工作空间和共享 JavaScript UI 工具组成。默认 Rust 工作空间是当前支持的构建和测试路径；实验性的 GPUI 原型暂不属于默认工作空间，待方向明确后再纳入。
 
 ```
 clipper/
+├── clipper-security/    # 共享的文件系统与存储权限辅助库
 ├── clipper-indexer/     # 核心库 - SurrealDB 存储和全文搜索
 ├── clipper-server/      # REST API + WebSocket 服务器 (Axum)，含内置 Web 界面
 ├── clipper-client/      # Rust 客户端库
 ├── clipper-cli/         # 命令行界面
-├── clipper/             # 桌面应用 (Tauri 2 + React + TypeScript)
+├── clipper/             # 桌面应用 (React 前端 + Tauri 2 Rust 后端)
 ├── clipper-slint/       # 备选 GUI (Slint UI，未完成)
 └── packages/clipper-ui/ # 共享的 React UI 组件
 ```
+
+当前 Rust 工作空间成员包括 `clipper-security`、`clipper-indexer`、`clipper-server`、`clipper-client`、`clipper-cli`、`clipper/src-tauri` 和 `clipper-slint`。`packages/clipper-ui` 以及 `clipper/src` 下的 React 前端通过 npm 脚本构建。
 
 ### 技术栈
 
@@ -279,6 +282,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Hello, World!".to_string(),
             vec!["greeting".to_string()],
             None,
+            None,
         )
         .await?;
 
@@ -312,16 +316,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### 构建
 
 ```bash
-# 构建整个工作空间
+# 构建当前支持的 Rust 工作空间
 cargo build --workspace
 
 # 构建特定包
+cargo build -p clipper-security
 cargo build -p clipper-indexer
 cargo build -p clipper-server
 cargo build -p clipper-client
 cargo build -p clipper-cli
+cargo build -p clipper
 
-# 构建桌面应用
+# 类型检查共享 React UI
+npm run build:ui
+
+# 构建内置服务器 Web UI
+npm run build:web
+
+# 构建桌面应用安装包
 cd clipper && npm install && npm run tauri:build
 
 # 发布版本构建
@@ -337,8 +349,8 @@ cargo test --workspace
 # 运行服务器测试（顺序执行）
 cargo test -p clipper-server -- --test-threads=1
 
-# 运行客户端测试（顺序执行）
-cargo test -p clipper-client -- --test-threads=1
+# 运行客户端单元测试和自启动集成测试
+cargo test -p clipper-client --all-targets
 ```
 
 ## 项目结构
@@ -350,10 +362,13 @@ clipper/
 ├── LICENSE                # MIT 许可证
 ├── README.md              # 英文说明文档
 ├── README.zh-CN.md        # 本文件
+├── packages/
+│   └── clipper-ui/        # 共享 React 组件与 REST API 适配器
 ├── clipper/               # Tauri 桌面应用
 │   ├── src/               # React 前端
 │   ├── src-tauri/         # Tauri 后端 (Rust)
 │   └── package.json
+├── clipper-security/      # 共享安全与权限辅助库
 ├── clipper-indexer/       # 核心索引库
 │   ├── src/
 │   └── README.md
@@ -366,7 +381,7 @@ clipper/
 ├── clipper-cli/           # 命令行界面
 │   ├── src/
 │   └── README.md
-└── clipper-slint/         # 备选 Slint GUI
+└── clipper-slint/         # 实验性 Slint GUI，已纳入工作空间
     └── src/
 ```
 

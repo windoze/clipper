@@ -51,18 +51,21 @@ npm run tauri:build
 
 ## Architecture
 
-Clipper is built as a modular Rust workspace with six main components:
+Clipper is built from a Rust workspace plus shared JavaScript UI tooling. The default Rust workspace is the supported build/test path and intentionally excludes the experimental GPUI prototype until that direction is settled.
 
 ```
 clipper/
+├── clipper-security/    # Shared filesystem and storage permission helpers
 ├── clipper-indexer/     # Core library - SurrealDB storage & full-text search
 ├── clipper-server/      # REST API + WebSocket server (Axum) with built-in Web UI
 ├── clipper-client/      # Rust client library
 ├── clipper-cli/         # Command-line interface
-├── clipper/             # Desktop app (Tauri 2 + React + TypeScript)
+├── clipper/             # Desktop app (React frontend + Tauri 2 Rust backend)
 ├── clipper-slint/       # Alternative GUI (Slint UI, WIP)
 └── packages/clipper-ui/ # Shared React UI components
 ```
+
+Current Rust workspace members are `clipper-security`, `clipper-indexer`, `clipper-server`, `clipper-client`, `clipper-cli`, `clipper/src-tauri`, and `clipper-slint`. JavaScript packages such as `packages/clipper-ui` and the React frontend under `clipper/src` are built with npm scripts.
 
 ### Technology Stack
 
@@ -279,6 +282,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Hello, World!".to_string(),
             vec!["greeting".to_string()],
             None,
+            None,
         )
         .await?;
 
@@ -312,16 +316,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Building
 
 ```bash
-# Build entire workspace
+# Build the supported Rust workspace
 cargo build --workspace
 
 # Build specific package
+cargo build -p clipper-security
 cargo build -p clipper-indexer
 cargo build -p clipper-server
 cargo build -p clipper-client
 cargo build -p clipper-cli
+cargo build -p clipper
 
-# Build desktop app
+# Type-check shared React UI
+npm run build:ui
+
+# Build bundled server Web UI
+npm run build:web
+
+# Build desktop app bundle
 cd clipper && npm install && npm run tauri:build
 
 # Release build
@@ -337,8 +349,8 @@ cargo test --workspace
 # Run server tests (sequential)
 cargo test -p clipper-server -- --test-threads=1
 
-# Run client tests (sequential)
-cargo test -p clipper-client -- --test-threads=1
+# Run client unit and self-hosted integration tests
+cargo test -p clipper-client --all-targets
 ```
 
 ## Project Structure
@@ -349,10 +361,13 @@ clipper/
 ├── Cargo.toml             # Workspace configuration
 ├── LICENSE                # MIT License
 ├── README.md              # This file
+├── packages/
+│   └── clipper-ui/        # Shared React components and REST API adapter
 ├── clipper/               # Tauri desktop application
 │   ├── src/               # React frontend
 │   ├── src-tauri/         # Tauri backend (Rust)
 │   └── package.json
+├── clipper-security/      # Shared security and permission helpers
 ├── clipper-indexer/       # Core indexing library
 │   ├── src/
 │   └── README.md
@@ -365,7 +380,7 @@ clipper/
 ├── clipper-cli/           # Command-line interface
 │   ├── src/
 │   └── README.md
-└── clipper-slint/         # Alternative Slint GUI
+└── clipper-slint/         # Experimental Slint GUI, included in workspace
     └── src/
 ```
 
