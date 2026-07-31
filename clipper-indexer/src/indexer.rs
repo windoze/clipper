@@ -1524,7 +1524,12 @@ impl ClipperIndexer {
 
         for entry in all_entries {
             let attachment_content = if let Some(ref file_key) = entry.file_attachment {
-                self.storage.get_file(file_key).await.ok()
+                Some(self.storage.get_file(file_key).await.map_err(|e| {
+                    IndexerError::Export(format!(
+                        "Failed to read attachment '{}' for clip '{}': {}",
+                        file_key, entry.id, e
+                    ))
+                })?)
             } else {
                 None
             };
@@ -1637,9 +1642,6 @@ impl ClipperIndexer {
                 continue;
             }
 
-            // Import the clip
-            let has_attachment = clip.attachment_path.is_some();
-
             if let Some(ref attachment_path) = clip.attachment_path {
                 if let Some(attachment) = parser.get_attachment_file(attachment_path) {
                     // Create entry with file attachment
@@ -1673,23 +1675,11 @@ impl ClipperIndexer {
                     // Insert into database
                     self.insert_entry_with_id(&entry).await?;
                     attachments_imported += 1;
-                } else if has_attachment {
-                    // Attachment expected but not found in archive, import without attachment
-                    let entry = ClipboardEntry {
-                        id: clip.id.clone(),
-                        content: clip.content.clone(),
-                        created_at: clip.created_at,
-                        tags: clip.tags.clone(),
-                        additional_notes: clip.additional_notes.clone(),
-                        file_attachment: None,
-                        original_filename: clip.original_filename.clone(),
-                        language: clip.language.clone(),
-                        search_content: match &clip.additional_notes {
-                            Some(notes) => format!("{} {}", clip.content, notes),
-                            None => clip.content.clone(),
-                        },
-                    };
-                    self.insert_entry_with_id(&entry).await?;
+                } else {
+                    return Err(IndexerError::InvalidInput(format!(
+                        "Archive missing attachment '{}' declared for clip '{}'",
+                        attachment_path, clip.id
+                    )));
                 }
             } else {
                 // No attachment, just insert the text entry

@@ -1044,6 +1044,8 @@ fn multipart_error(error: axum::extract::multipart::MultipartError) -> crate::er
 ///
 /// Short URLs are NOT included in the export.
 async fn export_clips(State(state): State<AppState>) -> Result<Response> {
+    use futures::StreamExt;
+
     // Create a temporary file to write the archive to
     let temp_file = tempfile::NamedTempFile::new().map_err(|e| {
         crate::error::ServerError::Internal(format!("Failed to create temp file: {}", e))
@@ -1064,21 +1066,18 @@ async fn export_clips(State(state): State<AppState>) -> Result<Response> {
         crate::error::ServerError::Internal(format!("Failed to open temp file: {}", e))
     })?;
 
+    let temp_path_guard = temp_file.into_temp_path();
+
     // Create a stream from the file
-    let stream = tokio_util::io::ReaderStream::new(file);
+    let stream = tokio_util::io::ReaderStream::new(file).map(move |chunk| {
+        let _keep_temp_file = &temp_path_guard;
+        chunk
+    });
     let body = Body::from_stream(stream);
 
     // Generate filename with timestamp
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
     let filename = format!("clipper_export_{}.tar.gz", timestamp);
-
-    // Note: temp_file will be dropped after this function returns,
-    // but the file handle in the stream keeps the file accessible until streaming completes.
-    // The temp file will be cleaned up when the stream is fully consumed or dropped.
-    // We need to keep temp_file alive, so we'll store the path and let the OS clean up.
-    // Actually, we need to persist the temp file until streaming is done.
-    // The simplest approach is to use into_temp_path() to persist it.
-    let _temp_path = temp_file.into_temp_path();
 
     Ok(Response::builder()
         .status(StatusCode::OK)

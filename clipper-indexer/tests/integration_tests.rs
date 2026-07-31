@@ -1,5 +1,7 @@
 use chrono::{Duration, Utc};
-use clipper_indexer::{ClipperIndexer, IndexerError, PagingParams, SearchFilters};
+use clipper_indexer::{
+    ClipperIndexer, ExportBuilder, ExportedClip, IndexerError, PagingParams, SearchFilters,
+};
 use std::fs;
 use tempfile::TempDir;
 
@@ -555,6 +557,69 @@ async fn test_cleanup_entries_with_file_attachment() {
     // Verify file is also deleted from storage
     let file_content = indexer.get_file_content(&file_key).await;
     assert!(file_content.is_err());
+}
+
+#[tokio::test]
+async fn test_export_fails_when_attachment_file_missing() {
+    let (indexer, _db_dir, storage_dir) = setup_test_indexer().await;
+
+    let entry = indexer
+        .add_entry_from_file_content(
+            bytes::Bytes::from_static(b"Attachment content"),
+            "missing.txt".to_string(),
+            vec!["attachment".to_string()],
+            None,
+        )
+        .await
+        .unwrap();
+
+    let file_key = entry.file_attachment.clone().unwrap();
+    fs::remove_file(storage_dir.path().join(&file_key)).unwrap();
+
+    let export_path = storage_dir.path().join("export.tar.gz");
+    let result = indexer.export_all_to_file(&export_path).await;
+
+    match result {
+        Err(IndexerError::Export(message)) => {
+            assert!(message.contains(&file_key));
+            assert!(message.contains(&entry.id));
+        }
+        other => panic!("Expected missing attachment export error, got {:?}", other),
+    }
+}
+
+#[tokio::test]
+async fn test_import_rejects_missing_declared_attachment() {
+    let (indexer, _db_dir, storage_dir) = setup_test_indexer().await;
+
+    let clip = ExportedClip {
+        id: "missing-attachment".to_string(),
+        content: "Clip with missing attachment".to_string(),
+        created_at: Utc::now(),
+        tags: vec!["import".to_string()],
+        additional_notes: None,
+        original_filename: Some("missing.txt".to_string()),
+        language: None,
+        attachment_path: Some("files/missing.txt".to_string()),
+    };
+
+    let mut builder = ExportBuilder::new();
+    builder.add_clip(clip, None);
+
+    let archive_path = storage_dir.path().join("missing-attachment.tar.gz");
+    builder.build_to_file(&archive_path).unwrap();
+    let archive = fs::read(&archive_path).unwrap();
+
+    let result = indexer.import_archive(&archive).await;
+
+    match result {
+        Err(IndexerError::InvalidInput(message)) => {
+            assert!(message.contains("missing attachment"));
+            assert!(message.contains("files/missing.txt"));
+            assert!(message.contains("missing-attachment"));
+        }
+        other => panic!("Expected missing attachment import error, got {:?}", other),
+    }
 }
 
 #[tokio::test]

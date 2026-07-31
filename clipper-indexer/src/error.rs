@@ -20,6 +20,9 @@ pub enum IndexerError {
     #[error("Invalid input: {0}")]
     InvalidInput(String),
 
+    #[error("Export error: {0}")]
+    Export(String),
+
     #[error("Payload too large: {0}")]
     PayloadTooLarge(String),
 
