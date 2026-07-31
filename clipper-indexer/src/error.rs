@@ -20,6 +20,9 @@ pub enum IndexerError {
     #[error("Invalid input: {0}")]
     InvalidInput(String),
 
+    #[error("Payload too large: {0}")]
+    PayloadTooLarge(String),
+
     #[error("Short URL expired: {0}")]
     ShortUrlExpired(String),
 }

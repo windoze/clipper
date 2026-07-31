@@ -1,6 +1,6 @@
 use crate::error::{IndexerError, Result};
 use crate::export::{
-    ExportBuilder, ExportedClip, ImportParser, ImportResult, calculate_content_hash,
+    ExportBuilder, ExportedClip, ImportLimits, ImportParser, ImportResult, calculate_content_hash,
 };
 use crate::models::{
     ClipboardEntry, HighlightOptions, PagedResult, PagingParams, SearchFilters, SearchResultItem,
@@ -1552,6 +1552,16 @@ impl ClipperIndexer {
         self.import_from_parser(parser).await
     }
 
+    /// Import clips from a tar.gz archive with explicit parser limits.
+    pub async fn import_archive_with_limits(
+        &self,
+        archive_data: &[u8],
+        limits: ImportLimits,
+    ) -> Result<ImportResult> {
+        let parser = ImportParser::from_bytes_with_limits(archive_data, limits)?;
+        self.import_from_parser(parser).await
+    }
+
     /// Import clips from a tar.gz archive file with deduplication.
     ///
     /// This is more memory-efficient for large archives as it streams from disk
@@ -1571,6 +1581,16 @@ impl ClipperIndexer {
         path: P,
     ) -> Result<ImportResult> {
         let parser = ImportParser::from_file(path)?;
+        self.import_from_parser(parser).await
+    }
+
+    /// Import clips from a tar.gz archive file with explicit parser limits.
+    pub async fn import_archive_from_file_with_limits<P: AsRef<std::path::Path>>(
+        &self,
+        path: P,
+        limits: ImportLimits,
+    ) -> Result<ImportResult> {
+        let parser = ImportParser::from_file_with_limits(path, limits)?;
         self.import_from_parser(parser).await
     }
 
@@ -1621,7 +1641,7 @@ impl ClipperIndexer {
             let has_attachment = clip.attachment_path.is_some();
 
             if let Some(ref attachment_path) = clip.attachment_path {
-                if let Some(attachment_content) = parser.get_attachment(attachment_path) {
+                if let Some(attachment) = parser.get_attachment_file(attachment_path) {
                     // Create entry with file attachment
                     let original_filename = clip
                         .original_filename
@@ -1646,7 +1666,7 @@ impl ClipperIndexer {
                     // Store the file
                     let stored_file_key = self
                         .storage
-                        .put_file_bytes(attachment_content, &original_filename)
+                        .put_file_from_path_with_name(attachment.path(), &original_filename)
                         .await?;
                     entry.file_attachment = Some(stored_file_key);
 

@@ -67,10 +67,34 @@ impl FileStorage {
     }
 
     pub async fn put_file_bytes(&self, content: Bytes, original_filename: &str) -> Result<String> {
-        // Generate a unique filename using UUID
+        let stored_file_name = Self::stored_file_name(original_filename);
+        let object_path = ObjectPath::from(stored_file_name.as_str());
+
+        // Store the file
+        self.store
+            .put(&object_path, content.into())
+            .await
+            .map_err(IndexerError::ObjectStore)?;
+
+        Ok(stored_file_name)
+    }
+
+    pub async fn put_file_from_path_with_name(
+        &self,
+        source_path: impl AsRef<Path>,
+        original_filename: &str,
+    ) -> Result<String> {
+        let stored_file_name = Self::stored_file_name(original_filename);
+        let target_path = self.base_path.join(&stored_file_name);
+
+        tokio::fs::copy(source_path, target_path).await?;
+
+        Ok(stored_file_name)
+    }
+
+    fn stored_file_name(original_filename: &str) -> String {
         let unique_id = uuid::Uuid::new_v4();
 
-        // Extract extension from original filename
         let extension = Path::new(original_filename)
             .extension()
             .and_then(|e| e.to_str())
@@ -81,21 +105,11 @@ impl FileStorage {
             .and_then(|s| s.to_str())
             .unwrap_or("file");
 
-        let stored_file_name = if extension.is_empty() {
+        if extension.is_empty() {
             format!("{}_{}", unique_id, base_name)
         } else {
             format!("{}_{}.{}", unique_id, base_name, extension)
-        };
-
-        let object_path = ObjectPath::from(stored_file_name.as_str());
-
-        // Store the file
-        self.store
-            .put(&object_path, content.into())
-            .await
-            .map_err(IndexerError::ObjectStore)?;
-
-        Ok(stored_file_name)
+        }
     }
 
     pub async fn get_file(&self, file_key: &str) -> Result<Bytes> {

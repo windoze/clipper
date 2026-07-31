@@ -7,8 +7,8 @@ use axum::{
     Router,
 };
 use clipper_indexer::{
-    ClipboardEntry, HighlightOptions, ImportResult, PagedResult, PagingParams, SearchFilters,
-    SearchResultItem, ShortUrl, Tag,
+    ClipboardEntry, HighlightOptions, ImportLimits, ImportResult, PagedResult, PagingParams,
+    SearchFilters, SearchResultItem, ShortUrl, Tag,
 };
 use serde::{Deserialize, Serialize};
 
@@ -43,7 +43,7 @@ pub fn routes(max_upload_size_bytes: u64) -> Router<AppState> {
         .route("/export", get(export_clips))
         .route(
             "/import",
-            post(import_clips).layer(DefaultBodyLimit::disable()),
+            post(import_clips).layer(DefaultBodyLimit::max(max_upload_size_bytes as usize)),
         )
 }
 
@@ -1025,6 +1025,14 @@ async fn serve_asset(Path(filename): Path<String>) -> Result<Response> {
 
 // ==================== Export/Import Endpoints ====================
 
+fn multipart_error(error: axum::extract::multipart::MultipartError) -> crate::error::ServerError {
+    if error.status() == StatusCode::PAYLOAD_TOO_LARGE {
+        crate::error::ServerError::PayloadTooLarge(error.to_string())
+    } else {
+        crate::error::ServerError::InvalidInput(format!("Multipart error: {}", error))
+    }
+}
+
 /// Export all clips to a tar.gz archive
 ///
 /// Returns a tar.gz file containing:
@@ -1099,6 +1107,8 @@ async fn import_clips(
 ) -> Result<Json<ImportResult>> {
     use tokio::io::AsyncWriteExt;
 
+    let max_archive_size = state.config.upload.max_size_bytes;
+
     // Create a temporary file to stream the archive to
     let temp_file = tempfile::NamedTempFile::new().map_err(|e| {
         crate::error::ServerError::Internal(format!("Failed to create temp file: {}", e))
@@ -1115,13 +1125,10 @@ async fn import_clips(
             })?;
 
     let mut found_archive = false;
+    let mut archive_size = 0_u64;
 
     // Process multipart form data, streaming chunks directly to the temp file
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|e| crate::error::ServerError::InvalidInput(format!("Multipart error: {}", e)))?
-    {
+    while let Some(field) = multipart.next_field().await.map_err(multipart_error)? {
         let field_name = field.name().unwrap_or("").to_string();
 
         if field_name == "file" || field_name == "archive" {
@@ -1129,9 +1136,21 @@ async fn import_clips(
 
             // Stream chunks directly to the temp file
             let mut stream = field;
-            while let Some(chunk) = stream.chunk().await.map_err(|e| {
-                crate::error::ServerError::InvalidInput(format!("Failed to read chunk: {}", e))
-            })? {
+            while let Some(chunk) = stream.chunk().await.map_err(multipart_error)? {
+                archive_size = archive_size
+                    .checked_add(chunk.len() as u64)
+                    .ok_or_else(|| {
+                        crate::error::ServerError::PayloadTooLarge(
+                            "Import archive size overflowed".to_string(),
+                        )
+                    })?;
+                if archive_size > max_archive_size {
+                    return Err(crate::error::ServerError::PayloadTooLarge(format!(
+                        "Import archive exceeds maximum allowed size of {} bytes",
+                        max_archive_size
+                    )));
+                }
+
                 async_file.write_all(&chunk).await.map_err(|e| {
                     crate::error::ServerError::Internal(format!("Failed to write to temp file: {}", e))
                 })?;
@@ -1154,7 +1173,11 @@ async fn import_clips(
     }
 
     // Import from the temp file (memory-efficient for large archives)
-    let result = state.indexer.import_archive_from_file(&temp_path).await?;
+    let limits = ImportLimits::from_max_upload_size(max_archive_size);
+    let result = state
+        .indexer
+        .import_archive_from_file_with_limits(&temp_path, limits)
+        .await?;
 
     // Notify WebSocket clients about newly imported clips
     for id in &result.imported_ids {

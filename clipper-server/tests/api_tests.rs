@@ -29,6 +29,27 @@ async fn create_test_app() -> (Router, TempDir) {
     (app, temp_dir)
 }
 
+/// Helper function to create a test app with a custom upload limit
+async fn create_test_app_with_upload_limit(max_upload_size_bytes: u64) -> (Router, TempDir) {
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    let db_path = temp_dir.path().join("db");
+    let storage_path = temp_dir.path().join("storage");
+
+    let indexer = ClipperIndexer::new(&db_path, &storage_path)
+        .await
+        .expect("Failed to create indexer");
+
+    let mut config = ServerConfig::default();
+    config.upload.max_size_bytes = max_upload_size_bytes;
+
+    let state = AppState::new(indexer, config.clone());
+    let app = Router::new()
+        .merge(api::routes(config.upload.max_size_bytes))
+        .with_state(state);
+
+    (app, temp_dir)
+}
+
 /// Helper function to create a test app with short URL enabled
 async fn create_test_app_with_short_url() -> (Router, TempDir) {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
@@ -2941,4 +2962,37 @@ async fn test_import_missing_file_field() {
         .as_str()
         .unwrap()
         .contains("Missing archive file"));
+}
+
+#[tokio::test]
+async fn test_import_rejects_body_over_upload_limit() {
+    let (app, _temp_dir) = create_test_app_with_upload_limit(64).await;
+
+    let boundary = "----WebKitFormBoundaryImport";
+    let body = format!(
+        "--{boundary}\r\n\
+         Content-Disposition: form-data; name=\"file\"; filename=\"export.tar.gz\"\r\n\
+         Content-Type: application/gzip\r\n\
+         \r\n\
+         {}\r\n\
+         --{boundary}--\r\n",
+        "x".repeat(256)
+    );
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/import")
+                .header(
+                    "content-type",
+                    format!("multipart/form-data; boundary={}", boundary),
+                )
+                .body(Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
 }

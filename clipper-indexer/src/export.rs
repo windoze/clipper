@@ -10,11 +10,13 @@ use flate2::Compression;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tar::{Archive, Builder};
+
+const MIB: u64 = 1024 * 1024;
 
 /// Metadata for an exported clip, stored in the manifest.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -187,36 +189,158 @@ impl Default for ExportBuilder {
     }
 }
 
-/// Parser for reading import archives
+/// Limits applied while parsing import archives.
+#[derive(Debug, Clone, Copy)]
+pub struct ImportLimits {
+    /// Maximum number of tar entries, including manifest, attachments, and unknown entries.
+    pub max_entries: usize,
+    /// Maximum number of `files/*` attachment entries.
+    pub max_file_entries: usize,
+    /// Maximum allowed size for `manifest.json`.
+    pub max_manifest_size_bytes: u64,
+    /// Maximum allowed size for one attachment entry.
+    pub max_attachment_size_bytes: u64,
+    /// Maximum cumulative uncompressed size across all entries.
+    pub max_uncompressed_size_bytes: u64,
+}
+
+impl ImportLimits {
+    pub fn from_max_upload_size(max_upload_size_bytes: u64) -> Self {
+        let max_upload_size_bytes = max_upload_size_bytes.max(1);
+        Self {
+            max_attachment_size_bytes: max_upload_size_bytes,
+            max_uncompressed_size_bytes: max_upload_size_bytes
+                .saturating_mul(4)
+                .max(max_upload_size_bytes),
+            ..Self::default()
+        }
+    }
+}
+
+impl Default for ImportLimits {
+    fn default() -> Self {
+        Self {
+            max_entries: 10_000,
+            max_file_entries: 10_000,
+            max_manifest_size_bytes: 16 * MIB,
+            max_attachment_size_bytes: 100 * MIB,
+            max_uncompressed_size_bytes: 512 * MIB,
+        }
+    }
+}
+
+/// A parsed attachment stored on disk while the import parser is alive.
+#[derive(Debug, Clone)]
+pub struct ImportAttachment {
+    path: PathBuf,
+    size_bytes: u64,
+}
+
+impl ImportAttachment {
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
+    pub fn size_bytes(&self) -> u64 {
+        self.size_bytes
+    }
+}
+
+/// Parser for reading import archives.
 pub struct ImportParser {
     manifest: ExportManifest,
-    files: std::collections::HashMap<String, bytes::Bytes>,
+    files: HashMap<String, ImportAttachment>,
+    _temp_dir: tempfile::TempDir,
 }
 
 impl ImportParser {
-    /// Parse a tar.gz archive from a reader
-    fn parse_archive<R: Read>(reader: R) -> Result<Self> {
+    /// Parse a tar.gz archive from a reader.
+    fn parse_archive<R: Read>(reader: R, limits: ImportLimits) -> Result<Self> {
         let decoder = GzDecoder::new(reader);
         let mut archive = Archive::new(decoder);
 
+        let temp_dir = tempfile::TempDir::new()?;
         let mut manifest: Option<ExportManifest> = None;
-        let mut files = std::collections::HashMap::new();
+        let mut files = HashMap::new();
+        let mut entry_count = 0_usize;
+        let mut file_count = 0_usize;
+        let mut total_uncompressed_size = 0_u64;
 
         for entry_result in archive.entries()? {
+            entry_count += 1;
+            if entry_count > limits.max_entries {
+                return Err(IndexerError::PayloadTooLarge(format!(
+                    "Import archive contains too many entries (limit: {})",
+                    limits.max_entries
+                )));
+            }
+
             let mut entry = entry_result?;
+            let entry_size = entry.size();
+            total_uncompressed_size =
+                total_uncompressed_size
+                    .checked_add(entry_size)
+                    .ok_or_else(|| {
+                        IndexerError::PayloadTooLarge(
+                            "Import archive uncompressed size overflowed".to_string(),
+                        )
+                    })?;
+            if total_uncompressed_size > limits.max_uncompressed_size_bytes {
+                return Err(IndexerError::PayloadTooLarge(format!(
+                    "Import archive uncompressed size exceeds limit of {} bytes",
+                    limits.max_uncompressed_size_bytes
+                )));
+            }
+
             let path = entry.path()?.to_string_lossy().to_string();
 
             if path == ExportManifest::MANIFEST_FILENAME {
-                let mut content = String::new();
+                if entry_size > limits.max_manifest_size_bytes {
+                    return Err(IndexerError::PayloadTooLarge(format!(
+                        "Import manifest exceeds limit of {} bytes",
+                        limits.max_manifest_size_bytes
+                    )));
+                }
+
+                let mut content = String::with_capacity(entry_size as usize);
                 entry.read_to_string(&mut content)?;
                 manifest = Some(
                     serde_json::from_str(&content)
                         .map_err(|e| IndexerError::Serialization(e.to_string()))?,
                 );
             } else if path.starts_with("files/") {
-                let mut content = Vec::new();
-                entry.read_to_end(&mut content)?;
-                files.insert(path, bytes::Bytes::from(content));
+                file_count += 1;
+                if file_count > limits.max_file_entries {
+                    return Err(IndexerError::PayloadTooLarge(format!(
+                        "Import archive contains too many attachments (limit: {})",
+                        limits.max_file_entries
+                    )));
+                }
+
+                if entry_size > limits.max_attachment_size_bytes {
+                    return Err(IndexerError::PayloadTooLarge(format!(
+                        "Import attachment '{}' exceeds limit of {} bytes",
+                        path, limits.max_attachment_size_bytes
+                    )));
+                }
+
+                let attachment_path = temp_dir.path().join(format!("attachment-{}", file_count));
+                let mut attachment_file = File::create(&attachment_path)?;
+                let bytes_written = std::io::copy(&mut entry, &mut attachment_file)?;
+                if bytes_written != entry_size {
+                    return Err(IndexerError::InvalidInput(format!(
+                        "Attachment '{}' ended early while reading import archive",
+                        path
+                    )));
+                }
+
+                files.insert(
+                    path,
+                    ImportAttachment {
+                        path: attachment_path,
+                        size_bytes: entry_size,
+                    },
+                );
             }
         }
 
@@ -233,41 +357,65 @@ impl ImportParser {
             )));
         }
 
-        Ok(Self { manifest, files })
+        Ok(Self {
+            manifest,
+            files,
+            _temp_dir: temp_dir,
+        })
     }
 
-    /// Parse a tar.gz archive from bytes
+    /// Parse a tar.gz archive from bytes.
     pub fn from_bytes(data: &[u8]) -> Result<Self> {
-        Self::parse_archive(data)
+        Self::from_bytes_with_limits(data, ImportLimits::default())
     }
 
-    /// Parse a tar.gz archive from a file path
+    /// Parse a tar.gz archive from bytes using explicit limits.
+    pub fn from_bytes_with_limits(data: &[u8], limits: ImportLimits) -> Result<Self> {
+        Self::parse_archive(data, limits)
+    }
+
+    /// Parse a tar.gz archive from a file path.
     ///
     /// This is more memory-efficient for large archives as it streams from disk
     /// instead of requiring the entire archive to be loaded into memory first.
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let file = File::open(path.as_ref())?;
-        let reader = BufReader::new(file);
-        Self::parse_archive(reader)
+        Self::from_file_with_limits(path, ImportLimits::default())
     }
 
-    /// Get the manifest
+    /// Parse a tar.gz archive from a file path using explicit limits.
+    pub fn from_file_with_limits<P: AsRef<Path>>(path: P, limits: ImportLimits) -> Result<Self> {
+        let file = File::open(path.as_ref())?;
+        let reader = BufReader::new(file);
+        Self::parse_archive(reader, limits)
+    }
+
+    /// Get the manifest.
     pub fn manifest(&self) -> &ExportManifest {
         &self.manifest
     }
 
-    /// Get the list of clips from the manifest
+    /// Get the list of clips from the manifest.
     pub fn clips(&self) -> &[ExportedClip] {
         &self.manifest.clips
     }
 
-    /// Get the file attachment content for a clip by its attachment path
+    /// Get the file attachment content for a clip by its attachment path.
+    ///
+    /// This reads a single attachment from its temporary file. Import code should prefer
+    /// `get_attachment_file` to avoid loading attachment bytes into memory.
     pub fn get_attachment(&self, attachment_path: &str) -> Option<bytes::Bytes> {
-        self.files.get(attachment_path).cloned()
+        self.files
+            .get(attachment_path)
+            .and_then(|attachment| std::fs::read(&attachment.path).ok().map(bytes::Bytes::from))
     }
 
-    /// Get all file attachments
-    pub fn attachments(&self) -> &std::collections::HashMap<String, bytes::Bytes> {
+    /// Get the temporary file for an attachment.
+    pub fn get_attachment_file(&self, attachment_path: &str) -> Option<&ImportAttachment> {
+        self.files.get(attachment_path)
+    }
+
+    /// Get all parsed file attachments.
+    pub fn attachments(&self) -> &HashMap<String, ImportAttachment> {
         &self.files
     }
 }
@@ -317,6 +465,14 @@ pub fn calculate_content_hash(clip: &ExportedClip) -> u64 {
 mod tests {
     use super::*;
     use tempfile::NamedTempFile;
+
+    fn build_archive_bytes(builder: ExportBuilder) -> Vec<u8> {
+        let temp_file = NamedTempFile::new().expect("Failed to create temp file");
+        builder
+            .build_to_file(temp_file.path())
+            .expect("Failed to build archive");
+        std::fs::read(temp_file.path()).expect("Failed to read archive")
+    }
 
     #[test]
     fn test_export_builder_creates_valid_archive() {
@@ -384,6 +540,12 @@ mod tests {
             .get_attachment("files/test456_test.txt")
             .expect("Attachment not found");
         assert_eq!(retrieved, attachment);
+
+        let attachment_file = parser
+            .get_attachment_file("files/test456_test.txt")
+            .expect("Attachment file not found");
+        assert_eq!(attachment_file.size_bytes(), attachment.len() as u64);
+        assert!(attachment_file.path().exists());
     }
 
     #[test]
@@ -465,5 +627,92 @@ mod tests {
             .get_attachment(&clip.attachment_path.unwrap())
             .expect("Attachment not found");
         assert_eq!(retrieved, attachment);
+    }
+
+    #[test]
+    fn test_import_rejects_too_many_entries() {
+        let clip = ExportedClip {
+            id: "entry-limit".to_string(),
+            content: "Entry limit".to_string(),
+            created_at: Utc::now(),
+            tags: vec![],
+            additional_notes: None,
+            original_filename: None,
+            language: None,
+            attachment_path: None,
+        };
+
+        let mut builder = ExportBuilder::new();
+        builder.add_clip(clip, None);
+        let archive = build_archive_bytes(builder);
+
+        let limits = ImportLimits {
+            max_entries: 0,
+            ..ImportLimits::default()
+        };
+        let err = match ImportParser::from_bytes_with_limits(&archive, limits) {
+            Ok(_) => panic!("Expected import to fail"),
+            Err(err) => err,
+        };
+
+        assert!(matches!(err, IndexerError::PayloadTooLarge(_)));
+    }
+
+    #[test]
+    fn test_import_rejects_oversized_attachment() {
+        let clip = ExportedClip {
+            id: "attachment-limit".to_string(),
+            content: "Attachment limit".to_string(),
+            created_at: Utc::now(),
+            tags: vec![],
+            additional_notes: None,
+            original_filename: Some("limit.txt".to_string()),
+            language: None,
+            attachment_path: Some("files/attachment-limit_limit.txt".to_string()),
+        };
+
+        let mut builder = ExportBuilder::new();
+        builder.add_clip(clip, Some(bytes::Bytes::from_static(b"large")));
+        let archive = build_archive_bytes(builder);
+
+        let limits = ImportLimits {
+            max_attachment_size_bytes: 4,
+            ..ImportLimits::default()
+        };
+        let err = match ImportParser::from_bytes_with_limits(&archive, limits) {
+            Ok(_) => panic!("Expected import to fail"),
+            Err(err) => err,
+        };
+
+        assert!(matches!(err, IndexerError::PayloadTooLarge(_)));
+    }
+
+    #[test]
+    fn test_import_rejects_excessive_uncompressed_size() {
+        let clip = ExportedClip {
+            id: "total-limit".to_string(),
+            content: "Total limit".to_string(),
+            created_at: Utc::now(),
+            tags: vec![],
+            additional_notes: None,
+            original_filename: None,
+            language: None,
+            attachment_path: None,
+        };
+
+        let mut builder = ExportBuilder::new();
+        builder.add_clip(clip, None);
+        let archive = build_archive_bytes(builder);
+
+        let limits = ImportLimits {
+            max_uncompressed_size_bytes: 8,
+            ..ImportLimits::default()
+        };
+        let err = match ImportParser::from_bytes_with_limits(&archive, limits) {
+            Ok(_) => panic!("Expected import to fail"),
+            Err(err) => err,
+        };
+
+        assert!(matches!(err, IndexerError::PayloadTooLarge(_)));
     }
 }

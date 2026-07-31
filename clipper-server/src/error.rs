@@ -40,6 +40,12 @@ impl IntoResponse for ServerError {
                 clipper_indexer::IndexerError::NotFound(_) => {
                     (StatusCode::NOT_FOUND, e.to_string())
                 }
+                clipper_indexer::IndexerError::InvalidInput(_) => {
+                    (StatusCode::BAD_REQUEST, e.to_string())
+                }
+                clipper_indexer::IndexerError::PayloadTooLarge(_) => {
+                    (StatusCode::PAYLOAD_TOO_LARGE, e.to_string())
+                }
                 clipper_indexer::IndexerError::ShortUrlExpired(_) => {
                     (StatusCode::GONE, e.to_string())
                 }

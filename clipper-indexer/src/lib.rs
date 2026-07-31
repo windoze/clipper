@@ -5,7 +5,10 @@ pub mod models;
 pub mod storage;
 
 pub use error::{IndexerError, Result};
-pub use export::{ExportBuilder, ExportManifest, ExportedClip, ImportParser, ImportResult};
+pub use export::{
+    ExportBuilder, ExportManifest, ExportedClip, ImportAttachment, ImportLimits, ImportParser,
+    ImportResult,
+};
 pub use indexer::ClipperIndexer;
 pub use models::{
     ClipboardEntry, HighlightOptions, PagedResult, PagingParams, SearchFilters, SearchResultItem,
