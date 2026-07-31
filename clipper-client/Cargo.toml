@@ -31,6 +31,9 @@ hex = "0.4"
 tokio-rustls = "0.26"
 
 [dev-dependencies]
+axum = { version = "0.8", features = ["ws"] }
+clipper-server = { path = "../clipper-server", default-features = false }
+clipper_indexer = { path = "../clipper-indexer" }
 tokio-test = "0.4"
 tempfile = "3"
 rcgen = "0.14"

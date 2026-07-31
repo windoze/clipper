@@ -48,6 +48,19 @@ impl ClipperClient {
         }
     }
 
+    /// Create a new Clipper client using a preconfigured reqwest client
+    ///
+    /// This is useful for tests or embedders that need custom transport behavior
+    /// such as disabling proxies for loopback test servers.
+    pub fn new_with_http_client(base_url: impl Into<String>, client: reqwest::Client) -> Self {
+        Self {
+            base_url: base_url.into().trim_end_matches('/').to_string(),
+            client,
+            token: None,
+            trusted_fingerprints: HashMap::new(),
+        }
+    }
+
     /// Create a new Clipper client with Bearer token authentication
     ///
     /// # Arguments

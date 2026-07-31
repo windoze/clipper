@@ -1702,7 +1702,10 @@ dependencies = [
 name = "clipper-client"
 version = "0.24.2"
 dependencies = [
+ "axum",
  "chrono",
+ "clipper-server",
+ "clipper_indexer",
  "futures-util",
  "hex",
  "rcgen",

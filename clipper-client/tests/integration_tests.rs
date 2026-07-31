@@ -1,31 +1,163 @@
+use axum::{middleware, routing::get, Router};
+use clipper_indexer::ClipperIndexer;
 use clipper_client::{ClipNotification, ClipperClient, SearchFilters};
-use std::time::Duration;
-use tokio::sync::mpsc;
+use clipper_server::{api, auth_middleware, websocket, AppState, ServerConfig};
+use std::time::{Duration, Instant};
+use tempfile::TempDir;
+use tokio::sync::{mpsc, oneshot};
+use tokio::task::JoinHandle;
 
-// Helper to get test server URL from environment or use default
-fn test_server_url() -> String {
-    std::env::var("TEST_SERVER_URL").unwrap_or_else(|_| "http://localhost:3000".to_string())
+struct TestServer {
+    base_url: String,
+    bypass_proxy: bool,
+    shutdown_tx: Option<oneshot::Sender<()>>,
+    handle: Option<JoinHandle<()>>,
+    _temp_dir: Option<TempDir>,
 }
 
-// Helper to wait for server to be ready
-async fn wait_for_server() {
-    let client = reqwest::Client::new();
-    let url = format!("{}/health", test_server_url());
+impl TestServer {
+    async fn start() -> Self {
+        if let Ok(base_url) = std::env::var("TEST_SERVER_URL") {
+            let server = Self {
+                base_url: base_url.trim_end_matches('/').to_string(),
+                bypass_proxy: false,
+                shutdown_tx: None,
+                handle: None,
+                _temp_dir: None,
+            };
+            wait_for_server_url(&server.base_url, server.bypass_proxy).await;
+            return server;
+        }
 
-    for _ in 0..30 {
-        if client.get(&url).send().await.is_ok() {
-            return;
+        let temp_dir = TempDir::new().expect("Failed to create temp dir");
+        let db_path = temp_dir.path().join("db");
+        let storage_path = temp_dir.path().join("storage");
+
+        let indexer = ClipperIndexer::new(&db_path, &storage_path)
+            .await
+            .expect("Failed to create indexer");
+
+        let config = ServerConfig::default();
+        let state = AppState::new(indexer, config.clone());
+        let app = Router::new()
+            .route("/health", get(|| async { "OK" }))
+            .merge(api::routes(config.upload.max_size_bytes))
+            .merge(websocket::routes())
+            .layer(middleware::from_fn_with_state(
+                state.clone(),
+                auth_middleware,
+            ))
+            .with_state(state);
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("Failed to bind test server");
+        let base_url = format!(
+            "http://{}",
+            listener.local_addr().expect("Failed to read test server addr")
+        );
+
+        let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
+        let handle = tokio::spawn(async move {
+            if let Err(error) = axum::serve(listener, app)
+                .with_graceful_shutdown(async {
+                    let _ = shutdown_rx.await;
+                })
+                .await
+            {
+                eprintln!("Test server failed: {}", error);
+            }
+        });
+
+        let server = Self {
+            base_url,
+            bypass_proxy: true,
+            shutdown_tx: Some(shutdown_tx),
+            handle: Some(handle),
+            _temp_dir: Some(temp_dir),
+        };
+        wait_for_server_url(&server.base_url, server.bypass_proxy).await;
+        server
+    }
+
+    fn url(&self) -> String {
+        self.base_url.clone()
+    }
+
+    fn client(&self) -> ClipperClient {
+        if self.bypass_proxy {
+            let http_client = reqwest::Client::builder()
+                .no_proxy()
+                .build()
+                .expect("Failed to create no-proxy reqwest client");
+            ClipperClient::new_with_http_client(self.url(), http_client)
+        } else {
+            ClipperClient::new(self.url())
+        }
+    }
+}
+
+impl Drop for TestServer {
+    fn drop(&mut self) {
+        if let Some(shutdown_tx) = self.shutdown_tx.take() {
+            let _ = shutdown_tx.send(());
+        }
+
+        if let Some(handle) = &self.handle {
+            let deadline = Instant::now() + Duration::from_millis(500);
+            while !handle.is_finished() && Instant::now() < deadline {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            if !handle.is_finished() {
+                handle.abort();
+            }
+        }
+    }
+}
+
+async fn test_client() -> (TestServer, ClipperClient) {
+    let server = TestServer::start().await;
+    let client = server.client();
+    (server, client)
+}
+
+async fn wait_for_server_url(base_url: &str, bypass_proxy: bool) {
+    let client = if bypass_proxy {
+        reqwest::Client::builder()
+            .no_proxy()
+            .build()
+            .expect("Failed to create no-proxy readiness client")
+    } else {
+        reqwest::Client::new()
+    };
+    let url = format!("{}/health", base_url);
+    let mut last_error = String::from("no attempts made");
+
+    for _ in 0..100 {
+        match client.get(&url).send().await {
+            Ok(response) => {
+                let status = response.status();
+                let body = response.text().await.unwrap_or_default();
+                if status.is_success() && body.trim() == "OK" {
+                    return;
+                }
+                last_error = format!("last response was {status} with body {body:?}");
+            }
+            Err(error) => {
+                last_error = error.to_string();
+            }
         }
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
-    panic!("Server did not start in time");
+    panic!(
+        "Clipper server at {} did not become ready: {}",
+        base_url, last_error
+    );
 }
 
 #[tokio::test]
 async fn test_create_clip() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     let clip = client
         .create_clip(
@@ -45,9 +177,7 @@ async fn test_create_clip() {
 
 #[tokio::test]
 async fn test_create_clip_without_notes() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     let clip = client
         .create_clip(
@@ -66,9 +196,7 @@ async fn test_create_clip_without_notes() {
 
 #[tokio::test]
 async fn test_get_clip() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a clip first
     let created = client
@@ -89,9 +217,7 @@ async fn test_get_clip() {
 
 #[tokio::test]
 async fn test_get_nonexistent_clip() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     let result = client.get_clip("nonexistent123").await;
 
@@ -104,9 +230,7 @@ async fn test_get_nonexistent_clip() {
 
 #[tokio::test]
 async fn test_update_clip() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a clip
     let created = client
@@ -138,9 +262,7 @@ async fn test_update_clip() {
 
 #[tokio::test]
 async fn test_update_clip_tags_only() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a clip
     let created = client
@@ -159,9 +281,7 @@ async fn test_update_clip_tags_only() {
 
 #[tokio::test]
 async fn test_delete_clip() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a clip
     let created = client
@@ -182,9 +302,7 @@ async fn test_delete_clip() {
 
 #[tokio::test]
 async fn test_list_clips() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a few clips
     client
@@ -208,9 +326,7 @@ async fn test_list_clips() {
 
 #[tokio::test]
 async fn test_list_clips_with_tag_filter() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create clips with different tags
     client
@@ -246,9 +362,7 @@ async fn test_list_clips_with_tag_filter() {
 
 #[tokio::test]
 async fn test_search_clips() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create clips with searchable content
     client
@@ -286,9 +400,7 @@ async fn test_search_clips() {
 
 #[tokio::test]
 async fn test_search_clips_with_tag_filter() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create clips
     client
@@ -327,9 +439,7 @@ async fn test_search_clips_with_tag_filter() {
 
 #[tokio::test]
 async fn test_websocket_notifications() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a channel to receive notifications
     let (tx, mut rx) = mpsc::unbounded_channel();
@@ -372,9 +482,7 @@ async fn test_websocket_notifications() {
 
 #[tokio::test]
 async fn test_websocket_update_notification() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a channel to receive notifications
     let (tx, mut rx) = mpsc::unbounded_channel();
@@ -421,9 +529,7 @@ async fn test_websocket_update_notification() {
 
 #[tokio::test]
 async fn test_websocket_delete_notification() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a channel to receive notifications
     let (tx, mut rx) = mpsc::unbounded_channel();
@@ -470,9 +576,7 @@ async fn test_websocket_delete_notification() {
 
 #[tokio::test]
 async fn test_upload_file() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create file content as a reader
     let file_content = b"This is test file content for upload";
@@ -498,9 +602,7 @@ async fn test_upload_file() {
 
 #[tokio::test]
 async fn test_upload_file_without_optional_fields() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create file content as a reader
     let file_content = b"Simple file upload";
@@ -520,9 +622,7 @@ async fn test_upload_file_without_optional_fields() {
 
 #[tokio::test]
 async fn test_upload_binary_file() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create binary content (not valid UTF-8) as a reader
     let file_content = vec![0xFF, 0xFE, 0xFD, 0xFC, 0x00, 0x01, 0x02, 0x03];
@@ -547,9 +647,7 @@ async fn test_upload_binary_file() {
 
 #[tokio::test]
 async fn test_upload_file_with_websocket_notification() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a channel to receive notifications
     let (tx, mut rx) = mpsc::unbounded_channel();
@@ -596,9 +694,7 @@ async fn test_upload_file_with_websocket_notification() {
 
 #[tokio::test]
 async fn test_create_clip_with_language() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     let clip = client
         .create_clip(
@@ -623,9 +719,7 @@ async fn test_create_clip_with_language() {
 
 #[tokio::test]
 async fn test_create_clip_without_language() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     let clip = client
         .create_clip(
@@ -650,9 +744,7 @@ async fn test_create_clip_without_language() {
 
 #[tokio::test]
 async fn test_update_clip_add_language() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a clip without a language
     let created = client
@@ -686,9 +778,7 @@ async fn test_update_clip_add_language() {
 
 #[tokio::test]
 async fn test_update_clip_change_language() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a clip with a language
     let created = client
@@ -714,9 +804,7 @@ async fn test_update_clip_change_language() {
 
 #[tokio::test]
 async fn test_update_clip_language_preserves_other_fields() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a clip with all fields
     let created = client
@@ -745,9 +833,7 @@ async fn test_update_clip_language_preserves_other_fields() {
 
 #[tokio::test]
 async fn test_update_clip_tags_preserves_language() {
-    wait_for_server().await;
-
-    let client = ClipperClient::new(test_server_url());
+    let (_server, client) = test_client().await;
 
     // Create a clip with a language
     let created = client
