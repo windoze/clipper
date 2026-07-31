@@ -4,7 +4,7 @@ use crate::export::{
 };
 use crate::models::{
     ClipboardEntry, HighlightOptions, PagedResult, PagingParams, SearchFilters, SearchResultItem,
-    ShortUrl, Tag,
+    ShortUrl, Tag, build_search_content,
 };
 use crate::storage::FileStorage;
 use rand::Rng;
@@ -25,7 +25,7 @@ const SEARCH_INDEX_NAME: &str = "idx_search_content";
 const TAGS_SEARCH_INDEX_NAME: &str = "idx_tag_text";
 const NAMESPACE: &str = "clipper";
 const DATABASE: &str = "library";
-const CURRENT_INDEX_VERSION: i64 = 2;
+const CURRENT_INDEX_VERSION: i64 = 3;
 
 /// Characters used for generating short codes (alphanumeric, excluding ambiguous characters)
 const SHORT_CODE_CHARS: &[u8] = b"23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz";
@@ -163,6 +163,11 @@ impl ClipperIndexer {
 
         if version < 2 {
             Self::migrate_to_v2(db).await?;
+            version = 2;
+        }
+
+        if version < 3 {
+            Self::migrate_to_v3(db).await?;
         }
 
         // Always save the version after migrations complete
@@ -307,6 +312,11 @@ impl ClipperIndexer {
         Ok(())
     }
 
+    async fn migrate_to_v3(db: &Surreal<Db>) -> Result<()> {
+        Self::rebuild_search_content_for_db(db).await?;
+        Ok(())
+    }
+
     /// Convert tag text to a valid record ID (lowercase, alphanumeric with underscores)
     fn tag_text_to_id(tag: &str) -> String {
         // Create a deterministic ID from the tag text using a hash
@@ -324,8 +334,34 @@ impl ClipperIndexer {
     /// - Version 0: Initial schema (no FTS)
     /// - Version 1: Full-text search with ngram analyzer
     /// - Version 2: Tags table with edgengram FTS
+    /// - Version 3: Unified tokenized search content for content and notes
     pub async fn get_index_version(&self) -> Result<i64> {
         Self::get_index_schema_version(&self.db).await
+    }
+
+    /// Rebuild search_content for all clips using the current tokenizer.
+    pub async fn rebuild_search_content(&self) -> Result<usize> {
+        Self::rebuild_search_content_for_db(&self.db).await
+    }
+
+    async fn rebuild_search_content_for_db(db: &Surreal<Db>) -> Result<usize> {
+        let mut response = db.query(format!("SELECT * FROM {TABLE_NAME};")).await?;
+        let entries: Vec<DbClipboardEntry> = response.take(0)?;
+        let count = entries.len();
+
+        for entry in entries {
+            let id = entry.id.id.to_string();
+            let search_content =
+                build_search_content(&entry.content, entry.additional_notes.as_deref());
+
+            db.query("UPDATE type::thing($table, $id) SET search_content = $search_content;")
+                .bind(("table", TABLE_NAME))
+                .bind(("id", id))
+                .bind(("search_content", search_content))
+                .await?;
+        }
+
+        Ok(count)
     }
 
     pub async fn add_entry_from_text(
@@ -567,12 +603,12 @@ impl ClipperIndexer {
 
         // Calculate new search_content if additional_notes is being updated
         let new_search_content = match &additional_notes_normalized {
-            Some(Some(notes)) => format!("{} {}", existing_entry.content, notes),
-            Some(None) => existing_entry.content.clone(), // Clearing notes
-            None => match &existing_entry.additional_notes {
-                Some(existing_notes) => format!("{} {}", existing_entry.content, existing_notes),
-                None => existing_entry.content.clone(),
-            },
+            Some(Some(notes)) => build_search_content(&existing_entry.content, Some(notes)),
+            Some(None) => build_search_content(&existing_entry.content, None), // Clearing notes
+            None => build_search_content(
+                &existing_entry.content,
+                existing_entry.additional_notes.as_deref(),
+            ),
         };
 
         // Build update query
@@ -1659,10 +1695,10 @@ impl ClipperIndexer {
                         file_attachment: None,
                         original_filename: Some(original_filename.clone()),
                         language: clip.language.clone(),
-                        search_content: match &clip.additional_notes {
-                            Some(notes) => format!("{} {}", clip.content, notes),
-                            None => clip.content.clone(),
-                        },
+                        search_content: build_search_content(
+                            &clip.content,
+                            clip.additional_notes.as_deref(),
+                        ),
                     };
 
                     // Store the file
@@ -1692,10 +1728,10 @@ impl ClipperIndexer {
                     file_attachment: None,
                     original_filename: None,
                     language: clip.language.clone(),
-                    search_content: match &clip.additional_notes {
-                        Some(notes) => format!("{} {}", clip.content, notes),
-                        None => clip.content.clone(),
-                    },
+                    search_content: build_search_content(
+                        &clip.content,
+                        clip.additional_notes.as_deref(),
+                    ),
                 };
                 self.insert_entry_with_id(&entry).await?;
             }

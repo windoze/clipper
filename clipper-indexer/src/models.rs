@@ -16,6 +16,14 @@ pub(crate) fn tokenize(text: &str) -> String {
         .join("\u{200B}")
 }
 
+pub(crate) fn build_search_content(content: &str, additional_notes: Option<&str>) -> String {
+    let combined = match additional_notes {
+        Some(notes) => format!("{} {}", content, notes),
+        None => content.to_string(),
+    };
+    tokenize(&combined)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClipboardEntry {
     pub id: String,
@@ -63,7 +71,7 @@ impl ClipboardEntry {
         // Use UUID without hyphens for SurrealDB compatibility
         let id = uuid::Uuid::new_v4().simple().to_string();
         // Pre-tokenize content for search indexing
-        let search_content = tokenize(&content);
+        let search_content = build_search_content(&content, None);
 
         Self {
             id,
@@ -84,7 +92,7 @@ impl ClipboardEntry {
     }
 
     pub fn with_notes(mut self, notes: String) -> Self {
-        self.search_content = format!("{} {}", self.content, notes);
+        self.search_content = build_search_content(&self.content, Some(&notes));
         self.additional_notes = Some(notes);
         self
     }
@@ -100,10 +108,26 @@ impl ClipboardEntry {
     }
 
     pub fn update_search_content(&mut self) {
-        self.search_content = match &self.additional_notes {
-            Some(notes) => format!("{} {}", self.content, notes),
-            None => self.content.clone(),
-        };
+        self.search_content =
+            build_search_content(&self.content, self.additional_notes.as_deref());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{build_search_content, tokenize};
+
+    #[test]
+    fn test_build_search_content_tokenizes_content_and_notes_together() {
+        assert_eq!(
+            build_search_content("自然语言处理", Some("中文搜索")),
+            tokenize("自然语言处理 中文搜索")
+        );
+    }
+
+    #[test]
+    fn test_build_search_content_without_notes_tokenizes_content() {
+        assert_eq!(build_search_content("自然语言处理", None), tokenize("自然语言处理"));
     }
 }
 

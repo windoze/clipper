@@ -36,7 +36,8 @@ async fn test_add_entry_from_text() {
         entry.additional_notes,
         Some("This is a test note".to_string())
     );
-    assert_eq!(entry.search_content, "Hello, World! This is a test note");
+    assert!(entry.search_content.contains("Hello"));
+    assert!(entry.search_content.contains("test"));
 }
 
 #[tokio::test]
@@ -84,7 +85,33 @@ async fn test_update_entry() {
 
     assert_eq!(updated.tags, vec!["updated", "test"]);
     assert_eq!(updated.additional_notes, Some("Updated notes".to_string()));
-    assert_eq!(updated.search_content, "Original content Updated notes");
+    assert!(updated.search_content.contains("Original"));
+    assert!(updated.search_content.contains("Updated"));
+}
+
+#[tokio::test]
+async fn test_update_entry_notes_tokenizes_search_content() {
+    let (indexer, _db_dir, _storage_dir) = setup_test_indexer().await;
+
+    let entry = indexer
+        .add_entry_from_text(
+            "项目进度".to_string(),
+            vec!["search".to_string()],
+            None,
+            None,
+        )
+        .await
+        .expect("Failed to add entry");
+
+    let updated = indexer
+        .update_entry(&entry.id, None, Some("自然语言处理".to_string()), None)
+        .await
+        .expect("Failed to update entry");
+
+    assert_eq!(updated.additional_notes, Some("自然语言处理".to_string()));
+    assert_ne!(updated.search_content, "项目进度 自然语言处理");
+    assert!(updated.search_content.contains('\u{200B}'));
+    assert!(updated.search_content.contains("自然"));
 }
 
 #[tokio::test]
@@ -620,6 +647,42 @@ async fn test_import_rejects_missing_declared_attachment() {
         }
         other => panic!("Expected missing attachment import error, got {:?}", other),
     }
+}
+
+#[tokio::test]
+async fn test_import_tokenizes_search_content_with_notes() {
+    let (indexer, _db_dir, storage_dir) = setup_test_indexer().await;
+
+    let clip = ExportedClip {
+        id: "import-tokenized-notes".to_string(),
+        content: "导入内容".to_string(),
+        created_at: Utc::now(),
+        tags: vec!["import".to_string()],
+        additional_notes: Some("自然语言处理".to_string()),
+        original_filename: None,
+        language: None,
+        attachment_path: None,
+    };
+
+    let mut builder = ExportBuilder::new();
+    builder.add_clip(clip, None);
+
+    let archive_path = storage_dir.path().join("tokenized-notes.tar.gz");
+    builder.build_to_file(&archive_path).unwrap();
+    let archive = fs::read(&archive_path).unwrap();
+
+    let result = indexer.import_archive(&archive).await.unwrap();
+    assert_eq!(result.imported_count, 1);
+
+    let imported = indexer
+        .get_entry("import-tokenized-notes")
+        .await
+        .expect("Failed to get imported entry");
+
+    assert_eq!(imported.additional_notes, Some("自然语言处理".to_string()));
+    assert_ne!(imported.search_content, "导入内容 自然语言处理");
+    assert!(imported.search_content.contains('\u{200B}'));
+    assert!(imported.search_content.contains("自然"));
 }
 
 #[tokio::test]
