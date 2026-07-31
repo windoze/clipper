@@ -129,10 +129,11 @@ pub fn copy_to_clipboard(state: State<'_, AppState>, content: String) -> Result<
     use arboard::Clipboard;
 
     let mut clipboard = Clipboard::new().map_err(|e| e.to_string())?;
-    clipboard.set_text(&content).map_err(|e| e.to_string())?;
 
-    // Mark this content as synced to prevent clipboard monitor from creating a duplicate
-    state.set_last_synced_content(content);
+    // Mark before writing the clipboard so the polling monitor cannot race and re-upload it.
+    state.set_last_synced_content(content.clone());
+
+    clipboard.set_text(&content).map_err(|e| e.to_string())?;
 
     Ok(())
 }

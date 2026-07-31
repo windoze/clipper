@@ -12,6 +12,20 @@ fn get_hostname_tag() -> String {
     format!("$host:{}", hostname)
 }
 
+fn clip_originated_from_this_machine(tags: &[String]) -> bool {
+    let my_hostname_tag = get_hostname_tag();
+    tags.iter().any(|t| t == &my_hostname_tag)
+}
+
+fn prepare_text_clipboard_update(state: &AppState, content: &str, tags: &[String]) -> bool {
+    if clip_originated_from_this_machine(tags) {
+        return false;
+    }
+
+    state.set_last_synced_content(content.to_string());
+    true
+}
+
 /// Emit WebSocket connection status to frontend
 fn emit_ws_status(app: &AppHandle, connected: bool) {
     let state = app.state::<AppState>();
@@ -150,9 +164,8 @@ pub async fn start_websocket_listener(app: AppHandle) {
                             match &notification {
                                 ClipNotification::NewClip { id, content, tags } => {
                                     // Check if this clip originated from this machine
-                                    let my_hostname_tag = get_hostname_tag();
                                     let is_from_this_machine =
-                                        tags.iter().any(|t| t == &my_hostname_tag);
+                                        clip_originated_from_this_machine(tags);
 
                                     // Check if this is an image clip
                                     let is_image_clip = tags.iter().any(|t| t == "$image");
@@ -196,12 +209,16 @@ pub async fn start_websocket_listener(app: AppHandle) {
                                         // For image clips from THIS machine, don't touch clipboard
                                         // (the image is already there)
                                     } else {
-                                        // For text clips, update system clipboard
-                                        if let Err(e) = set_clipboard_content(content) {
-                                            log::warn!("Failed to set clipboard: {}", e);
-                                        } else {
-                                            // Update last synced content to prevent loop
-                                            state.set_last_synced_content(content.clone());
+                                        // For text clips from other machines, update system clipboard.
+                                        // Mark before writing to prevent the polling monitor from racing.
+                                        if prepare_text_clipboard_update(
+                                            state.inner(),
+                                            content,
+                                            tags,
+                                        ) {
+                                            if let Err(e) = set_clipboard_content(content) {
+                                                log::warn!("Failed to set clipboard: {}", e);
+                                            }
                                         }
                                     }
 
@@ -284,5 +301,38 @@ pub async fn start_websocket_listener(app: AppHandle) {
         );
         tokio::time::sleep(tokio::time::Duration::from_secs(reconnect_delay)).await;
         reconnect_delay = (reconnect_delay * 2).min(30);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn test_state() -> AppState {
+        AppState::new_with_trusted_certs("http://127.0.0.1:3000", None, HashMap::new())
+    }
+
+    fn last_synced_text(state: &AppState) -> String {
+        state.last_synced_content.lock().unwrap().clone()
+    }
+
+    #[test]
+    fn prepare_text_clipboard_update_marks_before_clipboard_write() {
+        let state = test_state();
+        let tags = vec!["$host:remote".to_string()];
+
+        assert!(prepare_text_clipboard_update(&state, "remote text", &tags));
+        assert_eq!(last_synced_text(&state), "remote text");
+    }
+
+    #[test]
+    fn prepare_text_clipboard_update_skips_local_host_clips() {
+        let state = test_state();
+        state.set_last_synced_content("existing".to_string());
+        let tags = vec![get_hostname_tag()];
+
+        assert!(!prepare_text_clipboard_update(&state, "local text", &tags));
+        assert_eq!(last_synced_text(&state), "existing");
     }
 }
