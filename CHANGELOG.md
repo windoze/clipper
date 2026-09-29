@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.3]
+
+### Security
+
+- Remove bearer token support in URLs and restrict CORS origins
+- Require authentication for version details endpoint
+- Sanitize shared download filenames
+- Limit import archive processing to prevent excessive resource usage
+
+### Added
+
+- Privacy policy (English and Chinese)
+
+### Changed
+
+- Unify search content tokenization across server and client
+- Route desktop API calls through the Rust client instead of the JS bridge
+- Stream desktop file uploads to reduce memory usage
+- Server web UI now syncs over WebSocket on localhost HTTP, not only HTTPS
+- Enable LTO and strip binaries for smaller release builds
+
+### Fixed
+
+- REST TLS certificate fingerprint pinning
+- Import now fails when archive attachments are missing instead of skipping silently
+- Deleting an entry now cascades to its short URLs
+- Clipboard text sync races
+- Bundled server now shuts down gracefully on app exit
+- AppImage release artifacts (broken .DirIcon symlink and AppRun permissions) via Tauri CLI 2.12.0
+
 ## [0.24.2]
 
 ### Fixed
